@@ -6,3 +6,5 @@ node_modules
 .env
 posts/*
 !posts/.empty
+
+private-key.key
