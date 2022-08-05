@@ -20,3 +20,7 @@ header {
   color: #6c6c6c;
   font-size: .95em;
 }
+
+.page-content img {
+  max-width: 100%;
+}
