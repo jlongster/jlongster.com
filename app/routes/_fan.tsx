@@ -1,10 +1,15 @@
 import fs from 'fs';
 import { join } from 'path';
 import { verify } from '../auth/verify';
-import { dataPath } from '../db/query';
+import { dataPath, create } from '../db/query';
 import { resolve6 } from 'dns/promises';
 
 const publicKey = fs.readFileSync(__dirname + '/../public-key.key', 'utf8');
+
+function reload() {
+  console.log('Reloading database...');
+  create();
+}
 
 export async function action({ request }) {
   if (request.method !== 'POST') {
@@ -30,28 +35,36 @@ export async function action({ request }) {
   fs.writeFileSync(join(dataPath, 'datoms.json'), data, 'utf8');
 
   // Tell everybody to reload the db
-  let urls;
+  // let urls;
 
-  if (process.env.NODE_ENV === 'development') {
-    urls = ['http://localhost:3000/_reload'];
-  } else {
-    let address = `global.${process.env.FLY_APP_NAME}.internal`;
-    let ipv6s = await resolve6(address);
-    urls = ipv6s.map(ip => `http://[${ip}]:3000/_reload`);
+  // if (process.env.NODE_ENV === 'development') {
+  //   urls = ['http://localhost:3000/_reload'];
+  // } else {
+  //   let address = `global.${process.env.FLY_APP_NAME}.internal`;
+  //   let ipv6s = await resolve6(address);
+  //   urls = ipv6s.map(ip => `http://[${ip}]:3000/_reload`);
+  // }
+
+  // let responses = await Promise.all(
+  //   urls.map(async url => {
+  //     let res = await fetch(url, { method: 'POST' });
+
+  //     if (res.status !== 200) {
+  //       res.text().then(text => console.log('ERROR', text));
+  //     }
+
+  //     return res.status;
+  //   })
+  // );
+  // let failed = responses.some(status => status !== 200);
+
+  let failed = false;
+  try {
+    reload();
+  } catch (e) {
+    console.log(e);
+    failed = true;
   }
-
-  let responses = await Promise.all(
-    urls.map(async url => {
-      let res = await fetch(url, { method: 'POST' });
-
-      if (res.status !== 200) {
-        res.text().then(text => console.log('ERROR', text));
-      }
-
-      return res.status;
-    })
-  );
-  let failed = responses.some(status => status !== 200);
 
   let headers = new Headers();
   headers.set('Access-Control-Allow-Origin', '*');

@@ -10,7 +10,7 @@ function mapBlocksToPages(blocks) {
     id: b.id,
     uuid: b[':block/uuid'],
     name: b[':block/original-name'],
-    properties: b[':block/properties']
+    properties: b[':block/properties'] || {}
   }));
   pages.sort((p1, p2) =>
     dateFns.compareDesc(
@@ -66,7 +66,7 @@ function tree(node, map) {
     content: node[':block/content'] || '',
     name: node[':block/original-name'],
     children,
-    properties: node[':block/properties']
+    properties: node[':block/properties'] || {}
   };
 }
 

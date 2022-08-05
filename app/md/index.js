@@ -30,7 +30,7 @@ export function renderInlineMd(content) {
 
 export function renderBlock(block) {
   walkBlocks(block, b => {
-    let content = b.content.replace(/^id:: .*/m, '').trim();
+    let content = b.content.replace(/^\w+:: .*/m, '').trim();
 
     b.raw = content;
 

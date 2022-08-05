@@ -3,17 +3,19 @@ import * as url from 'url';
 import { join } from 'path';
 import ds from 'datascript';
 
-export let dataPath;
+let localDataPath;
+if (typeof __dirname === 'undefined') {
+  localDataPath = join(
+    url.fileURLToPath(new URL('.', import.meta.url)),
+    '/../../data'
+  );
+} else {
+  localDataPath = join(__dirname, '/../data');
+}
 
+export let dataPath;
 if (process.env.NODE_ENV === 'development') {
-  if (typeof __dirname === 'undefined') {
-    dataPath = join(
-      url.fileURLToPath(new URL('.', import.meta.url)),
-      '/../../data'
-    );
-  } else {
-    dataPath = join(__dirname, '/../data');
-  }
+  dataPath = localDataPath;
 } else {
   dataPath = '/data';
 }
@@ -24,12 +26,17 @@ create();
 
 export function create() {
   let schema = JSON.parse(
-    fs.readFileSync(join(dataPath, '/schema.json'), 'utf8')
+    fs.readFileSync(join(localDataPath, '/schema.json'), 'utf8')
   );
 
-  let parsed = JSON.parse(
-    fs.readFileSync(join(dataPath, '/datoms.json'), 'utf8')
-  );
+  let parsed;
+  if (fs.existsSync(join(dataPath, '/datoms.json'))) {
+    parsed = JSON.parse(
+      fs.readFileSync(join(dataPath, '/datoms.json'), 'utf8')
+    );
+  } else {
+    parsed = [];
+  }
 
   conn = ds.conn_from_datoms(parsed, schema);
 }

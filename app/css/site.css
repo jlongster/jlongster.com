@@ -10,6 +10,13 @@ header {
   background-color: lightgray;
 }
 
-.link-list a {
+.page-content {
+  max-width: 800px;
 }
 
+.page-content .footnote {
+  background-color: #f8f8f8;
+  padding: 20px;
+  color: #6c6c6c;
+  font-size: .95em;
+}

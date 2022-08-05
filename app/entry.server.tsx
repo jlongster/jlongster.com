@@ -16,7 +16,11 @@ export default function handleRequest(
   let url = new URL(request.url);
   let pathname = url.pathname;
 
-  if (process.env.NODE_ENV === 'production' && url.host !== 'jlongster.com') {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    url.host !== 'jlongster.com' &&
+    url.search !== '?live'
+  ) {
     responseHeaders.set('Location', 'https://jlongster.com' + pathname);
     return new Response('', { status: 301, headers: responseHeaders });
   } else if (redirects[pathname]) {
