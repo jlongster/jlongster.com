@@ -43,47 +43,51 @@ function Block({ block }) {
 }
 
 export function Page({ page }) {
-  return page.children.map(child => {
-    if (child.properties && child.properties.public) {
-      let ignoredProps = ['public', 'url'];
+  return (
+    <div className="page-content">
+      {page.children.map(child => {
+        if (child.properties && child.properties.public) {
+          let ignoredProps = ['public', 'url'];
 
-      return (
-        <div className="properties">
-          {Object.entries(child.properties)
-            .map(([key, value]) => {
-              if (ignoredProps.indexOf(key) === -1) {
-                if (key === 'date') {
-                  // Dates are always links, but we don't want it to
-                  // be a link
-                  value = value[0];
-                }
+          return (
+            <div className="properties" key={child.id}>
+              {Object.entries(child.properties)
+                .map(([key, value]) => {
+                  if (ignoredProps.indexOf(key) === -1) {
+                    if (key === 'date') {
+                      // Dates are always links, but we don't want it to
+                      // be a link
+                      value = value[0];
+                    }
 
-                return (
-                  <div>
-                    <strong>{key}::</strong> <Value value={value} />
-                  </div>
-                );
-              }
-              return null;
-            })
-            .filter(Boolean)}
-        </div>
-      );
-    }
+                    return (
+                      <div>
+                        <strong>{key}::</strong> <Value value={value} />
+                      </div>
+                    );
+                  }
+                  return null;
+                })
+                .filter(Boolean)}
+            </div>
+          );
+        }
 
-    return (
-      <div className="page-content">
-        <BlockContent block={child} as="p" />
-        {child.children.length > 0 && (
-          <ul>
-            {child.children.map(block => (
-              <Block block={block} />
-            ))}
-          </ul>
-        )}
-      </div>
-    );
-  });
+        return (
+          <>
+            <BlockContent block={child} as="p" />
+            {child.children.length > 0 && (
+              <ul>
+                {child.children.map(block => (
+                  <Block block={block} />
+                ))}
+              </ul>
+            )}
+          </>
+        );
+      })}
+    </div>
+  );
 }
 
 export function PageList({ pages }) {
