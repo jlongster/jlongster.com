@@ -1,0 +1,12 @@
+#!/bin/sh
+
+ROOT=`dirname "$0"`
+. "$ROOT/../.cloudflare.env"
+
+curl -X POST "https://api.cloudflare.com/client/v4/zones/b5b1c96eb1cea26c4d3de6e5d2839578/purge_cache" \
+     -H "Authorization: Bearer $CLOUDFLARE_TOKEN" \
+     -H "Content-Type:application/json" \
+     --data '{"purge_everything":true}'
+
+# For specific files:
+#     --data '{"files":["https://jlongster.com", "https://discord-life.jlongster.com/roam/sitecss", "https://discord-life.jlongster.com/roam/daily"]}'

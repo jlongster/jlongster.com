@@ -30,6 +30,7 @@ export default function RenderPage(props) {
         <a href="/">home</a>
       </header>
       <main className="page">
+        <h1>{page.name}</h1>
         <Page page={page} />
       </main>
     </>

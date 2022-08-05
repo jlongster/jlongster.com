@@ -79,7 +79,7 @@ export function Page({ page }) {
             {child.children.length > 0 && (
               <ul>
                 {child.children.map(block => (
-                  <Block block={block} />
+                  <Block block={block} key={block.id} />
                 ))}
               </ul>
             )}
