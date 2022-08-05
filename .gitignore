@@ -4,7 +4,7 @@ node_modules
 /build
 /public/build
 .env
-posts/*
-!posts/.empty
+data/datoms.json
+
 
 private-key.key
