@@ -1,5 +1,42 @@
+@font-face {
+  font-family: 'IBMPlexSerif';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/plex/woff2/IBMPlexSerif-Regular.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-Regular.woff') format('woff');
+}
+@font-face {
+  font-family: 'IBMPlexSerif';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/plex/woff2/IBMPlexSerif-Italic.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-Italic.woff') format('woff');
+}
+@font-face {
+  font-family: 'IBMPlexSerif';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/plex/woff2/IBMPlexSerif-Bold.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-Bold.woff') format('woff');
+}
+@font-face {
+  font-family: 'IBMPlexSerif';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/plex/woff2/IBMPlexSerif-BoldItalic.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-BoldItalic.woff') format('woff');
+}
+
 body {
+  font-family: "IBMPlexSerif";
   font-size: 17px;
+  line-height: 26px;
+  letter-spacing: 0.003em;
+}
+
+h1 {
+  letter-spacing: -.004em;
+  margin-top: 1em;
+  margin-bottom: .5em;
+}
+h2 {
+  letter-spacing: 0;
 }
 
 header {
@@ -8,6 +45,7 @@ header {
 
 .properties {
   background-color: lightgray;
+  margin-bottom: 25px;
 }
 
 .page-content {
@@ -23,4 +61,13 @@ header {
 
 .page-content img {
   max-width: 100%;
+}
+
+.page-content p {
+  margin: 1.1em 0;
+}
+
+ul li {
+  list-style: square;
+  margin: 1em 0;
 }
