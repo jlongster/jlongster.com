@@ -66,6 +66,24 @@ export async function action({ request }) {
     failed = true;
   }
 
+  if (process.env.CLOUDFLARE_TOKEN) {
+    console.log('Busting cloudflare cache...');
+    let res = await fetch(
+      'https://api.cloudflare.com/client/v4/zones/b5b1c96eb1cea26c4d3de6e5d2839578/purge_cache',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.CLOUDFLARE_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ purge_everything: true })
+      }
+    );
+    if (res.status !== 200) {
+      console.log('Error busting cloudflare cache');
+    }
+  }
+
   let headers = new Headers();
   headers.set('Access-Control-Allow-Origin', '*');
   return new Response(failed ? 'failed' : 'ok', {
