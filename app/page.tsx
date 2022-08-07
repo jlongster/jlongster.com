@@ -92,11 +92,11 @@ export function Page({ page }) {
 
 export function PageList({ pages }) {
   return (
-    <ul>
+    <ul className="page-list">
       {pages.map(page => (
         <li key={page.id}>
-          <a href={`/${page.properties.url}`}>{page.name}</a> (
-          {page.properties.date})
+          <a href={`/${page.properties.url}`}>{page.name}</a>
+          <span className="date">{page.properties.date}</span>
         </li>
       ))}
     </ul>

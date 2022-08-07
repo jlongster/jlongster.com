@@ -43,6 +43,23 @@ header {
   margin-bottom: 10px;
 }
 
+/* page list */
+
+.page-list li {
+  margin: .25em 0;
+}
+
+.page-list .date {
+  margin-left: .8em;
+  color: #909a9c;
+}
+
+/* page */
+
+header .context {
+  font-style: italic;
+}
+
 .properties {
   background-color: lightgray;
   margin-bottom: 25px;
@@ -67,7 +84,7 @@ header {
   margin: 1.1em 0;
 }
 
-ul li {
+.page-content ul li {
   list-style: square;
   margin: 1em 0;
 }
