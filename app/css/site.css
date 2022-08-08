@@ -28,19 +28,46 @@ body {
   font-size: 17px;
   line-height: 26px;
   letter-spacing: 0.005em;
+  margin: 20px;
 }
 
 h1 {
   letter-spacing: -.004em;
+  line-height: .95em;
   margin-top: 1em;
   margin-bottom: .5em;
 }
 h2 {
   letter-spacing: 0;
+  line-height: 1em;
+}
+h3 {
+  letter-spacing: 0;
+}
+h4 {
+  letter-spacing: 0;
 }
 
 header {
   margin-bottom: 10px;
+}
+
+/* section grid */
+
+.section-grid {
+  display: grid;
+  gap: 20px;
+  max-width: 1000px;
+}
+
+@media (min-width: 800px) {
+  .section-grid {
+    grid-template-columns: repeat(2, calc(50% - 10px));
+  }
+}
+
+.section-item h4 {
+  margin: 0;
 }
 
 /* page list */
@@ -52,6 +79,14 @@ header {
 .page-list .date {
   margin-left: .8em;
   color: #909a9c;
+}
+
+.page-list .empty {
+  font-style: italic;
+}
+
+footer {
+  margin-top: 20px;
 }
 
 /* page */

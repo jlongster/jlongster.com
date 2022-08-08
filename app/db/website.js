@@ -5,6 +5,27 @@ export function parseDate(date) {
   return dateFns.parse(date, 'MMM do, yyyy', new Date());
 }
 
+function hasLink(name) {
+  return props =>
+    Object.values(props).find(prop => {
+      return (
+        Array.isArray(prop) && prop.find(link => link.toLowerCase() === name)
+      );
+    });
+}
+
+function withoutLinks(namesArr) {
+  let names = new Set(namesArr.map(n => n.toLowerCase()));
+  return props => {
+    let found = Object.values(props).find(prop => {
+      return (
+        Array.isArray(prop) && prop.find(link => names.has(link.toLowerCase()))
+      );
+    });
+    return !found;
+  };
+}
+
 function mapBlocksToPages(blocks) {
   let pages = blocks.map(b => ({
     id: b.id,
@@ -21,18 +42,27 @@ function mapBlocksToPages(blocks) {
   return pages;
 }
 
-export function getPages({ limit = Infinity, offset = 0 } = {}) {
+export function getPages({
+  limit = Infinity,
+  offset = 0,
+  tag,
+  tagFilter
+} = {}) {
   let blocks = q(
     find('[(pull ?b [*]) ...]')
       .where([
         '?b :block/properties ?props',
         '(has-date ?props)',
-        '?b :block/original-name'
+        '?b :block/original-name',
+        '(has-link ?props)',
+        '(without-link ?props)'
       ])
-      .in('$ has-date'),
+      .in('$ has-date has-link without-link'),
     props => {
       return !!(props.date && Array.isArray(props.date));
-    }
+    },
+    tag ? hasLink(tag) : props => true,
+    tagFilter ? withoutLinks(tagFilter) : props => true
   );
 
   let pages = mapBlocksToPages(blocks);
@@ -128,13 +158,7 @@ export function getLinkedPages(rawName) {
         '(has-link ?props)'
       ])
       .in('$ has-link'),
-    props => {
-      return Object.values(props).find(prop => {
-        return (
-          Array.isArray(prop) && prop.find(link => link.toLowerCase() === name)
-        );
-      });
-    }
+    hasLink(name)
   );
 
   return mapBlocksToPages(blocks);

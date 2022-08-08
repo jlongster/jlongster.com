@@ -93,12 +93,15 @@ export function Page({ page }) {
 export function PageList({ pages }) {
   return (
     <ul className="page-list">
-      {pages.map(page => (
-        <li key={page.id}>
-          <a href={`/${page.properties.url}`}>{page.name}</a>
-          <span className="date">{page.properties.date}</span>
-        </li>
-      ))}
+      {pages.length === 0 ? (
+        <li className="empty">No pages</li>
+      ) : (
+        pages.map(page => (
+          <li key={page.id}>
+            <a href={`/${page.properties.url}`}>{page.name}</a>
+          </li>
+        ))
+      )}
     </ul>
   );
 }
