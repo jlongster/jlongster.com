@@ -18,7 +18,7 @@ let md = MarkdownIt({
 // md.inline.ruler2.before('emphasis', 'ref', ref.postProcess);
 // md.inline.ruler2.after('balance_pairs', 'balance_refs', balanceRefs);
 
-md.use(mdHighlightJS, { inline: true });
+md.use(mdHighlightJS);
 
 export function renderMd(content) {
   return md.render(content);
