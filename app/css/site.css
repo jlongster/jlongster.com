@@ -1,33 +1,21 @@
 @font-face {
-  font-family: 'IBMPlexSerif';
+  font-family: 'IBMPlexSansVariable';
   font-style: normal;
-  font-weight: 400;
-  src: url('/fonts/plex/woff2/IBMPlexSerif-Regular.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-Regular.woff') format('woff');
+  font-weight: 1 999;
+  src: url('/fonts/plex/IBMPlexSansVar-Roman.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'IBMPlexSerif';
+  font-family: 'IBMPlexSansVariable';
   font-style: italic;
-  font-weight: 400;
-  src: url('/fonts/plex/woff2/IBMPlexSerif-Italic.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-Italic.woff') format('woff');
+  font-weight: 1 999;
+  src: url('/fonts/plex/IBMPlexSansVar-Italic.woff2') format('woff2');
 }
-@font-face {
-  font-family: 'IBMPlexSerif';
-  font-style: normal;
-  font-weight: 700;
-  src: url('/fonts/plex/woff2/IBMPlexSerif-Bold.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-Bold.woff') format('woff');
-}
-@font-face {
-  font-family: 'IBMPlexSerif';
-  font-style: italic;
-  font-weight: 700;
-  src: url('/fonts/plex/woff2/IBMPlexSerif-BoldItalic.woff2') format('woff2'), url('/fonts/plex/woff/IBMPlexSerif-BoldItalic.woff') format('woff');
-}
-
+ 
 body {
-  font-family: "IBMPlexSerif";
+  font-family: "IBMPlexSansVariable";
   font-size: 17px;
   line-height: 26px;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.006em;
   margin: 20px;
 }
 
@@ -40,6 +28,8 @@ h1 {
 h2 {
   letter-spacing: 0;
   line-height: 1em;
+  margin-top: 1.875em;
+  margin-bottom: 1.25em;
 }
 h3 {
   letter-spacing: 0;
