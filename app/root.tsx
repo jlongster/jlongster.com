@@ -1,6 +1,6 @@
 import type { MetaFunction } from '@remix-run/node';
 import { Links, LiveReload, Meta, Outlet } from '@remix-run/react';
-
+import settings from './settings';
 import siteStyles from '~/css/site.css';
 import nightOwlStyles from '~/css/night-owl.css';
 
@@ -13,7 +13,7 @@ export function links() {
 
 export const meta: MetaFunction = () => ({
   charset: 'utf-8',
-  title: 'JIMMY',
+  title: settings.title,
   viewport: 'width=device-width,initial-scale=1'
 });
 

@@ -28,15 +28,20 @@ export function renderInlineMd(content) {
   return md.renderInline(content);
 }
 
+const renderableTypes = new Set(['css', 'js', 'javascript']);
+
 export function renderBlock(block) {
   walkBlocks(block, b => {
     let content = b.content.replace(/^\w+:: .*/m, '').trim();
-
     b.raw = content;
 
-    // We don't want the <p> wrapper, but we can't use `renderInlineMd`
-    // because it doesn't properly render code blocks
-    let rendered = renderMd(content);
-    b.string = rendered.replace(/^\s*<p>/, '').replace(/<\/p>\s*$/, '');
+    if (renderableTypes.has(b.properties.render)) {
+      b.string = content.replace(/^```\w*/, '').replace(/```$/, '');
+    } else {
+      // We don't want the <p> wrapper, but we can't use `renderInlineMd`
+      // because it doesn't properly render code blocks
+      let rendered = renderMd(content);
+      b.string = rendered.replace(/^\s*<p>/, '').replace(/<\/p>\s*$/, '');
+    }
   });
 }

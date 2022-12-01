@@ -16,8 +16,22 @@ function Value({ value }) {
   return value;
 }
 
-function BlockContent({ block, as }) {
-  let Component = as;
+function BlockContent({ block, root }) {
+  if (block.properties.render === 'css') {
+    return (
+      <style
+        type="text/css"
+        dangerouslySetInnerHTML={{ __html: block.string }}
+      />
+    );
+  } else if (
+    block.properties.render === 'js' ||
+    block.properties.render === 'javascript'
+  ) {
+    return <script dangerouslySetInnerHTML={{ __html: block.string }} />;
+  }
+
+  let Component = root ? 'p' : 'span';
 
   return (
     <Component
@@ -30,7 +44,7 @@ function BlockContent({ block, as }) {
 function Block({ block }) {
   return (
     <li>
-      <BlockContent block={block} as="span" />
+      <BlockContent block={block} />
       {block.children.length > 0 && (
         <ul>
           {block.children.map(child => (
@@ -75,7 +89,7 @@ export function Page({ page }) {
 
         return (
           <>
-            <BlockContent block={child} as="p" />
+            <BlockContent block={child} root={true} />
             {child.children.length > 0 && (
               <ul>
                 {child.children.map(block => (

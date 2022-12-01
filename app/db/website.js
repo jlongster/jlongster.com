@@ -5,11 +5,13 @@ export function parseDate(date) {
   return dateFns.parse(date, 'MMM do, yyyy', new Date());
 }
 
-function hasLink(name) {
+function isLinked(names) {
+  let nameSet = new Set(names);
   return props =>
     Object.values(props).find(prop => {
       return (
-        Array.isArray(prop) && prop.find(link => link.toLowerCase() === name)
+        Array.isArray(prop) &&
+        prop.find(link => nameSet.has(link.toLowerCase()))
       );
     });
 }
@@ -31,6 +33,7 @@ function mapBlocksToPages(blocks) {
     id: b.id,
     uuid: b[':block/uuid'],
     name: b[':block/original-name'],
+    date: parseDate(b[':block/properties'].date),
     properties: b[':block/properties'] || {}
   }));
   pages.sort((p1, p2) =>
@@ -45,8 +48,8 @@ function mapBlocksToPages(blocks) {
 export function getPages({
   limit = Infinity,
   offset = 0,
-  tag,
-  tagFilter
+  tags,
+  excludeTags
 } = {}) {
   let blocks = q(
     find('[(pull ?b [*]) ...]')
@@ -61,8 +64,8 @@ export function getPages({
     props => {
       return !!(props.date && Array.isArray(props.date));
     },
-    tag ? hasLink(tag) : props => true,
-    tagFilter ? withoutLinks(tagFilter) : props => true
+    tags ? isLinked(tags) : props => true,
+    excludeTags ? withoutLinks(excludeTags) : props => true
   );
 
   let pages = mapBlocksToPages(blocks);
@@ -142,8 +145,6 @@ export function getPage(url) {
   let pageBlock = blocks.find(b => b[':block/original-name']);
   let blockTree = pageBlock ? tree(pageBlock, grouped) : null;
 
-  //console.log(blockTree.children[3].children)
-
   return { page: blockTree, refs: [] };
 }
 
@@ -158,7 +159,7 @@ export function getLinkedPages(rawName) {
         '(has-link ?props)'
       ])
       .in('$ has-link'),
-    hasLink(name)
+    isLinked([name])
   );
 
   return mapBlocksToPages(blocks);

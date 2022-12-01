@@ -28,7 +28,6 @@ export default function RenderPage(props) {
     <>
       <header>
         <a href="/">home</a>
-        <div className="context">*this site is a work-in-progress</div>
       </header>
       <main className="page">
         <h1>{page.name}</h1>
