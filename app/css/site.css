@@ -93,6 +93,20 @@ header .context {
   max-width: 800px;
 }
 
+.page-content .series-content {
+  background-color: #f8f8f8;
+  padding: 20px;
+  color: #6c6c6c;
+  font-size: .95em;
+  font-style: italic;
+  border-radius: 6px;
+  margin: 25px 0;
+}
+
+.page-content .series-content p {
+  margin: 0;
+}
+
 .page-content .footnote {
   background-color: #f8f8f8;
   padding: 20px;

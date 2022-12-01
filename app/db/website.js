@@ -103,6 +103,21 @@ function tree(node, map) {
   };
 }
 
+export function getPageByName(name) {
+  let blocks = q(
+    find('[(pull ?id [*]) ...]')
+      .where([
+        '?p :block/original-name ?name',
+        '?id',
+        '(or [(= ?p ?id)] [?id :block/page ?p])'
+      ])
+      .in('$ ?name'),
+    name
+  );
+
+  return _getPage(blocks);
+}
+
 export function getPage(url) {
   let blocks = q(
     find('[(pull ?id [*]) ...]')
@@ -119,6 +134,10 @@ export function getPage(url) {
     (map, name) => map[name]
   );
 
+  return _getPage(blocks);
+}
+
+export function _getPage(blocks) {
   let grouped = groupBlocks(blocks);
 
   for (let block of blocks) {

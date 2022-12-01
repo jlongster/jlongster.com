@@ -56,16 +56,49 @@ function Block({ block }) {
   );
 }
 
-export function Page({ page }) {
+function SeriesContent({ series }) {
+  return (
+    <div className="series-content">
+      {series.children.map(child => {
+        if (child.properties.public) {
+          // Don't render the page properties
+          return null;
+        }
+
+        return (
+          <>
+            <BlockContent block={child} root={true} />
+            {child.children.length > 0 && (
+              <ul>
+                {child.children.map(block => (
+                  <Block block={block} key={block.id} />
+                ))}
+              </ul>
+            )}
+          </>
+        );
+      })}
+    </div>
+  );
+}
+
+export function Page({ page, series }) {
+  let children = page.children;
+  let pageProperties = null;
+
+  if (children.length > 0 && children[0].properties.public) {
+    pageProperties = children.shift();
+  }
+
   return (
     <div className="page-content">
-      {page.children.map(child => {
-        if (child.properties && child.properties.public) {
+      {pageProperties &&
+        (() => {
           let ignoredProps = ['public', 'url'];
 
           return (
-            <div className="properties" key={child.id}>
-              {Object.entries(child.properties)
+            <div className="properties">
+              {Object.entries(pageProperties.properties)
                 .map(([key, value]) => {
                   if (ignoredProps.indexOf(key) === -1) {
                     if (key === 'date') {
@@ -85,8 +118,11 @@ export function Page({ page }) {
                 .filter(Boolean)}
             </div>
           );
-        }
+        })()}
 
+      {series && <SeriesContent series={series} />}
+
+      {children.map(child => {
         return (
           <>
             <BlockContent block={child} root={true} />

@@ -11,6 +11,16 @@ export async function loader({ params }) {
     throw new Response('Page not found', { status: 404 });
   }
 
+  let seriesPage = null;
+  if (page.properties.series) {
+    // Linked pages are always an array, but we just want the first one
+    let name = page.properties.series[0];
+    let res = db.getPageByName(name);
+
+    renderBlock(res.page);
+    seriesPage = res.page;
+  }
+
   renderBlock(page);
   // for (let backref of page.backrefs) {
   //   renderBlock(backref.block);
@@ -19,11 +29,11 @@ export async function loader({ params }) {
   // page.backrefs.sort((r1, r2) => r2.editTime - r1.editTime);
   // page.backrefs = groupByArray(page.backrefs, 'pageId');
 
-  return { page, refs };
+  return { page, seriesPage, refs };
 }
 
 export default function RenderPage(props) {
-  let { page } = useLoaderData();
+  let { page, seriesPage } = useLoaderData();
   return (
     <>
       <header>
@@ -31,7 +41,7 @@ export default function RenderPage(props) {
       </header>
       <main className="page">
         <h1>{page.name}</h1>
-        <Page page={page} />
+        <Page page={page} series={seriesPage} />
       </main>
     </>
   );
