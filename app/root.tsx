@@ -23,6 +23,12 @@ export default function App() {
       <head>
         <Meta />
         <Links />
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="Reader Feed"
+          href="https://jlongster.com/feed.xml"
+        />
       </head>
       <body>
         <Outlet />

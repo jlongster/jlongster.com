@@ -32,6 +32,21 @@ export async function loader({ params }) {
   return { page, seriesPage, refs };
 }
 
+export function meta({ data }) {
+  let page = data.page;
+  let children = page.children;
+  if (children.length > 0 && children[0].properties.public) {
+    children.shift();
+  }
+
+  return {
+    title: data.page.name,
+    'twitter:card': 'summary',
+    'og:title': data.page.name,
+    'og:description': children[0].raw
+  };
+}
+
 export default function RenderPage(props) {
   let { page, seriesPage } = useLoaderData();
   return (
