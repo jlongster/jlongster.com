@@ -35,15 +35,16 @@ export async function loader({ params }) {
 export function meta({ data }) {
   let page = data.page;
   let children = page.children;
+  let contentIndex = 0;
   if (children.length > 0 && children[0].properties.public) {
-    children.shift();
+    contentIndex = 1;
   }
 
   return {
     title: data.page.name,
     'twitter:card': 'summary',
     'og:title': data.page.name,
-    'og:description': children[0].raw
+    'og:description': children[contentIndex] ? children[contentIndex].raw : ''
   };
 }
 
