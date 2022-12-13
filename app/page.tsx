@@ -19,15 +19,15 @@ function Value({ value }) {
 function BlockContent({ block, root }) {
   if (block.properties.render === 'css') {
     return (
-      <style type="text/css" dangerouslySetInnerHTML={{ __html: block.raw }} />
+      <style type="text/css" dangerouslySetInnerHTML={{ __html: block.string }} />
     );
   } else if (
     block.properties.render === 'js' ||
     block.properties.render === 'javascript'
   ) {
-    return <script dangerouslySetInnerHTML={{ __html: block.raw }} />;
+    return <script dangerouslySetInnerHTML={{ __html: block.string }} />;
   } else if (block.properties.render === 'html') {
-    return <div dangerouslySetInnerHTML={{ __html: block.raw }} />;
+    return <div dangerouslySetInnerHTML={{ __html: block.string }} />;
   }
 
   let Component = root ? 'p' : 'span';

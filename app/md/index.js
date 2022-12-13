@@ -28,7 +28,7 @@ export function renderInlineMd(content) {
   return md.renderInline(content);
 }
 
-const renderableTypes = new Set(['css', 'js', 'javascript']);
+const renderableTypes = new Set(['css', 'js', 'javascript', 'html']);
 
 export function renderBlock(block) {
   walkBlocks(block, b => {
