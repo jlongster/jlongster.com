@@ -5,12 +5,12 @@ import { walkBlocks } from '../shared/data';
 import settings from '../settings';
 import { getPage, getPages } from '../db/website';
 
-function siteUrl(feedUrl, url) {
-  return feedUrl.href.replace(/\/feed.xml[^/]*/, url);
+function siteUrl(siteUrl, url) {
+  return siteUrl + url;
 }
 
 export function loader({ request }) {
-  let url = new URL(request.url);
+  let url = settings.currentSite;
   let posts = getPages({ tags: ['post'] }).slice(0, 100);
 
   let feed = (
@@ -29,10 +29,10 @@ export function loader({ request }) {
       <rights>© 2022 James Long</rights>
       <generator uri={url.href}>jimmy</generator>
       {posts.map(post => {
-        let pageUrl = siteUrl(url, `/${post.properties.url}`);
+        let pageUrl = siteUrl(url, `/${post.url}`);
         let date = post.date.toISOString();
 
-        const { page } = getPage(post.properties.url);
+        const { page } = getPage(post.url);
         renderBlock(page);
 
         let str = '';

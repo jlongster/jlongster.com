@@ -1,5 +1,6 @@
 import { q, find } from '../db/query.js';
 import * as dateFns from 'date-fns';
+import settings from '../settings';
 
 export function parseDate(date) {
   return dateFns.parse(date, 'MMM do, yyyy', new Date());
@@ -28,14 +29,27 @@ function withoutLinks(namesArr) {
   };
 }
 
+function getURL(props) {
+  if (props.url == '' || props.url == null) {
+    return null;
+  }
+  let url = new URL(props.url);
+  let relativeUrl = url.pathname + url.search;
+  return relativeUrl.replace(/^\//, '');
+}
+
 function mapBlocksToPages(blocks) {
-  let pages = blocks.map(b => ({
-    id: b.id,
-    uuid: b[':block/uuid'],
-    name: b[':block/original-name'],
-    date: parseDate(b[':block/properties'].date),
-    properties: b[':block/properties'] || {}
-  }));
+  let pages = blocks
+    .map(b => ({
+      id: b.id,
+      uuid: b[':block/uuid'],
+      name: b[':block/original-name'],
+      date: parseDate(b[':block/properties'].date),
+      url: getURL(b[':block/properties'] || {}),
+      properties: b[':block/properties'] || {}
+    }))
+    // They always must have a valid URL
+    .filter(b => b.url);
   pages.sort((p1, p2) =>
     dateFns.compareDesc(
       parseDate(p1.properties.date),
@@ -99,6 +113,7 @@ function tree(node, map) {
     content: node[':block/content'] || '',
     name: node[':block/original-name'],
     children,
+    url: getURL(node[':block/properties'] || {}),
     properties: node[':block/properties'] || {}
   };
 }
@@ -130,7 +145,7 @@ export function getPage(url) {
         '(or [(= ?p ?id)] [?id :block/page ?p])'
       ])
       .in('$ ?url get-prop'),
-    url,
+    `${settings.site}/${url}`,
     (map, name) => map[name]
   );
 
