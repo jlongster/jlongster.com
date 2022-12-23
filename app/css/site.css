@@ -76,7 +76,9 @@ header {
 }
 
 footer {
-  margin-top: 20px;
+  margin-top: 100px;
+  color: #a0a0a0;
+  font-size: 14px;
 }
 
 /* page */
