@@ -1,23 +1,8 @@
 import MarkdownIt from 'markdown-it';
 import mdHighlightJS from 'markdown-it-highlightjs';
-import * as text from './text';
-import * as emphasis from './emphasis';
-import * as ref from './ref';
-import balanceRefs from './balance-refs';
 import { walkBlocks } from '../shared/data';
 
-let md = MarkdownIt({
-  linkify: true,
-  typographer: true
-});
-
-// md.inline.ruler.at('text', text.tokenize);
-// md.inline.ruler.at('emphasis', emphasis.tokenize);
-// md.inline.ruler2.at('emphasis', emphasis.postProcess);
-// md.inline.ruler.after('link', 'ref', ref.tokenize);
-// md.inline.ruler2.before('emphasis', 'ref', ref.postProcess);
-// md.inline.ruler2.after('balance_pairs', 'balance_refs', balanceRefs);
-
+let md = MarkdownIt({ linkify: true, typographer: true });
 md.use(mdHighlightJS);
 
 export function renderMd(content) {

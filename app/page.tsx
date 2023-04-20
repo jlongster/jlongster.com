@@ -25,7 +25,7 @@ function BlockContent({ block, root }) {
     block.properties.render === 'js' ||
     block.properties.render === 'javascript'
   ) {
-    return <script dangerouslySetInnerHTML={{ __html: block.string }} />;
+    return <script type="module" dangerouslySetInnerHTML={{ __html: block.string }} />;
   } else if (block.properties.render === 'html') {
     return <div dangerouslySetInnerHTML={{ __html: block.string }} />;
   }
