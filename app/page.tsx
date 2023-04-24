@@ -19,13 +19,35 @@ function Value({ value }) {
 function BlockContent({ block, root }) {
   if (block.properties.render === 'css') {
     return (
-      <style type="text/css" dangerouslySetInnerHTML={{ __html: block.string }} />
+      <style
+        type="text/css"
+        dangerouslySetInnerHTML={{ __html: block.string }}
+      />
+    );
+  } else if (block.properties.render === 'js-element') {
+    const id = '' + Math.random();
+    const code = `
+      const tag = document.getElementById('${id}');
+      const el = (() => {${block.string}})();
+      tag.parentNode.insertBefore(el, tag)
+    `;
+    return (
+      <script
+        type="module"
+        id={id}
+        dangerouslySetInnerHTML={{ __html: code }}
+      />
     );
   } else if (
     block.properties.render === 'js' ||
     block.properties.render === 'javascript'
   ) {
-    return <script type="module" dangerouslySetInnerHTML={{ __html: block.string }} />;
+    return (
+      <script
+        type="module"
+        dangerouslySetInnerHTML={{ __html: block.string }}
+      />
+    );
   } else if (block.properties.render === 'html') {
     return <div dangerouslySetInnerHTML={{ __html: block.string }} />;
   }
