@@ -17,6 +17,7 @@ body {
   line-height: 26px;
   letter-spacing: 0.006em;
   margin: 20px;
+  --outer-spacing: 20px;
 }
 
 h1 {
