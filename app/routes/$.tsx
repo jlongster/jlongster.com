@@ -36,15 +36,24 @@ export function meta({ data }) {
   let page = data.page;
   let children = page.children;
   let contentIndex = 0;
-  if (children.length > 0 && children[0].properties.public) {
-    contentIndex = 1;
+
+  while (
+    // Make sure we have a valid child
+    contentIndex < children.length &&
+    // Skip any children that match these
+    (children[contentIndex].properties.public ||
+      children[contentIndex].properties.render ||
+      children[contentIndex].raw === '')
+  ) {
+    contentIndex++;
   }
 
   return {
     title: data.page.name,
     'twitter:card': 'summary',
     'og:title': data.page.name,
-    'og:description': children[contentIndex] ? children[contentIndex].raw : ''
+    'og:description':
+      contentIndex < children.length ? children[contentIndex].raw : '',
   };
 }
 
