@@ -16,6 +16,7 @@ export function renderInlineMd(content) {
 const renderableTypes = new Set([
   'css',
   'js-element',
+  'js-no-module',
   'js',
   'javascript',
   'html',
