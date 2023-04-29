@@ -17,7 +17,9 @@ function Value({ value }) {
 }
 
 function BlockContent({ block, root }) {
-  if (block.properties.render === 'css') {
+  if (block.properties.render === 'inline') {
+    return null;
+  } else if (block.properties.render === 'css') {
     return (
       <style
         type="text/css"
@@ -38,6 +40,8 @@ function BlockContent({ block, root }) {
         dangerouslySetInnerHTML={{ __html: code }}
       />
     );
+  } else if (block.properties.render === 'js-no-module') {
+    return <script dangerouslySetInnerHTML={{ __html: block.string }} />;
   } else if (
     block.properties.render === 'js' ||
     block.properties.render === 'javascript'
@@ -63,6 +67,10 @@ function BlockContent({ block, root }) {
 }
 
 function Block({ block }) {
+  if (block.properties.render === 'skip') {
+    return null;
+  }
+
   return (
     <li>
       <BlockContent block={block} />
