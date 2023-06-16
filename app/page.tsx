@@ -31,7 +31,12 @@ function BlockContent({ block, root }) {
     const code = `
       const tag = document.getElementById('${id}');
       const el = (() => {${block.string}})();
-      tag.parentNode.insertBefore(el, tag)
+      if('then' in el) {
+        el.then(e => tag.parentNode.insertBefore(e, tag))
+      }
+      else {
+        tag.parentNode.insertBefore(el, tag)
+      }
     `;
     return (
       <script
