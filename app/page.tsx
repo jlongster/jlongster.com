@@ -33,8 +33,8 @@ function BlockContent({ block, root }) {
     const code = `
       const tag = document.getElementById('${id}');
       const el = (() => {${block.string}})();
-      ${width != null ? `el.style.width = ${width}` : ''}
-      ${height != null ? `el.style.height = ${height}` : ''}
+      ${width != null ? `el.style.width = ${width}px` : ''}
+      ${height != null ? `el.style.height = ${height}px` : ''}
       if('then' in el) {
         el.then(e => tag.parentNode.insertBefore(e, tag))
       }
