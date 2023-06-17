@@ -27,10 +27,14 @@ function BlockContent({ block, root }) {
       />
     );
   } else if (block.properties.render === 'js-element') {
+    const width = block.properties.width;
+    const height = block.properties.height;
     const id = '' + Math.random();
     const code = `
       const tag = document.getElementById('${id}');
       const el = (() => {${block.string}})();
+      ${width != null ? `el.style.width = ${width}` : ''}
+      ${height != null ? `el.style.height = ${height}` : ''}
       if('then' in el) {
         el.then(e => tag.parentNode.insertBefore(e, tag))
       }
