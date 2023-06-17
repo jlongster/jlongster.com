@@ -24,7 +24,7 @@ const renderableTypes = new Set([
 
 export function renderBlock(block) {
   walkBlocks(block, b => {
-    let content = b.content.replace(/^\w+:: .*/m, '').trim();
+    let content = b.content.replace(/^\w+:: .*/mg, '').trim();
     b.raw = content;
 
     if (renderableTypes.has(b.properties.render)) {

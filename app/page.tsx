@@ -31,23 +31,23 @@ function BlockContent({ block, root }) {
     const height = block.properties.height;
     const id = '' + Math.random();
     const code = `
+      const placeholder = document.getElementById('${id}-placeholder');
       const tag = document.getElementById('${id}');
-      const el = (() => {${block.string}})();
-      ${width != null ? `el.style.width = ${width}px` : ''}
-      ${height != null ? `el.style.height = ${height}px` : ''}
-      if('then' in el) {
-        el.then(e => tag.parentNode.insertBefore(e, tag))
+      const res = (() => {${block.string}})();
+      const insert = el => {
+        placeholder.replaceWith(el, tag)
       }
-      else {
-        tag.parentNode.insertBefore(el, tag)
-      }
+      'then' in res ? res.then(insert) : insert(res)
     `;
     return (
-      <script
-        type="module"
-        id={id}
-        dangerouslySetInnerHTML={{ __html: code }}
-      />
+      <>
+        <div id={id + '-placeholder'} style={{ width, height }} />
+        <script
+          type="module"
+          id={id}
+          dangerouslySetInnerHTML={{ __html: code }}
+        />
+      </>
     );
   } else if (block.properties.render === 'js-no-module') {
     return <script dangerouslySetInnerHTML={{ __html: block.string }} />;
