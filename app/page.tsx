@@ -17,6 +17,8 @@ function Value({ value }) {
 }
 
 function BlockContent({ block, root }) {
+  let Component = root ? 'p' : 'span';
+
   if (block.properties.render === 'inline') {
     return null;
   } else if (block.properties.render === 'css') {
@@ -36,12 +38,21 @@ function BlockContent({ block, root }) {
       const res = (() => {${block.string}})();
       const insert = el => {
         placeholder.replaceWith(el, tag)
+        el.parentNode.dataset['blockId'] = "${block.uuid}";
+        el.classList.add('code-look-target');
+        __injectCodeLook(el);
       }
       'then' in res ? res.then(insert) : insert(res)
     `;
+
     return (
       <>
-        <div id={id + '-placeholder'} style={{ width, height }} />
+        {/* We always wrap with a div so we can always add visual
+          accessories (the element might be an SVG and we can't inject
+          HTML into it */}
+        <div className={'code-look-wrapper' + (root ? ' root' : '')}>
+          <div id={id + '-placeholder'} style={{ width, height }} />
+        </div>
         <script
           type="module"
           id={id}
@@ -62,10 +73,24 @@ function BlockContent({ block, root }) {
       />
     );
   } else if (block.properties.render === 'html') {
-    return <div dangerouslySetInnerHTML={{ __html: block.string }} />;
+    let bleed = block.properties.bleed;
+    return (
+      <div
+        className="code-look-wrapper"
+        data-block-id={block.uuid}
+        style={{
+          margin: bleed === 'small' ? -100 : bleed === 'large' ? -250 : 0,
+          marginTop: 0,
+          marginBottom: 0,
+        }}
+      >
+        <div
+          className="code-look-init"
+          dangerouslySetInnerHTML={{ __html: block.string }}
+        />
+      </div>
+    );
   }
-
-  let Component = root ? 'p' : 'span';
 
   return (
     <Component
@@ -128,6 +153,14 @@ export function Page({ page, series }) {
     pageProperties = children.shift();
   }
 
+  const codeLookInit = `
+    const els = document.querySelectorAll('.code-look-init');
+    for(let el of els) {
+      el.classList.add('code-look-target');
+      __injectCodeLook(el);
+    }
+  `;
+
   return (
     <div className="page-content">
       {pageProperties &&
@@ -174,6 +207,8 @@ export function Page({ page, series }) {
           </>
         );
       })}
+
+      <script dangerouslySetInnerHTML={{ __html: codeLookInit }} />
     </div>
   );
 }

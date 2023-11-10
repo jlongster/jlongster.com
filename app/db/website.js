@@ -46,15 +46,15 @@ function mapBlocksToPages(blocks) {
       name: b[':block/original-name'],
       date: parseDate(b[':block/properties'].date),
       url: getURL(b[':block/properties'] || {}),
-      properties: b[':block/properties'] || {}
+      properties: b[':block/properties'] || {},
     }))
     // They always must have a valid URL
     .filter(b => b.url);
   pages.sort((p1, p2) =>
     dateFns.compareDesc(
       parseDate(p1.properties.date),
-      parseDate(p2.properties.date)
-    )
+      parseDate(p2.properties.date),
+    ),
   );
   return pages;
 }
@@ -63,7 +63,7 @@ export function getPages({
   limit = Infinity,
   offset = 0,
   tags,
-  excludeTags
+  excludeTags,
 } = {}) {
   let blocks = q(
     find('[(pull ?b [*]) ...]')
@@ -72,14 +72,14 @@ export function getPages({
         '(has-date ?props)',
         '?b :block/original-name',
         '(has-link ?props)',
-        '(without-link ?props)'
+        '(without-link ?props)',
       ])
       .in('$ has-date has-link without-link'),
     props => {
       return !!(props.date && Array.isArray(props.date));
     },
     tags ? isLinked(tags) : props => true,
-    excludeTags ? withoutLinks(excludeTags) : props => true
+    excludeTags ? withoutLinks(excludeTags) : props => true,
   );
 
   let pages = mapBlocksToPages(blocks);
@@ -99,7 +99,7 @@ function tree(node, map) {
   let n =
     node.children &&
     node.children.find(
-      c => node.id === (c[':block/left'] && c[':block/left'].id)
+      c => node.id === (c[':block/left'] && c[':block/left'].id),
     );
   while (n) {
     sorted.push(n);
@@ -110,11 +110,12 @@ function tree(node, map) {
 
   return {
     id: node.id,
+    uuid: node[':block/uuid'],
     content: node[':block/content'] || '',
     name: node[':block/original-name'],
     children,
     url: getURL(node[':block/properties'] || {}),
-    properties: node[':block/properties'] || {}
+    properties: node[':block/properties'] || {},
   };
 }
 
@@ -124,10 +125,10 @@ export function getPageByName(name) {
       .where([
         '?p :block/original-name ?name',
         '?id',
-        '(or [(= ?p ?id)] [?id :block/page ?p])'
+        '(or [(= ?p ?id)] [?id :block/page ?p])',
       ])
       .in('$ ?name'),
-    name
+    name,
   );
 
   return _getPage(blocks);
@@ -142,11 +143,11 @@ export function getPage(url) {
         '(get-prop ?props "url") ?u',
         '(= ?u ?url)',
         '?id',
-        '(or [(= ?p ?id)] [?id :block/page ?p])'
+        '(or [(= ?p ?id)] [?id :block/page ?p])',
       ])
       .in('$ ?url get-prop'),
     `${settings.site}/${url}`,
-    (map, name) => map[name]
+    (map, name) => map[name],
   );
 
   return _getPage(blocks);
@@ -190,11 +191,23 @@ export function getLinkedPages(rawName) {
       .where([
         '?p :block/original-name',
         '?p :block/properties ?props',
-        '(has-link ?props)'
+        '(has-link ?props)',
       ])
       .in('$ has-link'),
-    isLinked([name])
+    isLinked([name]),
   );
 
   return mapBlocksToPages(blocks);
+}
+
+export function getBlock(uuid) {
+  let blocks = q(
+    find('[(pull ?p [*]) ...]')
+      .where(['?p :block/uuid ?uuid'])
+      .in('$ ?uuid'),
+    uuid,
+  );
+  let block = blocks[0]
+
+  return tree(block, new Map());
 }
