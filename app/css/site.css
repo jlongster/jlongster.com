@@ -195,7 +195,7 @@ header .context {
 
 @media (min-width: 801px) {
   .code-look-button {
-    position: sticky;
+    position: absolute;
     right: 0;
     top: 0;
   }
