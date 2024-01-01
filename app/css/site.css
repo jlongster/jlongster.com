@@ -141,82 +141,149 @@ header .context {
   margin: 1em 0;
 }
 
-/* code look */
+/* inspector */
 
-.code-look-wrapper {
+inspect-code {
+  display: block;
   position: relative;
-  line-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
-.code-look-wrapper > * {
-  line-height: 26px;
-}
-
-.code-look-wrapper > canvas {
-  align-self: flex-start;
-  justify-self: flex-start;
-}
-
-
-@media (min-width: 801px) {
-  .code-look-target {
-    position: sticky;
-    top: 20px;
-  }
-}
-
-.code-look-code {
-  background-color: rgba(200, 200, 200, .8);
-  padding: 10px;
-  border-radius: 6px;
-}
-
-.code-look-button {
+inspect-code .inspect-button {
   background: #f0f0f0;
   color: #606060;
   border: 0;
   font-size: 15px;
   border-radius: 6px;
   padding: 8px 10px;
-  /*transform: scale(.8);*/
 }
 
 @media (max-width: 800px) {
-  .code-look-button {
-    margin: 10px;
-    margin-left: 20px;
-    margin-right: 20px;
-    position: sticky;
-    top: 20px;
+  inspect-code .inspect-button {
+    width: 100%;
+
   }
 }
 
 @media (min-width: 801px) {
-  .code-look-button {
+  inspect-code .inspect-button {
     position: absolute;
     right: 0;
     top: 0;
   }
 }
 
-.code-look-button:active {
-  border-bottom-color: rgb(218, 218, 218);
-  border-right-color: rgb(218, 218, 218);
-  border-top-color: rgb(180, 180, 180);
-  border-left-color: rgb(180, 180, 180);
+/* dialog-container */
+
+.dialog-outer-container {
+  zIndex: 10000;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  transition: .15s background-color;
 }
 
-.code-look-button img {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  top: 2px;
+.dialog-outer-container.animated {
+  background-color: rgba(30, 30, 30, .2);
 }
 
-.code-look-button:active img {
-  top: 2.5px;
-  left: .5px;
+
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  background-color: white;
+  max-height: 80vh;
 }
 
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 801px) {
+  .dialog-content {
+    flex-direction: row;
+  }
+}
+
+.dialog-container .header {
+  display: flex;
+  padding: 5px 10px;
+}
+
+.dialog-container .title {
+  flex: 1;
+  font-weight: 700;
+}
+
+.dialog-container .title.untitled {
+  font-style: italic;
+}
+
+.dialog-container .code-block {
+  margin-bottom: 10px;
+}
+
+.dialog-container summary {
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.dialog-container .right {
+  width: 45vw;
+  padding: 10px;
+  overflow: auto;
+}
+
+.dialog-container .right-content {
+  width: fit-content;
+  padding-right: 10px;
+}
+
+.dialog-container .left {
+  max-width: 40vw;
+  overflow: hidden;
+  padding: 15px;
+}
+
+.dialog-container .left canvas {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto !important;
+  height: auto !important;
+}
+
+.dialog-container .left svg {
+  height: auto;
+  max-height: 100%;
+}
+
+.dialog-content pre {
+  font-size: 15px;
+  line-height: 24px;
+}
+
+@media (max-width: 800px) {
+  .dialog-container {
+    max-height: 99vh;
+  }
+
+  .dialog-container .right,
+  .dialog-container .left {
+    max-width: initial;
+    width: 90vw;
+  }
+
+  .dialog-container .left {
+    height: calc((100vh - 80px) * .15);
+  }
+
+  .dialog-container .right {
+    height: calc((100vh - 80px) * .85);
+  }
+}

@@ -37,22 +37,18 @@ function BlockContent({ block, root }) {
       const tag = document.getElementById('${id}');
       const res = (() => {${block.string}})();
       const insert = el => {
-        placeholder.replaceWith(el, tag)
-        el.parentNode.dataset['blockId'] = "${block.uuid}";
-        el.classList.add('code-look-target');
-        __injectCodeLook(el);
+        const inspector = document.createElement('inspect-code');
+        inspector.dataset['blockId'] = "${block.uuid}";
+        inspector.appendChild(el);
+
+        placeholder.replaceWith(inspector /*, tag*/)
       }
       'then' in res ? res.then(insert) : insert(res)
     `;
 
     return (
       <>
-        {/* We always wrap with a div so we can always add visual
-          accessories (the element might be an SVG and we can't inject
-          HTML into it */}
-        <div className={'code-look-wrapper' + (root ? ' root' : '')}>
-          <div id={id + '-placeholder'} style={{ width, height }} />
-        </div>
+        <div id={id + '-placeholder'} style={{ width, height }} />
         <script
           type="module"
           id={id}
@@ -74,21 +70,12 @@ function BlockContent({ block, root }) {
     );
   } else if (block.properties.render === 'html') {
     let bleed = block.properties.bleed;
+
     return (
-      <div
-        className="code-look-wrapper"
+      <inspect-code
         data-block-id={block.uuid}
-        style={{
-          margin: bleed === 'small' ? -100 : bleed === 'large' ? -250 : 0,
-          marginTop: 0,
-          marginBottom: 0,
-        }}
-      >
-        <div
-          className="code-look-init"
-          dangerouslySetInnerHTML={{ __html: block.string }}
-        />
-      </div>
+        dangerouslySetInnerHTML={{ __html: block.string }}
+      />
     );
   }
 

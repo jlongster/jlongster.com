@@ -31,11 +31,11 @@ export default function App() {
           title="Reader Feed"
           href="https://jlongster.com/feed.xml"
         />
-        <script src="/code-look.js" />
       </head>
       <body>
         <Outlet />
         <LiveReload />
+        <script src="/code-look.js" />
       </body>
     </html>
   );

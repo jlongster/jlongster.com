@@ -1,192 +1,183 @@
 const codeBlockCache = new Map();
 
-const mq = window.matchMedia('(max-width: 800px)');
-let isSmallScreen = mq.matches;
-mq.addEventListener('change', e => {
-  isSmallScreen = e.matches;
-
-  const wrappers = [
-    ...document.querySelectorAll('.code-look-wrapper[data-opened=true]'),
-  ];
-
-  for (let wrapper of wrappers) {
-    closeWrapper(wrapper, false);
-    openWrapper(wrapper, false);
+class InspectorDialog extends HTMLElement {
+  constructor() {
+    super();
+    this.codeBlocks = [];
   }
 
-  __relayout(wrappers);
-});
+  connectedCallback() {
+    const container = document.createElement('div');
+    container.className = 'dialog-outer-container';
+    container.addEventListener('click', () => this.close());
+    this.container = container;
 
-function __relayout(elements) {
-  for (let wrapper of elements) {
-    if (isSmallScreen) {
-      wrapper.style.height = 'auto';
-    } else {
-      const uuid = wrapper.dataset['blockId'];
-      const code = document.getElementById(`code-${uuid}`);
+    document.body.appendChild(container);
 
-      if (code) {
-        let { top, right, height } = wrapper.getBoundingClientRect();
-        top += document.documentElement.scrollTop;
-        code.style.top = top + 'px';
-        code.style.left = right + 'px';
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog-container';
 
-        const { height: codeHeight } = code.getBoundingClientRect();
-        if (codeHeight > height) {
-          wrapper.style.height = codeHeight + 'px';
+    this.replacements = new Map();
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'header';
+    const text = document.createElement('div');
+    text.textContent = this.customTitle || 'untitled';
+
+    text.className = 'title ' + (!this.title ? 'untitled' : '');
+    header.appendChild(text);
+
+    const close = document.createElement('button');
+    close.className = 'close';
+    close.innerHTML = 'X';
+    close.addEventListener('click', () => {
+      this.close();
+    });
+
+    header.appendChild(close);
+    dialog.appendChild(header);
+
+    // Left pane
+
+    const left = document.createElement('div');
+    left.className = 'left';
+    for (let child of this.sourceNode.children) {
+      if (!child.classList.contains('adornment')) {
+        if (child.tagName === 'svg') {
+          const prevSvgAspectRatio = child.getAttribute('preserveAspectRatio');
+          child.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+
+          this.cleanupSvg = () => {
+            if (prevSvgAspectRatio == null) {
+              child.removeAttribute('preserveAspectRatio');
+            } else {
+              child.setAttribute('preserveAspectRatio', prevSvgAspectRatio);
+            }
+          };
         }
-      } else {
-        wrapper.style.height = 'auto';
+
+        const cl = child.cloneNode(true);
+        child.replaceWith(cl);
+        left.appendChild(child);
+
+        this.replacements.set(child, cl);
       }
     }
-  }
-}
 
-function adjustPage(hasOpenCode) {
-  let transitionEnd = null;
-  const pageContent = document.querySelector('.page-content');
+    // Right pane
 
-  if (isSmallScreen) {
-    pageContent.style.transform = '';
-    return null;
-  } else {
-    if (hasOpenCode) {
-      pageContent.style.transition = 'transform .25s';
-      pageContent.style.transform = 'translateX(0px)';
+    const right = document.createElement('div');
+    right.className = 'right';
+    const rightContent = document.createElement('div');
+    rightContent.className = 'right-content';
+    right.appendChild(rightContent);
 
-      return new Promise(resolve => {
-        pageContent.addEventListener('transitionend', resolve);
-      });
-    } else {
-      pageContent.style.transform = '';
-      return new Promise(resolve => {
-        pageContent.addEventListener('transitionend', resolve);
-      });
+    for (let block of this.codeBlocks) {
+      const div = document.createElement('div');
+      div.className = 'code-block';
+
+      const pre = document.createElement('pre');
+      const code = document.createElement('code');
+      code.innerHTML = block.code;
+      pre.appendChild(code);
+
+      if (block.primary == null) {
+        const details = document.createElement('details');
+        const text = document.createElement('summary');
+        text.className = 'title ' + (!block.title ? 'untitled' : '');
+        text.textContent = block.title || 'untitled';
+        details.appendChild(text);
+        details.appendChild(pre);
+        div.appendChild(details);
+      } else {
+        div.appendChild(pre);
+      }
+
+      rightContent.appendChild(div);
     }
-  }
-}
 
-async function openWrapper(wrapper, shouldAnimate) {
-  const btn = wrapper.querySelector('.code-look-button');
-  const uuid = wrapper.dataset['blockId'];
+    // Content
 
-  const wrappers = [
-    ...document.querySelectorAll('.code-look-wrapper[data-opened=true]'),
-  ];
-  const changedIdx = wrappers.findIndex(el => el === wrapper);
-  const needsLayout = wrappers.slice(changedIdx);
+    const content = document.createElement('div');
+    content.className = 'dialog-content';
+    // Don't close on click
+    content.addEventListener('click', e => e.stopPropagation(), true);
 
-  // Opening
-  wrapper.dataset.opened = 'true';
-  btn.innerHTML = 'close source';
+    content.appendChild(left);
+    content.appendChild(right);
+    dialog.appendChild(content);
 
-  let transitionEnd;
-  if (shouldAnimate && wrappers.length === 0) {
-    transitionEnd = adjustPage(true);
-  }
-
-  let codeBlocks = codeBlockCache.get(uuid);
-  if (!codeBlocks) {
-    const res = await fetch(`/code-look/${uuid}`);
-    const json = await res.json();
-    codeBlockCache.set(uuid, json);
-    codeBlocks = json;
-  }
-
-  const div = document.createElement('div');
-  div.id = `code-${uuid}`;
-  div.className = 'code-look-code';
-  div.style.whiteSpace = 'pre';
-  div.style.transition = 'opacity .25s';
-  div.style.opacity = shouldAnimate ? 0 : 1;
-
-  for (let codeBlock of codeBlocks) {
-    const cb = document.createElement('div');
-    cb.textContent = codeBlock;
-    cb.style.overflow = 'auto';
-    div.appendChild(cb);
-  }
-
-  if (isSmallScreen) {
-    wrapper.appendChild(div);
-  } else {
-    div.style.position = 'absolute';
-    div.style.width = 'calc(100vw - (var(--outer-spacing) + 800px))';
-    document.body.appendChild(div);
-  }
-
-  if (shouldAnimate) {
-    await transitionEnd;
+    dialog.style.opacity = 0;
+    dialog.style.transform = 'translateY(5px) scale(.99)';
+    dialog.style.transition = '.125s opacity, .125s transform';
+    container.appendChild(dialog);
 
     setTimeout(() => {
-      div.style.opacity = 1;
+      dialog.style.opacity = 1;
+      dialog.style.transform = '';
+      container.classList.add('animated');
     }, 0);
+
+    // Global stuff
+    document.body.style.overflow = 'hidden';
+    document.body.addEventListener('keyup', this.onKeyUp);
   }
 
-  needsLayout.push(wrapper);
+  onKeyUp = e => {
+    if (e.key === 'Escape') {
+      this.close();
+    }
+  };
 
-  return needsLayout;
+  close() {
+    for (let [from, to] of this.replacements.entries()) {
+      to.replaceWith(from);
+    }
+
+    this.container.remove();
+    this.remove();
+
+    if (this.cleanupSvg) {
+      this.cleanupSvg();
+    }
+
+    // Cleanup global stuff
+    document.body.style.overflow = '';
+    document.body.removeEventListener('keyup', this.onKeyUp);
+  }
 }
 
-function closeWrapper(wrapper, shouldAnimate) {
-  const uuid = wrapper.dataset['blockId'];
-  const wrappers = [
-    ...document.querySelectorAll('.code-look-wrapper[data-opened=true]'),
-  ];
-  const changedIdx = wrappers.findIndex(el => el === wrapper);
-  const needsLayout = wrappers.slice(changedIdx);
-  __relayout(needsLayout);
+class InspectCode extends HTMLElement {
+  connectedCallback() {
+    const btn = document.createElement('button');
+    btn.className = 'inspect-button adornment';
+    btn.innerHTML = 'view source';
 
-  const btn = wrapper.querySelector('.code-look-button');
-  wrapper.dataset.opened = '';
-  btn.innerHTML = 'view source';
+    btn.addEventListener('click', async e => {
+      const uuid = this.dataset['blockId'];
 
-  // This is guaranteed to always exist (right?)
-  document.getElementById(`code-${uuid}`).remove();
-
-  // If this was the only wrapper open, now everything is closed
-  if (shouldAnimate && wrappers.length === 1) {
-    adjustPage(false);
-  }
-
-  return needsLayout;
-}
-
-function __injectCodeLook(el) {
-  const btn = document.createElement('button');
-  btn.className = 'code-look-button';
-  btn.innerHTML = 'view source';
-
-  const wrapper = el.parentNode;
-  if (!wrapper.classList.contains('code-look-wrapper')) {
-    throw new Error(
-      'Element must be wrapped with <div class="code-look-wrapper" /> for CodeLook to work',
-    );
-  }
-
-  btn.addEventListener('click', async e => {
-    const wrapper = e.target.closest('.code-look-wrapper');
-    const uuid = wrapper.dataset['blockId'];
-    let needsLayout;
-
-    // If the wrapper is open, close it
-    if (wrapper.dataset.opened === 'true') {
-      const { top } = wrapper.getBoundingClientRect();
-      if (top < 0 || top > window.innerHeight) {
-        window.scrollTo({
-          top: window.scrollY + top,
-          left: 0,
-          behavior: 'smooth',
-        });
+      let codeBlocks = codeBlockCache.get(uuid);
+      if (!codeBlocks) {
+        const res = await fetch(`/code-look/${uuid}`);
+        const json = await res.json();
+        // Show the blocks in reverse order (top down)
+        json.reverse();
+        codeBlockCache.set(uuid, json);
+        codeBlocks = json;
       }
 
-      setTimeout(() => {
-        __relayout(closeWrapper(wrapper, true));
-      }, 250);
-    } else {
-      __relayout(await openWrapper(wrapper, true));
-    }
-  });
+      const dialog = document.createElement('inspector-dialog');
+      dialog.className = 'adornment';
+      dialog.sourceNode = this;
+      dialog.codeBlocks = codeBlocks;
+      dialog.customTitle = this.dataset['title'];
+      this.appendChild(dialog);
+    });
 
-  wrapper.appendChild(btn);
+    this.appendChild(btn);
+  }
 }
+
+customElements.define('inspector-dialog', InspectorDialog);
+customElements.define('inspect-code', InspectCode);
