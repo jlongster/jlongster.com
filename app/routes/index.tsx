@@ -8,7 +8,6 @@ export async function loader({ params }) {
   let featured = sketches
     .filter(page => !!page.properties['featured-image'])
     .slice(0, 3);
-  featured = [featured[0]];
   return { sketches, featured };
 }
 
