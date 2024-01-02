@@ -1,38 +1,47 @@
 import { useLoaderData } from '@remix-run/react';
 import { PageList } from '../page';
 import { getPages } from '../db/website';
+import { Layout } from '../layout';
 
 export async function loader({ params }) {
-  let posts = getPages({ tags: ['post'] });
-  let pinned = posts.filter(post =>
-    post.properties.tags.find(t => t === 'pinned')
-  );
   let sketches = getPages({ tags: ['sketchbook'] });
-  return { posts, sketches, pinned };
+  let featured = sketches
+    .filter(page => !!page.properties['featured-image'])
+    .slice(0, 3);
+  featured = [featured[0]];
+  return { sketches, featured };
 }
 
-function Section({ title, pages }) {
+function Featured({ pages }) {
   return (
-    <div className="section-item">
-      <h4>{title}</h4>
-      <PageList pages={pages} />
+    <div className={'featured-list ' + (pages.length > 2 ? 'breakout' : '')}>
+      {pages.map(page => {
+        const imgText = page.properties['featured-image'];
+        // Match the part inside parens of [](...)
+        const match = imgText.match(/\]\((.*)\)/);
+        let imgUrl;
+        if (match) {
+          imgUrl = match[1];
+        }
+
+        return (
+          <a key={page.uuid} href={`/${page.url}`} className="featured-item">
+            {imgUrl && <img src={imgUrl} alt="" />}
+            <div className="featured-title">{page.name}</div>
+          </a>
+        );
+      })}
     </div>
   );
 }
 
 export default function Index() {
-  let { posts, sketches, pinned } = useLoaderData();
+  let { sketches, featured } = useLoaderData();
   return (
-    <>
-      {pinned.length > 0 && <Section title="Pinned" pages={pinned} />}
-      <div className="section-grid">
-        <Section title="Posts" pages={posts} />
-        <Section title="Sketchbook" pages={sketches} />
-      </div>
-      <footer>
-        Looking for old articles? See{' '}
-        <a href="//archive.jlongster.com">archive.jlongster.com</a>
-      </footer>
-    </>
+    <Layout>
+      <h1>Welcome to my sketchbook</h1>
+      {featured.length > 0 && <Featured pages={featured} />}
+      <PageList pages={sketches} />
+    </Layout>
   );
 }

@@ -83,7 +83,9 @@ export function getPages({
   );
 
   let pages = mapBlocksToPages(blocks);
-  return pages.slice(offset, limit);
+  return pages
+    .filter(p => !p.properties.tags.find(t => t === 'draft'))
+    .slice(offset, limit);
 }
 
 function groupBlocks(blocks) {
@@ -207,7 +209,7 @@ export function getBlock(uuid) {
       .in('$ ?uuid'),
     uuid,
   );
-  let block = blocks[0]
+  let block = blocks[0];
 
   return tree(block, new Map());
 }

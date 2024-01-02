@@ -20,7 +20,8 @@ body {
   font-size: 17px;
   line-height: 26px;
   letter-spacing: 0.006em;
-  margin: 20px;
+  margin: 0;
+  --site-width: 800px;
   --outer-spacing: 20px;
 }
 
@@ -47,22 +48,73 @@ header {
   margin-bottom: 10px;
 }
 
-/* section grid */
+/* featured */
 
-.section-grid {
-  display: grid;
-  gap: 20px;
-  max-width: 1000px;
+.featured-list {
+  display: flex;
+  gap: 15px;
+  margin-top: 40px;
+  margin-bottom: 40px;
 }
 
-@media (min-width: 800px) {
-  .section-grid {
-    grid-template-columns: repeat(2, calc(50% - 10px));
+.featured-list.breakout {
+  margin-left: calc((100vw - var(--site-width)) / 2 * -1 + 20px);
+  margin-right: calc((100vw - var(--site-width)) / 2 * -1 + 20px);
+  justify-content: center;
+}
+
+@media (max-width: 840px) {
+  .featured-list.breakout {
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 
-.section-item h4 {
-  margin: 0;
+.featured-item {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 10px 15px;
+  padding-bottom: 0;
+  text-decoration: none;
+  max-width: 400px;
+}
+
+.featured-item:hover {
+  background-color: #fafafa;
+}
+
+@media (max-width: 600px) {
+  .featured-list {
+    flex-direction: column;
+  }
+
+  .featured-item {
+    max-width: initial;
+  }
+}
+
+.featured-title {
+  margin: 12px 0;
+  font-weight: 600;
+  font-size: 18px;
+  transform: translateY(1px);
+  color: black;
+}
+
+/* site */
+
+.site-content {
+  max-width: var(--site-width);
+  margin: 0 auto;
+}
+
+@media (max-width: 840px) {
+  .site-content {
+    margin: var(--outer-spacing);;
+  }  
 }
 
 /* page list */
@@ -82,8 +134,11 @@ header {
 
 footer {
   margin-top: 100px;
+  margin-bottom: 30px;
   color: #a0a0a0;
   font-size: 14px;
+  display: flex;
+  justify-content: space-between;
 }
 
 /* page */
@@ -92,18 +147,12 @@ header .context {
   font-style: italic;
 }
 
+.page header {
+  padding-top: 20px;
+}
+
 .properties {
   margin-bottom: 25px;
-}
-
-.page-content {
-  max-width: 800px;
-}
-
-@media (min-width: 801px) {
-  .page-content {
-    transform: translateX(calc((100vw - var(--outer-spacing) * 2 - 800px) / 2));
-  }
 }
 
 .page-content .series-content {
@@ -160,7 +209,6 @@ inspect-code .inspect-button {
 @media (max-width: 800px) {
   inspect-code .inspect-button {
     width: 100%;
-
   }
 }
 

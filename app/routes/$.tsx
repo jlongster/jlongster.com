@@ -1,7 +1,8 @@
 import { useLoaderData } from '@remix-run/react';
 import { renderBlock } from '../md';
-import { Page } from '../page';
 import * as db from '../db/website';
+import { Page } from '../page';
+import { Layout } from '../layout';
 
 export async function loader({ params }) {
   let pageUrl = params['*'];
@@ -60,14 +61,14 @@ export function meta({ data }) {
 export default function RenderPage(props) {
   let { page, seriesPage } = useLoaderData();
   return (
-    <>
+    <Layout name="page">
       <header>
         <a href="/">home</a>
       </header>
-      <main className="page">
+      <main>
         <h1>{page.name}</h1>
         <Page page={page} series={seriesPage} />
       </main>
-    </>
+    </Layout>
   );
 }

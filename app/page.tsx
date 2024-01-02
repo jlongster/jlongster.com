@@ -152,7 +152,7 @@ export function Page({ page, series }) {
     <div className="page-content">
       {pageProperties &&
         (() => {
-          let ignoredProps = ['public', 'url'];
+          let ignoredProps = ['public', 'url', 'featured-image'];
 
           return (
             <div className="properties">

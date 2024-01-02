@@ -11,7 +11,7 @@ function siteUrl(siteUrl, url) {
 
 export function loader({ request }) {
   let url = settings.currentSite;
-  let posts = getPages({ tags: ['post'] }).slice(0, 100);
+  let posts = getPages({ tags: ['sketchbook'] }).slice(0, 100);
 
   let feed = (
     <feed xmlns="http://www.w3.org/2005/Atom" xmlLang="en-us">
@@ -37,11 +37,14 @@ export function loader({ request }) {
 
         let str = '';
         walkBlocks(page, (b, nested) => {
-          if (b.raw.includes('::')) {
-            let m = b.raw.match(/^([a-zA-Z ]*)::(.*)/);
-            if (m) {
-              return;
-            }
+          if (
+            b.properties.render === 'js-element' ||
+            b.properties.render === 'html'
+          ) {
+            str += '<p><i>(content unavailable in feed)</i></p>';
+            return;
+          } else if (b.raw.trim() === '' || b.properties.render) {
+            return;
           }
 
           let bstr = '';
@@ -86,6 +89,6 @@ export function loader({ request }) {
   return new Response(
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
       html.prettyPrint(renderToStaticMarkup(feed), { indent_size: 2 }),
-    { status: 200, headers }
+    { status: 200, headers },
   );
 }
