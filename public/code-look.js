@@ -161,8 +161,6 @@ class InspectCode extends HTMLElement {
       if (!codeBlocks) {
         const res = await fetch(`/code-look/${uuid}`);
         const json = await res.json();
-        // Show the blocks in reverse order (top down)
-        json.reverse();
         codeBlockCache.set(uuid, json);
         codeBlocks = json;
       }
