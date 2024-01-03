@@ -23,6 +23,21 @@ body {
   margin: 0;
   --site-width: 800px;
   --outer-spacing: 20px;
+
+  /* For some bizarre reason, this is needed to fix a bug in
+   * iOS Safari where expanding a `detail` element makes all the
+   * text a lot larger. This happened in the code look dialog
+   * component, but it doesn't work to only apply the fix there,
+   * it must be on body.
+   * See https://stackoverflow.com/questions/5303263/fix-font-size-issue-on-mobile-safari-iphone-where-text-is-rendered-inconsisten
+   *
+   * TODO: Look into a better fix for this
+   */
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  word-wrap: break-word;
 }
 
 h1 {
@@ -112,7 +127,9 @@ header {
 
 @media (max-width: 840px) {
   .site-content {
-    margin: var(--outer-spacing);;
+    margin: var(--outer-spacing);
+    width: calc(100% - var(--outer-spacing) * 2);
+    overflow: hidden;
   }  
 }
 
@@ -193,6 +210,10 @@ header .context {
   margin: 1em 0;
 }
 
+.page-content canvas {
+  max-width: 100%;
+}
+
 /* inspector */
 
 inspect-code {
@@ -228,18 +249,22 @@ inspect-code .inspect-button {
 .dialog-outer-container {
   zIndex: 10000;
   position: fixed;
-  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: transparent;
   transition: .15s background-color;
+
+  inset: 0;
+}
+
+@media (min-width: 801px) {
+  inset: 0;
 }
 
 .dialog-outer-container.animated {
   background-color: rgba(30, 30, 30, .2);
 }
-
 
 .dialog-container {
   display: flex;
@@ -321,7 +346,7 @@ inspect-code .inspect-button {
 
 @media (max-width: 800px) {
   .dialog-container {
-    max-height: 99vh;
+    max-height: 95dvh;
   }
 
   .dialog-container .right,

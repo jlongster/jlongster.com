@@ -4,7 +4,6 @@ import settings from './settings';
 
 import siteStyles from '~/css/site.css';
 import nightOwlStyles from '~/css/night-owl.css';
-import foo from '~/foo.txt';
 
 export function links() {
   return [
