@@ -26,6 +26,7 @@ export async function loader({ params }) {
   ];
 
   if ('depends' in block.properties) {
+    // TODO: Need to also fetch all deps of deps (transitively)
     const uuids = block.properties.depends.split(',').map(id => id.trim());
     codeBlocks = uuids
       .map(uuid => {

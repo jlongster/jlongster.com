@@ -5,6 +5,6 @@ export default {
   site: 'https://jlongster.com',
   currentSite:
     process.env === 'development'
-      ? 'https://jlongster.com'
-      : 'http://localhost:3000'
+      ? 'http://localhost:3000'
+      : 'https://jlongster.com'
 };
