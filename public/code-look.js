@@ -161,6 +161,8 @@ class InspectCode extends HTMLElement {
       if (!codeBlocks) {
         const res = await fetch(`/code-look/${uuid}`);
         const json = await res.json();
+        // Render code blocks bottom up
+        json.reverse();
         codeBlockCache.set(uuid, json);
         codeBlocks = json;
       }

@@ -27,8 +27,8 @@ export async function loader({ params }) {
 
   if ('depends' in block.properties) {
     const uuids = block.properties.depends.split(',').map(id => id.trim());
-    codeBlocks = codeBlocks.concat(
-      uuids.map(uuid => {
+    codeBlocks = uuids
+      .map(uuid => {
         let block = db.getBlock(uuid);
 
         return {
@@ -36,8 +36,8 @@ export async function loader({ params }) {
           title: block.properties.title,
           code: getCode(block),
         };
-      }),
-    );
+      })
+      .concat(codeBlocks);
   }
 
   return new Response(JSON.stringify(codeBlocks, null, 2), {
