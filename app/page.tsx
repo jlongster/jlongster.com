@@ -1,3 +1,5 @@
+import { renderInlineMd } from './md';
+
 function Value({ value }) {
   if (Array.isArray(value)) {
     return (
@@ -81,9 +83,13 @@ function BlockContent({ block, root }) {
     return (
       <figure>
         <span dangerouslySetInnerHTML={{ __html: block.string }} />
-        <figcaption
-          dangerouslySetInnerHTML={{ __html: block.properties.caption }}
-        />
+        {block.properties.caption && (
+          <figcaption
+            dangerouslySetInnerHTML={{
+              __html: renderInlineMd(block.properties.caption),
+            }}
+          />
+        )}
       </figure>
     );
   }
