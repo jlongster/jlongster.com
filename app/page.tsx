@@ -77,6 +77,15 @@ function BlockContent({ block, root }) {
         dangerouslySetInnerHTML={{ __html: block.string }}
       />
     );
+  } else if (block.properties.render === 'figure') {
+    return (
+      <figure>
+        <span dangerouslySetInnerHTML={{ __html: block.string }} />
+        <figcaption
+          dangerouslySetInnerHTML={{ __html: block.properties.caption }}
+        />
+      </figure>
+    );
   }
 
   return (

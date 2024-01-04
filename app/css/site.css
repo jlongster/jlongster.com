@@ -36,10 +36,6 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-a {
-  word-wrap: break-word;
-}
-
 h1 {
   letter-spacing: -.004em;
   line-height: .95em;
@@ -212,6 +208,19 @@ header .context {
 
 .page-content canvas {
   max-width: 100%;
+}
+
+.page-content figure {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.page-content figcaption {
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.5em;
+  width: 75%;
+  margin: 0 auto;
 }
 
 /* inspector */

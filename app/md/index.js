@@ -24,8 +24,12 @@ const renderableTypes = new Set([
 
 export function renderBlock(block) {
   walkBlocks(block, b => {
-    let content = b.content.replace(/^[\w-]+:: .*/mg, '').trim();
+    let content = b.content.replace(/^[\w-]+:: .*/gm, '').trim();
     b.raw = content;
+
+    if (b.properties.render === 'figure' && b.properties.caption) {
+      b.properties.caption = renderInlineMd(b.properties.caption);
+    }
 
     if (renderableTypes.has(b.properties.render)) {
       b.string = content.replace(/^```\w*/, '').replace(/```$/, '');
