@@ -215,6 +215,12 @@ header .context {
   text-align: center;
 }
 
+@media (min-width: 801px) {
+  .page-content figure img {
+    max-width: 65%;
+  }
+}
+
 .page-content figcaption {
   font-size: 15px;
   font-style: italic;
