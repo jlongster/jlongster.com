@@ -103,4 +103,10 @@ function onScroll() {
 setTimeout(() => {
   initialScroll = window.scrollY;
   window.addEventListener('scroll', onScroll);
+
+  // Reset the initial scroll y if the user jumps to a link. This
+  // avoiding spamming them immediately with the notification
+  window.addEventListener('hashchange', () => {
+    initialScroll = window.scrollY;
+  })
 }, 300);
