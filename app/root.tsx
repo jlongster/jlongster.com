@@ -35,6 +35,26 @@ export default function App() {
       <body>
         <Outlet />
         <LiveReload />
+
+        {process.env !== 'development' && (
+          <>
+            <script
+              async
+              src="https://www.googletagmanager.com/gtag/js?id=G-8B9TD7JBEJ"
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'G-8B9TD7JBEJ');
+`,
+              }}
+            />
+          </>
+        )}
       </body>
     </html>
   );
