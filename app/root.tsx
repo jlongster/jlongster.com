@@ -24,7 +24,7 @@ export default function App() {
       <head>
         <Meta />
         <Links />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico?2" />
         <link
           rel="alternate"
           type="application/atom+xml"
