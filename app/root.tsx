@@ -34,7 +34,6 @@ export default function App() {
       <body>
         <Outlet />
         <LiveReload />
-        <script src="/code-look.js" />
       </body>
     </html>
   );

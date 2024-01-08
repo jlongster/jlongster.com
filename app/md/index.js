@@ -1,9 +1,11 @@
 import MarkdownIt from 'markdown-it';
 import mdHighlightJS from 'markdown-it-highlightjs';
+import mdAnchor from 'markdown-it-anchor';
 import { walkBlocks } from '../shared/data';
 
 let md = MarkdownIt({ linkify: true, typographer: true });
 md.use(mdHighlightJS);
+md.use(mdAnchor);
 
 export function renderMd(content) {
   return md.render(content);

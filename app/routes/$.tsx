@@ -69,6 +69,8 @@ export default function RenderPage(props) {
         <h1>{page.name}</h1>
         <Page page={page} series={seriesPage} />
       </main>
+      <script src="/code-look.js" />
+      <script src="/newsletter-notification.js" />
     </Layout>
   );
 }
