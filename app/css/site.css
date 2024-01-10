@@ -57,6 +57,11 @@ h4 {
 
 header {
   margin-bottom: 10px;
+  padding-top: 20px;
+}
+
+header .context {
+  font-style: italic;
 }
 
 /* featured */
@@ -129,6 +134,28 @@ header {
   }  
 }
 
+/* home */
+
+.home h1 {
+  margin-top: 60px;
+}
+
+.home h1 a,
+.home h1 a:active,
+.home h1 a:visited {
+  color: black;
+}
+
+.home .description {
+  font-size: 15px;
+}
+
+.home .description p {
+  margin: 10px 0;
+  line-height: 25px;
+}
+
+
 /* page list */
 
 .page-list {
@@ -159,16 +186,12 @@ footer {
 
 /* page */
 
-header .context {
-  font-style: italic;
-}
-
-.page header {
-  padding-top: 20px;
-}
-
 .properties {
-  margin-bottom: 25px;
+  margin-bottom: 45px;
+}
+
+.page-content h1 {
+  margin-top: 90px;
 }
 
 .page-content .series-content {
@@ -406,7 +429,7 @@ inspect-code .inspect-button {
 }
 
 .newsletter-notification.animated {
-  transform: translateX(0) rotate(-10deg);
+  transform: translateX(0) rotate(-5deg);
 }
 
 .newsletter-notification.ticktock {

@@ -62,10 +62,7 @@ export default function RenderPage(props) {
   let { page, seriesPage } = useLoaderData();
   return (
     <Layout name="page">
-      <header>
-        <a href="/">home</a>
-      </header>
-      <main>
+      <main class="page-content">
         <h1>{page.name}</h1>
         <Page page={page} series={seriesPage} />
       </main>

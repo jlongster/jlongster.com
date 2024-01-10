@@ -37,8 +37,24 @@ function Featured({ pages }) {
 export default function Index() {
   let { sketches, featured } = useLoaderData();
   return (
-    <Layout>
-      <h1>Welcome to my sketchbook</h1>
+    <Layout name="home">
+      <h1>Welcome to my sketchbook.</h1>
+      <div className="description">
+        <p>
+          I like to write about novel technologies, dive deep into how things
+          work, and think about things in my own way. My past: created{' '}
+          <a href="https://prettier.io">prettier</a>, made databases work on the
+          web with <a href="https://jlongster.com/future-sql-web">absurd-sql</a>
+          , and more. Currently at <a href="https://stripe.com">Stripe</a>.
+        </p>
+        <p>
+          -{' '}
+          <a target="_blank" href="https://twitter.com/jlongster">
+            James
+          </a>
+        </p>
+        <p style={{ fontStyle: 'italic' }}>P.S. I have a <a href="https://buttondown.email/jlongster">newsletter</a> if you want content in your email.</p>
+      </div>
       {featured.length > 0 && <Featured pages={featured} />}
       <PageList pages={sketches} />
     </Layout>

@@ -1,3 +1,13 @@
+function Header() {
+  return (
+    <header>
+      <a href="/">
+        <img src="/logo.png" width="50" />
+      </a>
+    </header>
+  );
+}
+
 function Footer() {
   return (
     <footer>
@@ -16,6 +26,7 @@ function Footer() {
 export function Layout({ name, children }) {
   return (
     <div className={'site-content ' + (name || '')}>
+      <Header />
       {children}
       <Footer />
     </div>
