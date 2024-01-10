@@ -186,12 +186,25 @@ footer {
 
 /* page */
 
-.properties {
-  margin-bottom: 45px;
-}
-
 .page-content h1 {
   margin-top: 90px;
+  margin-bottom: 0;
+}
+
+.page-content .title h2 {
+  font-size: 18px;
+  font-weight: normal;
+  font-style: italic;
+  color: #858585;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.page-content .properties {
+  margin-top: 35px;
+  margin-bottom: 45px;
+  font-size: 15px;
+  line-height: 1.5em;
 }
 
 .page-content .series-content {

@@ -62,8 +62,11 @@ export default function RenderPage(props) {
   let { page, seriesPage } = useLoaderData();
   return (
     <Layout name="page">
-      <main class="page-content">
-        <h1>{page.name}</h1>
+      <main className="page-content">
+        <div className="title">
+          <h1>{page.name}</h1>
+          {page.properties.subtitle && <h2>{page.properties.subtitle}</h2>}
+        </div>
         <Page page={page} series={seriesPage} />
       </main>
       <script src="/code-look.js" />

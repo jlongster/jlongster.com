@@ -167,13 +167,13 @@ export function Page({ page, series }) {
     <div>
       {pageProperties &&
         (() => {
-          let ignoredProps = ['public', 'url', 'featured-image'];
+          let selectedProps = ['tags', 'date', 'series'];
 
           return (
             <div className="properties">
               {Object.entries(pageProperties.properties)
                 .map(([key, value]) => {
-                  if (ignoredProps.indexOf(key) === -1) {
+                  if (selectedProps.indexOf(key) !== -1) {
                     if (key === 'date') {
                       // Dates are always links, but we don't want it to
                       // be a link
