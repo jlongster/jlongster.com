@@ -49,9 +49,19 @@ export function meta({ data }) {
     contentIndex++;
   }
 
+  let imgUrl;
+  if (data.page.properties['featured-image']) {
+    // Match the part inside parens of [](...)
+    const match = data.page.properties['featured-image'].match(/\]\((.*)\)/);
+    if (match) {
+      imgUrl = match[1];
+    }
+  }
+
   return {
     title: data.page.name,
-    'twitter:card': 'summary',
+    'twitter:card': 'summary_large_image',
+    ...(imgUrl ? { 'og:image': imgUrl } : null),
     'og:title': data.page.name,
     'og:description':
       contentIndex < children.length ? children[contentIndex].raw : '',
