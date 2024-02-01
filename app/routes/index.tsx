@@ -27,6 +27,13 @@ function Featured({ pages }) {
           <a key={page.uuid} href={`/${page.url}`} className="featured-item">
             {imgUrl && <img src={imgUrl} alt="" />}
             <div className="featured-title">{page.name}</div>
+            {page.properties.subtitle && (
+              <div className="featured-subtitle">
+                {page.properties.subtitle}
+              </div>
+            )}
+
+            <div className="date">{page.properties.date[0]}</div>
           </a>
         );
       })}
@@ -53,9 +60,14 @@ export default function Index() {
             James
           </a>
         </p>
-        <p style={{ fontStyle: 'italic' }}>P.S. I have a <a href="https://buttondown.email/jlongster">newsletter</a> if you want content in your email.</p>
+        <p style={{ fontStyle: 'italic' }}>
+          P.S. I have a{' '}
+          <a href="https://buttondown.email/jlongster">newsletter</a> if you
+          want content in your email.
+        </p>
       </div>
       {featured.length > 0 && <Featured pages={featured} />}
+      Previous sketches:
       <PageList pages={sketches} />
     </Layout>
   );

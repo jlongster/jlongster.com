@@ -4,7 +4,7 @@ export default {
   author: 'James Long',
   site: 'https://jlongster.com',
   currentSite:
-    process.env === 'development'
+    typeof process !== 'undefined' && process.env === 'development'
       ? 'http://localhost:3000'
       : 'https://jlongster.com',
 };

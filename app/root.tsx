@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/node';
-import { Links, LiveReload, Meta, Outlet } from '@remix-run/react';
+import { Links, LiveReload, Meta, Outlet, Scripts } from '@remix-run/react';
 import settings from './settings';
 
 import siteStyles from '~/css/site.css';
@@ -35,8 +35,9 @@ export default function App() {
       <body>
         <Outlet />
         <LiveReload />
+        <Scripts />
 
-        {process.env !== 'development' && (
+        {typeof process !== 'undefined' && process.env !== 'development' && (
           <>
             <script
               async

@@ -3774,6 +3774,11 @@ history@^5.2.0, history@^5.3.0:
   dependencies:
     "@babel/runtime" "^7.7.6"
 
+hsluv@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/hsluv/-/hsluv-1.0.1.tgz#8f957afd3f928d2de7f7569db7687f811bb2baed"
+  integrity sha512-zCaFTiDqBLQjCCFBu0qg7z9ASYPd+Bxx2GDCVZJsnehjK80S+jByqhuFz0pCd2Aw3FSKr18AWbRlwnKR0YdizQ==
+
 html@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/html/-/html-1.0.0.tgz#a544fa9ea5492bfb3a2cca8210a10be7b5af1f61"

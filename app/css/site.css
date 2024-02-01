@@ -11,6 +11,39 @@
   src: url('/fonts/plex/IBMPlexSansVar-Italic.woff2') format('woff2');
 }
 
+:root {
+  --pink-0: #59327a;
+  --pink-1: #7d48a9;
+  --pink-2: #955dc6;
+  --pink-3: #a77bd2;
+  --pink-4: #b998dc;
+  --pink-5: #cbb5e6;
+  --green-0: #2b8063;
+  --green-1: #38a27e;
+  --green-2: #43bc93;
+  --green-3: #4ed7a8;
+  --green-4: #59f3be;
+  --green-5: #d1fdea;
+  --yellow-0: #7e612b;
+  --yellow-1: #a27e3a;
+  --yellow-2: #bf9546;
+  --yellow-3: #dcac52;
+  --yellow-4: #f6c46c;
+  --yellow-5: #fae2c3;
+  --purple-0: #6e3c8f;
+  --purple-1: #9452be;
+  --purple-2: #a76ecf;
+  --purple-3: #b88cda;
+  --purple-4: #c9aae3;
+  --purple-5: #dbc7ed;
+  --blue-0: #2b4687;
+  --blue-1: #3e62b8;
+  --blue-2: #4f78dc;
+  --blue-3: #7590e3;
+  --blue-4: #97a9ea;
+  --blue-5: #b7c2f0;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -34,6 +67,19 @@ body {
    * TODO: Look into a better fix for this
    */
   -webkit-text-size-adjust: 100%;
+}
+
+a:link {
+  color: var(--blue-1);
+}
+
+a:visited {
+  color: var(--purple-1);
+}
+
+a:hover,
+a:active {
+  color: var(--blue-1);
 }
 
 h1 {
@@ -68,8 +114,8 @@ header .context {
 
 .featured-list {
   display: flex;
-  gap: 15px;
-  margin-top: 40px;
+  gap: 30px;
+  margin: 60px 0;
 }
 
 .featured-list.breakout {
@@ -86,19 +132,21 @@ header .context {
 }
 
 .featured-item {
+  flex: 1;
   display: flex;
   overflow: hidden;
   flex-direction: column;
-  border: 1px solid #f0f0f0;
   border-radius: 6px;
-  padding: 10px 15px;
-  padding-bottom: 0;
   text-decoration: none;
   max-width: 400px;
 }
 
-.featured-item:hover {
-  background-color: #fafafa;
+.featured-item img {
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  height: 275px;
+  width: 100%;
 }
 
 @media (max-width: 600px) {
@@ -112,12 +160,28 @@ header .context {
 }
 
 .featured-title {
-  margin: 12px 0;
+  margin-top: 12px;
   font-weight: 600;
   font-size: 18px;
   transform: translateY(1px);
   color: black;
+  display: flex;
 }
+
+.featured-subtitle {
+  color: #303030;
+  font-style: italic;
+  font-size: 16px;
+  margin-top: 3px;
+}
+
+.featured-item .date {
+  margin-top: 7px;
+  font-size: 14px;
+  color: #606060;
+}
+
+
 
 /* site */
 
@@ -158,12 +222,12 @@ header .context {
 
 /* page list */
 
-.page-list {
-  margin-top: 40px;
-}
-
 .page-list li {
   margin: .25em 0;
+}
+
+.page-list a {
+  text-decoration: none;
 }
 
 .page-list .date {
