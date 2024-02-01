@@ -35,7 +35,6 @@ export default function App() {
       <body>
         <Outlet />
         <LiveReload />
-        <Scripts />
 
         {typeof process !== 'undefined' && process.env !== 'development' && (
           <>
@@ -56,6 +55,8 @@ gtag('config', 'G-8B9TD7JBEJ');
             />
           </>
         )}
+
+        <script src="/color-picker.js" type="module"/>
       </body>
     </html>
   );

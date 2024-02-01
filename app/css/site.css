@@ -12,36 +12,36 @@
 }
 
 :root {
-  --pink-0: #59327a;
-  --pink-1: #7d48a9;
-  --pink-2: #955dc6;
-  --pink-3: #a77bd2;
-  --pink-4: #b998dc;
-  --pink-5: #cbb5e6;
-  --green-0: #2b8063;
+  --red-0: #8f1b16;
+  --red-1: #a4201a;
+  --red-2: #ba261f;
+  --red-3: #d02c24;
+  --red-4: #e6312a;
+  --red-5: #f5453f;
+  --green-0: #339372;
   --green-1: #38a27e;
-  --green-2: #43bc93;
-  --green-3: #4ed7a8;
-  --green-4: #59f3be;
-  --green-5: #d1fdea;
-  --yellow-0: #7e612b;
+  --green-2: #3eb089;
+  --green-3: #44bf95;
+  --green-4: #4acea1;
+  --green-5: #50ddad;
+  --yellow-0: #937234;
   --yellow-1: #a27e3a;
-  --yellow-2: #bf9546;
-  --yellow-3: #dcac52;
-  --yellow-4: #f6c46c;
-  --yellow-5: #fae2c3;
-  --purple-0: #6e3c8f;
-  --purple-1: #9452be;
-  --purple-2: #a76ecf;
-  --purple-3: #b88cda;
-  --purple-4: #c9aae3;
-  --purple-5: #dbc7ed;
-  --blue-0: #2b4687;
+  --yellow-2: #b28a41;
+  --yellow-3: #c29747;
+  --yellow-4: #d2a44e;
+  --yellow-5: #e2b154;
+  --purple-0: #8d4eb6;
+  --purple-1: #9c59c8;
+  --purple-2: #a56bce;
+  --purple-3: #ae7cd4;
+  --purple-4: #b88cda;
+  --purple-5: #c19ddf;
+  --blue-0: #3656a4;
   --blue-1: #3e62b8;
-  --blue-2: #4f78dc;
-  --blue-3: #7590e3;
-  --blue-4: #97a9ea;
-  --blue-5: #b7c2f0;
+  --blue-2: #466ece;
+  --blue-3: #547add;
+  --blue-4: #6988e1;
+  --blue-5: #7d95e5;
 }
 
 * {
@@ -54,6 +54,8 @@ body {
   line-height: 26px;
   letter-spacing: 0.006em;
   margin: 0;
+  color: black;
+  background-color: white;
   --site-width: 800px;
   --outer-spacing: 20px;
 
@@ -70,16 +72,16 @@ body {
 }
 
 a:link {
-  color: var(--blue-1);
+  color: var(--red-2);
 }
 
 a:visited {
-  color: var(--purple-1);
+  color: var(--red-0);
 }
 
 a:hover,
 a:active {
-  color: var(--blue-1);
+  color: var(--red-2);
 }
 
 h1 {
@@ -189,6 +191,11 @@ header .context {
   max-width: var(--site-width);
   margin: 0 auto;
 }
+
+.site-content.collapsed {
+  margin: 0;
+  margin-left: 20px;
+}  
 
 @media (max-width: 840px) {
   .site-content {
@@ -531,3 +538,42 @@ inspect-code .inspect-button {
   }
 }
 
+/* color picker */
+
+@keyframes color-picker-colors {
+  0% {
+    color: var(--red-0);
+    transform: scale(.9) rotate(-3deg);
+  }
+  25% {
+    color: var(--green-0);
+  }
+  50% {
+    color: var(--blue-0);
+    transform: scale(1.05) rotate(3deg);
+  }
+  75% {
+    color: var(--purple-0);
+  }
+  100% {
+    color: var(--yellow-0);
+  }
+}
+
+#color-picker {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  zIndex: 1;
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #d5d2e4;
+}
+
+#color-picker:hover {
+  animation-duration: .75s;
+  animation-name: color-picker-colors;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}

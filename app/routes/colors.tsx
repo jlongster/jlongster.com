@@ -142,39 +142,53 @@ function Gradient({ color }) {
 function Controls({ color }) {
   const { h, setH, s, setS, l, setL } = color;
   return (
-    <div>
-      <div>
-        H:{' '}
-        <input
-          type="range"
-          value={h}
-          min="0"
-          max="360"
-          onChange={e =>
-            console.log(h, s, l, e.target.value) ||
-            setH(parseInt(e.target.value))
-          }
-        />
-      </div>
-      <div>
-        S:{' '}
-        <input
-          type="range"
-          value={s}
-          min="0"
-          max="100"
-          onChange={e => setS(parseInt(e.target.value))}
-        />
-      </div>
-      <div>
-        L:{' '}
-        <input
-          type="range"
-          value={l}
-          min="0"
-          max="100"
-          onChange={e => setL(parseInt(e.target.value))}
-        />
+    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+      <Gradient color={color} />
+
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          H:{' '}
+          <input
+            type="range"
+            value={h}
+            min="0"
+            max="360"
+            onChange={e =>
+              console.log(h, s, l, e.target.value) ||
+              setH(parseInt(e.target.value))
+            }
+            style={{ width: 300 }}
+          />
+        </div>
+        <div>
+          S:{' '}
+          <input
+            type="range"
+            value={s}
+            min="0"
+            max="100"
+            onChange={e => setS(parseInt(e.target.value))}
+            style={{ width: 300 }}
+          />
+        </div>
+        <div>
+          L:{' '}
+          <input
+            type="range"
+            value={l}
+            min="0"
+            max="100"
+            onChange={e => setL(parseInt(e.target.value))}
+            style={{ width: 300 }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -240,7 +254,14 @@ export default function Colors() {
         <Gradient color={color4} />
         <Gradient color={color5} />
       </div>
-      <div style={{ marginTop: 50, display: 'flex', gap: 40 }}>
+      <div
+        style={{
+          marginTop: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 40,
+        }}
+      >
         <Controls color={color1} />
         <Controls color={color2} />
         <Controls color={color3} />
