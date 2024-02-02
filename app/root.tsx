@@ -1,5 +1,12 @@
 import type { MetaFunction } from '@remix-run/node';
-import { Links, LiveReload, Meta, Outlet, Scripts } from '@remix-run/react';
+import {
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  Scripts,
+  useLocation,
+} from '@remix-run/react';
 import settings from './settings';
 
 import siteStyles from '~/css/site.css';
@@ -19,6 +26,8 @@ export const meta: MetaFunction = () => ({
 });
 
 export default function App() {
+  const location = useLocation();
+
   return (
     <html lang="en">
       <head>
@@ -35,6 +44,7 @@ export default function App() {
       <body>
         <Outlet />
         <LiveReload />
+        {location.pathname.startsWith('/interactive') && <Scripts />}
 
         {typeof process !== 'undefined' && process.env !== 'development' && (
           <>
@@ -56,7 +66,7 @@ gtag('config', 'G-8B9TD7JBEJ');
           </>
         )}
 
-        <script src="/color-picker.js" type="module"/>
+        <script src="/color-picker.js" type="module" />
       </body>
     </html>
   );

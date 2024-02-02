@@ -45,6 +45,9 @@ export default function Index() {
   let { sketches, featured } = useLoaderData();
   return (
     <Layout name="home">
+      <div style={{ border: '1px solid gray', height: 250, marginTop: 50 }}>
+        (demo)
+      </div>
       <h1>Welcome to my sketchbook.</h1>
       <div className="description">
         <p>
