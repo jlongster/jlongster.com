@@ -28,18 +28,45 @@ function vec3add(v1, v2) {
 
 function mat4multvec3(mat, [x, y, z]) {
   return [
-    mat[0] * x + mat[4] * y + mat[8] * z + mat[12],
-    mat[1] * x + mat[5] * y + mat[9] * z + mat[13],
-    mat[2] * x + mat[6] * y + mat[10] * z + mat[14],
+    mat[0] * x + mat[1] * y + mat[2] * z + mat[3],
+    mat[4] * x + mat[5] * y + mat[6] * z + mat[7],
+    mat[8] * x + mat[9] * y + mat[10] * z + mat[11],
   ];
 }
 
 function mat4multvec4(mat, [x, y, z, w]) {
   return [
-    mat[0] * x + mat[4] * y + mat[8] * z + mat[12] * w,
-    mat[1] * x + mat[5] * y + mat[9] * z + mat[13] * w,
-    mat[2] * x + mat[6] * y + mat[10] * z + mat[14] * w,
-    mat[3] * x + mat[7] * y + mat[11] * z + mat[15] * w,
+    mat[0] * x + mat[1] * y + mat[2] * z + mat[3] * w,
+    mat[4] * x + mat[5] * y + mat[6] * z + mat[7] * w,
+    mat[8] * x + mat[9] * y + mat[10] * z + mat[11] * w,
+    mat[12] * x + mat[13] * y + mat[14] * z + mat[15] * w,
+  ];
+}
+
+function mat4mult(mat1, mat2) {
+  // You think this is ugly, I think it's beautiful. We are not the same
+  //
+  // prettier-ignore
+  return [
+    mat1[0] * mat2[0] + mat1[1] * mat2[4] + mat1[2] * mat2[8] + mat1[3] * mat2[12],
+    mat1[4] * mat2[0] + mat1[5] * mat2[4] + mat1[6] * mat2[8] + mat1[7] * mat2[12],
+    mat1[8] * mat2[0] + mat1[9] * mat2[4] + mat1[10] * mat2[8] + mat1[11] * mat2[12],
+    mat1[12] * mat2[0] + mat1[13] * mat2[4] + mat1[14] * mat2[8] + mat1[15] * mat2[12],
+
+    mat1[0] * mat2[1] + mat1[1] * mat2[5] + mat1[2] * mat2[9] + mat1[3] * mat2[13],
+    mat1[4] * mat2[1] + mat1[5] * mat2[5] + mat1[6] * mat2[9] + mat1[7] * mat2[13],
+    mat1[8] * mat2[1] + mat1[9] * mat2[5] + mat1[10] * mat2[9] + mat1[11] * mat2[13],
+    mat1[12] * mat2[1] + mat1[13] * mat2[5] + mat1[14] * mat2[9] + mat1[15] * mat2[13],
+
+    mat1[0] * mat2[2] + mat1[1] * mat2[6] + mat1[2] * mat2[10] + mat1[3] * mat2[14],
+    mat1[4] * mat2[2] + mat1[5] * mat2[6] + mat1[6] * mat2[10] + mat1[7] * mat2[14],
+    mat1[8] * mat2[2] + mat1[9] * mat2[6] + mat1[10] * mat2[10] + mat1[11] * mat2[14],
+    mat1[12] * mat2[2] + mat1[13] * mat2[6] + mat1[14] * mat2[10] + mat1[15] * mat2[14],
+
+    mat1[0] * mat2[3] + mat1[1] * mat2[7] + mat1[2] * mat2[11] + mat1[3] * mat2[15],
+    mat1[4] * mat2[3] + mat1[5] * mat2[7] + mat1[6] * mat2[11] + mat1[7] * mat2[15],
+    mat1[8] * mat2[3] + mat1[9] * mat2[7] + mat1[10] * mat2[11] + mat1[11] * mat2[15],
+    mat1[12] * mat2[3] + mat1[13] * mat2[7] + mat1[14] * mat2[11] + mat1[15] * mat2[15],
   ];
 }
 
@@ -102,7 +129,7 @@ function mat4rotate3d(x, y, z, angle) {
 //   };
 // }
 
-function project2d(vec, frustum, debug) {
+function project2d(vec) {
   let [x, y, z] = vec;
   if (vec[3] !== 0) {
     x = vec[0] / vec[3];
@@ -114,10 +141,6 @@ function project2d(vec, frustum, debug) {
   //   x /= z;
   //   y /= z;
   // }
-
-  if (debug) {
-    console.log(x, y);
-  }
 
   // x = (frustum.xmax - x) / (frustum.xmax - frustum.xmin);
   // y = (frustum.ymax - y) / (frustum.ymax - frustum.ymin);
@@ -180,8 +203,6 @@ function debugCircle(name, vec, size = 20) {
   el.style.top = vec[1] - size / 2 + 'px';
   el.style.left = vec[0] - size / 2 + 'px';
 }
-
-const FRUSTUM = makeFrustum(60.0, 800 / 200, 1.0, 1000);
 
 const Box3d = forwardRef((props, ref) => {
   return (
@@ -453,9 +474,8 @@ export default function Demo() {
       ref.current.style.transform = `
         perspective(2000px)
 
-        translate3d(0, ${-currentForce.current / 5}px, ${Math.abs(
-        currentForce.current,
-      ) / 2}px)
+        translateY(${-currentForce.current / 5}px)
+        translateZ(${Math.abs(currentForce.current) / 2}px)
 
         rotate3d(
           ${-dir[1] * (rev ? -1 : 1)},
@@ -492,7 +512,7 @@ export default function Demo() {
 
       if (m) {
         const mat = m.slice(1, 17).map(n => parseFloat(n));
-        console.log(mat);
+        // console.log(mat);
         let a1 = mat4multvec4(mat, topleft);
         // console.log(mat);
         // console.log('foo', topleft, a1);
@@ -504,10 +524,12 @@ export default function Demo() {
         // const offset = [rectRef.current.x, rectRef.current.y, 0];
         const poff = midRef.current;
         // const poff = [0, 0];
-        a1 = vec2add(project2d(a1, FRUSTUM), poff);
-        a2 = vec2add(project2d(a2, FRUSTUM), poff);
-        a3 = vec2add(project2d(a3, FRUSTUM), poff);
-        a4 = vec2add(project2d(a4, FRUSTUM), poff);
+        a1 = vec2add(project2d(a1), poff);
+        a2 = vec2add(project2d(a2), poff);
+        a3 = vec2add(project2d(a3), poff);
+        a4 = vec2add(project2d(a4), poff);
+
+        console.log(a1, a2, a3, a4)
 
         debugShape('shape', [a1, a2], [a2, a4], [a3, a1], [a3, a4]);
       }
