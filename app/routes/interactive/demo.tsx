@@ -43,6 +43,16 @@ function mat4multvec4(mat, [x, y, z, w]) {
   ];
 }
 
+function mat4transpose(mat) {
+  // prettier-ignore
+  return [
+    mat[0], mat[4], mat[8], mat[12],
+    mat[1], mat[5], mat[9], mat[13],
+    mat[2], mat[6], mat[10], mat[14],
+    mat[3], mat[7], mat[11], mat[15],
+  ]
+}
+
 function mat4mult(mat1, mat2) {
   // You think this is ugly, I think it's beautiful. We are not the same
   //
@@ -97,6 +107,9 @@ function mat4rotate3d(x, y, z, angle) {
   const cosA = Math.cos(angle);
   const sinA2 = sinA * sinA;
   const length = Math.sqrt(x * x + y * y + z * z);
+  const x2 = x * x;
+  const y2 = y * y;
+  const z2 = z * z;
 
   // prettier-ignore
   return [
@@ -431,7 +444,7 @@ export default function Demo() {
     });
 
     document.body.addEventListener('click', e => {
-      addForce(-20);
+      addForce(20);
     });
 
     // Render a 3d line
@@ -471,24 +484,44 @@ export default function Demo() {
 
       const rev = currentForce.current < 0;
 
-      ref.current.style.transform = `
-        perspective(2000px)
-
-        translateY(${-currentForce.current / 5}px)
-        translateZ(${Math.abs(currentForce.current) / 2}px)
-
-        rotate3d(
-          ${-dir[1] * (rev ? -1 : 1)},
-          ${dir[0]},
+      const transformMatrix = mat4mult(
+        mat4mult(
+          mat4perspective(2000),
+          mat4translate(
+            0,
+            -currentForce.current / 5,
+            Math.abs(currentForce.current) / 2,
+          ),
+        ),
+        mat4rotate3d(
+          -dir[1] * (rev ? 1 : -1),
+          dir[0],
           0,
-          ${Math.abs(currentForce.current) / 6}deg
-        )
+          Math.abs(currentForce.current) / 6,
+        ),
+      );
+
+      ref.current.style.transform = `
+        matrix3d(${mat4transpose(transformMatrix).join(',')})
       `;
 
-      const matrix = window.getComputedStyle(ref.current).transform;
-      const m = matrix.match(
-        /matrix3d\(([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+)\)/,
-      );
+      // ref.current.style.transform = `
+      //   perspective(2000px)
+
+      //   translate3d(0,
+
+      //   rotate3d(
+      //     ${-dir[1] * (rev ? -1 : 1)},
+      //     ${dir[0]},
+      //     0,
+      //     ${Math.abs(currentForce.current) / 6}deg
+      //   )
+      // `;
+
+      // const matrix = window.getComputedStyle(ref.current).transform;
+      // const m = matrix.match(
+      //   /matrix3d\(([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+)\)/,
+      // );
 
       // debugRect(
       //   'stone2',
@@ -510,29 +543,27 @@ export default function Demo() {
       const bottomleft = off([-r.width / 2, r.height / 2, 0, 1]);
       const bottomright = off([r.width / 2, r.height / 2, 0, 1]);
 
-      if (m) {
-        const mat = m.slice(1, 17).map(n => parseFloat(n));
-        // console.log(mat);
-        let a1 = mat4multvec4(mat, topleft);
-        // console.log(mat);
-        // console.log('foo', topleft, a1);
-        let a2 = mat4multvec4(mat, topright);
-        let a3 = mat4multvec4(mat, bottomleft);
-        let a4 = mat4multvec4(mat, bottomright);
+      // const mat = mat4transpose(m.slice(1, 17).map(n =>
+      // parseFloat(n)));
+      const mat = transformMatrix;
+      console.log(mat.slice(-4));
+      let a1 = mat4multvec4(mat, topleft);
+      // console.log(mat);
+      // console.log('foo', topleft, a1);
+      let a2 = mat4multvec4(mat, topright);
+      let a3 = mat4multvec4(mat, bottomleft);
+      let a4 = mat4multvec4(mat, bottomright);
 
-        // console.log(mat, a1);
-        // const offset = [rectRef.current.x, rectRef.current.y, 0];
-        const poff = midRef.current;
-        // const poff = [0, 0];
-        a1 = vec2add(project2d(a1), poff);
-        a2 = vec2add(project2d(a2), poff);
-        a3 = vec2add(project2d(a3), poff);
-        a4 = vec2add(project2d(a4), poff);
+      // console.log(mat, a1);
+      // const offset = [rectRef.current.x, rectRef.current.y, 0];
+      const poff = midRef.current;
+      // const poff = [0, 0];
+      a1 = vec2add(project2d(a1), poff);
+      a2 = vec2add(project2d(a2), poff);
+      a3 = vec2add(project2d(a3), poff);
+      a4 = vec2add(project2d(a4), poff);
 
-        console.log(a1, a2, a3, a4)
-
-        debugShape('shape', [a1, a2], [a2, a4], [a3, a1], [a3, a4]);
-      }
+      debugShape('shape', [a1, a2], [a2, a4], [a3, a1], [a3, a4]);
 
       requestAnimationFrame(updateForce);
       last = timestamp;
