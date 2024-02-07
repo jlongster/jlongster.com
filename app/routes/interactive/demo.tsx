@@ -484,15 +484,23 @@ export default function Demo() {
 
       const rev = currentForce.current < 0;
 
-      const transformMatrix = mat4mult(
-        mat4mult(
-          mat4perspective(2000),
-          mat4translate(
-            0,
-            -currentForce.current / 5,
-            Math.abs(currentForce.current) / 2,
-          ),
+      // mat4translate(
+      //   0,
+      //   -currentForce.current / 5,
+      //   Math.abs(currentForce.current) / 2,
+      // ),
+
+      console.log(
+        mat4rotate3d(
+          -dir[1] * (rev ? 1 : -1),
+          dir[0],
+          0,
+          Math.abs(currentForce.current) / 6,
         ),
+      );
+
+      const transformMatrix = mat4mult(
+        mat4perspective(2000),
         mat4rotate3d(
           -dir[1] * (rev ? 1 : -1),
           dir[0],
@@ -546,7 +554,7 @@ export default function Demo() {
       // const mat = mat4transpose(m.slice(1, 17).map(n =>
       // parseFloat(n)));
       const mat = transformMatrix;
-      console.log(mat.slice(-4));
+      // console.log(mat);
       let a1 = mat4multvec4(mat, topleft);
       // console.log(mat);
       // console.log('foo', topleft, a1);
