@@ -11,11 +11,13 @@ import settings from './settings';
 
 import siteStyles from '~/css/site.css';
 import nightOwlStyles from '~/css/night-owl.css';
+import box3d from '~/css/box3d.css';
 
 export function links() {
   return [
     { rel: 'stylesheet', href: nightOwlStyles },
     { rel: 'stylesheet', href: siteStyles },
+    { rel: 'stylesheet', href: box3d },
   ];
 }
 

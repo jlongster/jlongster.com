@@ -461,8 +461,10 @@ function openApp() {
   ReactDOM.render(e(Colors), div);
 }
 
-colorPickerBtn.addEventListener('click', openApp);
+if (colorPickerBtn) {
+  colorPickerBtn.addEventListener('click', openApp);
 
-if (window.localStorage.getItem('colorPickerOpen')) {
-  openApp();
+  if (window.localStorage.getItem('colorPickerOpen')) {
+    openApp();
+  }
 }

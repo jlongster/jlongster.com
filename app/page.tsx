@@ -223,7 +223,7 @@ export function PageList({ pages }) {
       ) : (
         pages.map(page => (
           <li key={page.id}>
-            <a href={`/${page.url}?x`}>
+            <a href={`/${page.url}`}>
               {page.name}
             </a>
           </li>
