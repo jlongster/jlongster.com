@@ -68,40 +68,34 @@ function mat4mult(mat1, mat2) {
   // prettier-ignore
   return [
     mat1[0] * mat2[0] + mat1[1] * mat2[4] + mat1[2] * mat2[8] + mat1[3] * mat2[12],
-    mat1[4] * mat2[0] + mat1[5] * mat2[4] + mat1[6] * mat2[8] + mat1[7] * mat2[12],
-    mat1[8] * mat2[0] + mat1[9] * mat2[4] + mat1[10] * mat2[8] + mat1[11] * mat2[12],
-    mat1[12] * mat2[0] + mat1[13] * mat2[4] + mat1[14] * mat2[8] + mat1[15] * mat2[12],
-
     mat1[0] * mat2[1] + mat1[1] * mat2[5] + mat1[2] * mat2[9] + mat1[3] * mat2[13],
-    mat1[4] * mat2[1] + mat1[5] * mat2[5] + mat1[6] * mat2[9] + mat1[7] * mat2[13],
-    mat1[8] * mat2[1] + mat1[9] * mat2[5] + mat1[10] * mat2[9] + mat1[11] * mat2[13],
-    mat1[12] * mat2[1] + mat1[13] * mat2[5] + mat1[14] * mat2[9] + mat1[15] * mat2[13],
-
     mat1[0] * mat2[2] + mat1[1] * mat2[6] + mat1[2] * mat2[10] + mat1[3] * mat2[14],
-    mat1[4] * mat2[2] + mat1[5] * mat2[6] + mat1[6] * mat2[10] + mat1[7] * mat2[14],
-    mat1[8] * mat2[2] + mat1[9] * mat2[6] + mat1[10] * mat2[10] + mat1[11] * mat2[14],
-    mat1[12] * mat2[2] + mat1[13] * mat2[6] + mat1[14] * mat2[10] + mat1[15] * mat2[14],
-
     mat1[0] * mat2[3] + mat1[1] * mat2[7] + mat1[2] * mat2[11] + mat1[3] * mat2[15],
+
+    mat1[4] * mat2[0] + mat1[5] * mat2[4] + mat1[6] * mat2[8] + mat1[7] * mat2[12],
+    mat1[4] * mat2[1] + mat1[5] * mat2[5] + mat1[6] * mat2[9] + mat1[7] * mat2[13],
+    mat1[4] * mat2[2] + mat1[5] * mat2[6] + mat1[6] * mat2[10] + mat1[7] * mat2[14],
     mat1[4] * mat2[3] + mat1[5] * mat2[7] + mat1[6] * mat2[11] + mat1[7] * mat2[15],
+
+    mat1[8] * mat2[0] + mat1[9] * mat2[4] + mat1[10] * mat2[8] + mat1[11] * mat2[12],
+    mat1[8] * mat2[1] + mat1[9] * mat2[5] + mat1[10] * mat2[9] + mat1[11] * mat2[13],
+    mat1[8] * mat2[2] + mat1[9] * mat2[6] + mat1[10] * mat2[10] + mat1[11] * mat2[14],
     mat1[8] * mat2[3] + mat1[9] * mat2[7] + mat1[10] * mat2[11] + mat1[11] * mat2[15],
+
+    mat1[12] * mat2[0] + mat1[13] * mat2[4] + mat1[14] * mat2[8] + mat1[15] * mat2[12],
+    mat1[12] * mat2[1] + mat1[13] * mat2[5] + mat1[14] * mat2[9] + mat1[15] * mat2[13],
+    mat1[12] * mat2[2] + mat1[13] * mat2[6] + mat1[14] * mat2[10] + mat1[15] * mat2[14],
     mat1[12] * mat2[3] + mat1[13] * mat2[7] + mat1[14] * mat2[11] + mat1[15] * mat2[15],
   ];
 }
 
 function mat4perspective(n) {
   // prettier-ignore
-  // return [
-  //   1, 0, 0, 0,
-  //   0, 1, 0, 0,
-  //   0, 0, 1, 0,
-  //   0, 0, -1/n, 1,
-  // ]
   return [
     1, 0, 0, 0,
     0, 1, 0, 0,
-    -1 / n * 0, -1 / n * 0, 1 + -1 / n * 0,  -1 / n * 0,
-    0, 0, 0, 1,
+    0, 0, 1, 0,
+    0, 0, -1/n, 1,
   ]
 }
 
@@ -506,24 +500,26 @@ export default function Demo() {
       //   Math.abs(currentForce.current) / 2,
       // ),
 
-      console.log(
-        mat4rotate3d(
-          -dir[1] * (rev ? 1 : -1),
-          dir[0],
-          0,
-          Math.abs(currentForce.current) / 6,
-        ),
-      );
-
       const transformMatrix = mat4mult(
-        mat4perspective(100),
-        mat4rotate3d(
-          -dir[1] * (rev ? 1 : -1),
-          dir[0],
-          0,
-          Math.abs(currentForce.current) / 6,
+        mat4perspective(2000),
+        mat4mult(
+          mat4translate(
+            0,
+            -currentForce.current / 5,
+            Math.abs(currentForce.current) / 2,
+          ),
+
+          mat4rotate3d(
+            -dir[1] * (rev ? -1 : 1),
+            dir[0],
+            0,
+            Math.abs(currentForce.current) / 6,
+          ),
         ),
       );
+      // const transformMatrix = mat4translate(0, -20, 0);
+
+      console.log(transformMatrix);
 
       ref.current.style.transform = `
         matrix3d(${mat4transpose(transformMatrix).join(',')})
@@ -531,46 +527,27 @@ export default function Demo() {
 
       // ref.current.style.transform = `
       //   perspective(2000px)
-
-      //   translate3d(0,
-
-      //   rotate3d(
-      //     ${-dir[1] * (rev ? -1 : 1)},
-      //     ${dir[0]},
-      //     0,
-      //     ${Math.abs(currentForce.current) / 6}deg
-      //   )
+      //   translate3d(0, 0, 20px)
       // `;
 
-      // const matrix = window.getComputedStyle(ref.current).transform;
-      // const m = matrix.match(
-      //   /matrix3d\(([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+)\)/,
-      // );
-
-      // debugRect(
-      //   'stone2',
-      //   [rectRef.current.x, rectRef.current.y],
-      //   [
-      //     rectRef.current.x + rectRef.current.width,
-      //     rectRef.current.y + rectRef.current.height,
-      //   ],
-      // );
+      const matrix = window.getComputedStyle(ref.current).transform;
+      const m = matrix.match(
+        /matrix3d\(([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+), ([-.e\d]+)\)/,
+      );
+      if (m) {
+        // console.log(m.slice(1, 17).map(n => parseFloat(n)));
+      }
 
       const r = rectRef.current;
 
-      function off([x, y, z, w]) {
-        return [x, y, z, w];
-      }
-
-      const topleft = off([-r.width / 2, -r.height / 2, 0, 1]);
-      const topright = off([r.width / 2, -r.height / 2, 0, 1]);
-      const bottomleft = off([-r.width / 2, r.height / 2, 0, 1]);
-      const bottomright = off([r.width / 2, r.height / 2, 0, 1]);
+      const topleft = [-r.width / 2, -r.height / 2, 0, 1];
+      const topright = [r.width / 2, -r.height / 2, 0, 1];
+      const bottomleft = [-r.width / 2, r.height / 2, 0, 1];
+      const bottomright = [r.width / 2, r.height / 2, 0, 1];
 
       // const mat = mat4transpose(m.slice(1, 17).map(n =>
       // parseFloat(n)));
       const mat = transformMatrix;
-      // console.log(mat);
       let a1 = mat4multvec4(mat, topleft);
       // console.log(mat);
       // console.log('foo', topleft, a1);
