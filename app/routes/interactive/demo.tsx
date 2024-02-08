@@ -22,8 +22,17 @@ function vec2multn(v1, n) {
   return [v1[0] * n, v1[1] * n];
 }
 
+function vec3len([x, y, z]) {
+  return Math.sqrt(x * x + y * y + z * z);
+}
+
 function vec3add(v1, v2) {
   return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]];
+}
+
+function vec3normalize(v) {
+  const length = vec3len(v);
+  return [v[0] / length, v[1] / length, v[2] / length];
 }
 
 function mat4multvec3(mat, [x, y, z]) {
@@ -82,11 +91,17 @@ function mat4mult(mat1, mat2) {
 
 function mat4perspective(n) {
   // prettier-ignore
+  // return [
+  //   1, 0, 0, 0,
+  //   0, 1, 0, 0,
+  //   0, 0, 1, 0,
+  //   0, 0, -1/n, 1,
+  // ]
   return [
     1, 0, 0, 0,
     0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, -1/n, 1,
+    -1 / n * 0, -1 / n * 0, 1 + -1 / n * 0,  -1 / n * 0,
+    0, 0, 0, 1,
   ]
 }
 
@@ -101,12 +116,13 @@ function mat4translate(x, y, z) {
 }
 
 function mat4rotate3d(x, y, z, angle) {
+  [x, y, z] = vec3normalize([x, y, z]);
+
   angle *= Math.PI / 360;
 
   const sinA = Math.sin(angle);
   const cosA = Math.cos(angle);
   const sinA2 = sinA * sinA;
-  const length = Math.sqrt(x * x + y * y + z * z);
   const x2 = x * x;
   const y2 = y * y;
   const z2 = z * z;
@@ -500,7 +516,7 @@ export default function Demo() {
       );
 
       const transformMatrix = mat4mult(
-        mat4perspective(2000),
+        mat4perspective(100),
         mat4rotate3d(
           -dir[1] * (rev ? 1 : -1),
           dir[0],
