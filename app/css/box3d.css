@@ -1,6 +1,21 @@
+@keyframes sway {
+  from {
+    transform: translateX(-200px) translateY(0);
+  }
+  
+  to {
+    transform: translateX(200px) translateY(0);
+  }
+}
+
+.blob {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 #tridiv {
   position: absolute;
-  overflow: hidden;
   width: 100%;
   height: 100%;
   background: transparent;
@@ -9,9 +24,11 @@
 .face {
 }
 .scene {
+  position: relative;
   font-size: 70px;
   width: 800px;
   height: 250px;
+  /* border: 1px solid red; */
 }
 /*.scene > * {
   box-sizing: border-box;
@@ -24,7 +41,7 @@
   margin: 0 auto;
   /* width: 800px; */
   /* height: 250px; */
-  z-index: 3;
+  z-index: 30;
 }
 .shape, .face, .face-wrapper, .cr {
   position: absolute;
