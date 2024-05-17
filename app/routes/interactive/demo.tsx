@@ -5,6 +5,13 @@ import { getPathFromCircleGroup } from '../../metaballs';
 import { lineCircleIntersection } from '../../intersection';
 import { Bezier } from 'bezier-js';
 
+import gradient1 from './gradient1.jpeg';
+import gradient2 from './gradient2.jpeg';
+import gradient3 from './gradient3.jpeg';
+import gradient4 from './gradient4.jpeg';
+import gradient5 from './gradient5.jpeg';
+import gradient6 from './gradient6.jpeg';
+
 function vec2len([x, y]) {
   return Math.sqrt(x * x + y * y);
 }
@@ -191,7 +198,7 @@ function debugLine(name, v1, v2, color = 'blue') {
     el.className = 'debug-render';
     Object.assign(el.style, {
       position: 'absolute',
-      borderTop: '1px solid ' + color,
+      borderTop: '10px solid ' + color,
       transformOrigin: 'top left',
       zIndex: 1000,
     });
@@ -203,7 +210,6 @@ function debugLine(name, v1, v2, color = 'blue') {
   el.style.top = v1[1] + 'px';
   el.style.left = v1[0] + 'px';
   el.style.width = vec2len(to) + 'px';
-  el.style.height = '1px';
 
   const angle = Math.atan2(to[1], to[0]);
   el.style.transform = `rotateZ(${angle}rad)`;
@@ -238,112 +244,6 @@ function debugCircle(name, vec, size = 20) {
   el.style.borderRadius = size + 'px';
   el.style.top = vec[1] - size / 2 + 'px';
   el.style.left = vec[0] - size / 2 + 'px';
-}
-
-function Svgs() {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const circles = [
-      {
-        cx: (Math.random() * 800) | 0,
-        cy: (Math.random() * 200) | 0,
-        r: 64,
-      },
-      {
-        cx: (Math.random() * 800) | 0,
-        cy: (Math.random() * 200) | 0,
-        r: 96,
-      },
-      {
-        cx: Math.random() * 800,
-        cy: Math.random() * 200,
-        r: 56,
-      },
-      // {
-      //   cx: Math.random() * 800,
-      //   cy: Math.random() * 200,
-      //   r: 128,
-      // },
-      // {
-      //   cx: Math.random() * 800,
-      //   cy: Math.random() * 200,
-      //   r: 76,
-      // },
-    ];
-    const path = getPathFromCircleGroup(circles);
-    let y = circles.map(circle => circle.cy + circle.r);
-    let x = circles.map(circle => circle.cx + circle.r);
-    const viewBox = `0 0 ${Math.round(Math.max(...x))} ${Math.round(
-      Math.max(...y),
-    )}`;
-
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    svg.setAttribute('version', '1.1');
-    svg.setAttribute('viewBox', viewBox);
-    svg.setAttribute('width', '800px');
-    svg.setAttribute('height', '200px');
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    Object.assign(svg.style, {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      zIndex: 2,
-    });
-
-    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    p.setAttribute('fill', 'red');
-    p.setAttribute('d', path);
-    svg.appendChild(p);
-
-    ref.current.appendChild(svg);
-
-    let last = null;
-    function render(timestamp) {
-      const dt = timestamp ? timestamp - (last || timestamp) : 0;
-
-      circles.forEach(circle => {
-        circle.cx += (Math.random() * 0.4 - 0.2) * dt;
-        circle.cy += (Math.random() * 0.4 - 0.2) * dt;
-      });
-      p.setAttribute('d', getPathFromCircleGroup(circles));
-
-      requestAnimationFrame(render);
-      last = timestamp;
-    }
-
-    render();
-  }, []);
-
-  return <div ref={ref} />;
-}
-
-function SvgFilter() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0">
-      <defs>
-        <filter id="blur">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
-        </filter>
-        <filter id="contrast">
-          <feColorMatrix
-            in="blur"
-            mode="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -6"
-          />
-        </filter>
-        <filter id="gooey">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-          <feColorMatrix
-            in="blur"
-            mode="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -6"
-          />
-        </filter>
-      </defs>
-    </svg>
-  );
 }
 
 const Box3d = forwardRef((props, ref) => {
@@ -728,39 +628,49 @@ export default function Demo() {
       }
 
       const dt = timestamp ? timestamp - (last || timestamp) : 0;
+      currentForce.current += (dt / 1000) * 50;
+      // currentForce.current = -30;
 
-      if (currentForce.current > 0) {
-        currentForce.current = Math.max(
-          currentForce.current - (dt / 1000) * 300,
-          0,
-        );
-      } else if (currentForce.current < 0) {
-        currentForce.current = Math.min(
-          currentForce.current + (dt / 1000) * 300,
-          0,
-        );
-      }
+      // if (currentForce.current > 0) {
+      //   currentForce.current = Math.max(
+      //     currentForce.current - (dt / 1000) * 30,
+      //     0,
+      //   );
+      // } else if (currentForce.current < 0) {
+      //   currentForce.current = Math.min(
+      //     currentForce.current + (dt / 1000) * 10,
+      //     0,
+      //   );
+      // }
 
-      const dir = vec2normalize(currentForceDir.current);
+      // const dir = vec2normalize(currentForceDir.current);
+      // const dir = [0, 1];
 
-      const rev = currentForce.current < 0;
+      // const rev = currentForce.current < 0;
 
       const transformMatrix = mat4mult(
         mat4perspective(2000),
-        mat4mult(
-          mat4translate(
-            0,
-            currentForce.current,
-            Math.abs(currentForce.current) / 2,
-          ),
-
-          mat4rotate3d(
-            -dir[1] * (rev ? -1 : 1),
-            dir[0],
-            0,
-            Math.abs(currentForce.current) / 6,
-          ),
+        mat4rotate3d(
+          0.25,
+          1.2,
+          0,
+          -Math.abs(Math.max(currentForce.current, 0)) / 6,
         ),
+
+        // mat4mult(
+        //   mat4translate(
+        //     0,
+        //     currentForce.current,
+        //     Math.abs(currentForce.current) / 2,
+        //   ),
+
+        //   mat4rotate3d(
+        //     0,
+        //     1,
+        //     0,
+        //     Math.abs(currentForce.current) / 6,
+        //   ),
+        // ),
       );
 
       // const globalOff = [midRef.current[0], midRef.current[1], 0, 1];
@@ -774,17 +684,17 @@ export default function Demo() {
 
       // debugCircle('foo2', globalOff);
 
-      ref.current.style.transform = `
-        matrix3d(${mat4transpose(transformMatrix).join(',')})
-      `;
-      // ref.current.style.display = 'none';
+      // ref.current.style.transform = `
+      //   matrix3d(${mat4transpose(transformMatrix).join(',')})
+      // `;
+      ref.current.style.display = 'none';
 
       const r = rectRef.current;
 
-      const topleft = [-r.width / 2, -r.height / 2, 0, 1];
-      const topright = [r.width / 2, -r.height / 2, 0, 1];
-      const bottomleft = [-r.width / 2, r.height / 2, 0, 1];
-      const bottomright = [r.width / 2, r.height / 2, 0, 1];
+      const topleft = [-r.width / 4, -r.height / 1.9, 0, 1];
+      const topright = [r.width / 4, -r.height / 1.9, 0, 1];
+      const bottomleft = [-r.width / 4, r.height / 1.9, 0, 1];
+      const bottomright = [r.width / 4, r.height / 1.9, 0, 1];
 
       const mat = transformMatrix;
       let a1 = mat4multvec4(mat, topleft);
@@ -815,15 +725,86 @@ export default function Demo() {
         segments = difference([shape2.map(toPoint)], [shape1.map(toPoint)]);
       } catch (e) {}
 
-      debugShape('shape', shape1, 'red');
+      // debugShape('shape', shape1, 'red');
+
+      const svgC = document.querySelector('.svg-shape');
+      svgC.innerHTML = '';
 
       if (segments) {
-        segments.forEach((segment, idx) => {
+        const svg = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'svg',
+        );
+        svg.setAttribute('width', '6000');
+        svg.setAttribute('height', '2500');
+        svg.setAttributeNS(
+          'http://www.w3.org/2000/xmlns/',
+          'xmlns:xlink',
+          'http://www.w3.org/1999/xlink',
+        );
+
+        const w = 1200;
+        const h = 500;
+
+        svg.innerHTML = `
+<defs>
+  <pattern id="gradient1" patternUnits="userSpaceOnUse" width="${w}" height="${h}">
+    <image href="${gradient1}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" />
+  </pattern>
+  <pattern id="gradient2" patternUnits="userSpaceOnUse" width="${w}" height="${h}">
+    <image href="${gradient2}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"  />
+  </pattern>
+  <pattern id="gradient3" patternUnits="userSpaceOnUse" width="${w}" height="${h}">
+    <image href="${gradient3}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" />
+  </pattern>
+  <pattern id="gradient4" patternUnits="userSpaceOnUse" width="${w}" height="${h}">
+    <image href="${gradient4}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" />
+  </pattern>
+</defs>`;
+
+        svgC.appendChild(svg);
+
+        function createPath(segment) {
+          // Close off a shape if there are more than 2 points
           if (segment.length > 2) {
-            segment.push(segment[0]);
+            segment = [...segment, segment[0]];
           }
-          debugShape('diff-' + idx, segment.map(fromPoint));
-        });
+          const path = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'path',
+          );
+          path.setAttribute(
+            'd',
+            `M${segment[0].x} ${segment[0].y}` +
+              segment
+                .slice(1)
+                .map(s => `L${s.x} ${s.y}`)
+                .join(' '),
+          );
+          path.setAttribute('stroke', '#303030');
+          path.setAttribute('stroke-opacity', '1');
+          path.setAttribute('stroke-width', '15px');
+          path.setAttribute('stroke-dasharray', '1700px');
+          path.setAttribute(
+            'stroke-dashoffset',
+            ((Math.min(currentForce.current, 250) * 8) | 0) + 1700 + 'px',
+          );
+          // path.setAttribute('fill', `url(#gradient1)`);
+          path.setAttribute('fill', `transparent`);
+          return path;
+        }
+
+        const [first, second] = segments;
+        if (first && first.length > 0) {
+          const path = createPath(first);
+          // path.style.transform = 'translateX(150px)'
+          svg.appendChild(path);
+        }
+        if (second && second.length > 0) {
+          const path = createPath(second);
+          // path.style.transform = 'translateX(-150px)'
+          svg.appendChild(path);
+        }
       }
 
       requestAnimationFrame(updateForce);
@@ -843,19 +824,20 @@ export default function Demo() {
         minHeight: 2000,
       }}
     >
-      <Box3d ref={ref} rectRef={rectRef} />
-      <canvas
-        style={{
-          width: 900,
-          height: 800,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          pointerEvents: 'none',
-        }}
+      <style>{`
+        @keyframes dash {
+          from { stroke-dashoffset: 10px }
+          to { stroke-dashoffset: 1000px }
+        }
+      `}</style>
+      <div
+        className="svg-shape"
+        style={{ position: 'absolute', top: 0, left: 0 }}
       />
 
-      <div style={{ marginTop: 100 }}>
+      <Box3d ref={ref} rectRef={rectRef} />
+
+      <div style={{ marginTop: 300 }}>
         <input
           type="range"
           min="-100"
