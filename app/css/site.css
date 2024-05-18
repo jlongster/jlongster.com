@@ -246,6 +246,13 @@ a.featured-item:hover .featured-title {
   display: flex;
   gap: 40px;
   align-items: center;
+  flex-direction: column;
+}
+
+@media (min-width: 801px) {
+  .home .hero {
+    flex-direction: row;
+  }
 }
 
 .home .hero {
