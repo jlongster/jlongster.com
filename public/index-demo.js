@@ -1,7 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { difference } from '../../poly';
-import Animations from './Animations';
-
+import { difference } from './poly.js';
+import Animations from './animations.js';
 import {
   mat4mult,
   mat4perspective,
@@ -9,7 +7,7 @@ import {
   mat4multvec4,
   vec2add,
   project2d,
-} from './math';
+} from './math.js';
 
 function createSvgElement(rectRef) {
   const slide = Animations.create({
@@ -36,7 +34,9 @@ function createSvgElement(rectRef) {
 
   const div = document.createElement('div');
   div.innerHTML = `
-     <svg width=${rectRef.width + 20 + 30} height=${rectRef.height + 20 + 30} style="transform: translateY(-15px)">
+     <svg width=${rectRef.width + 20} height=${rectRef.height +
+    20 +
+    30} style="transform: translateY(-15px)">
         <g
           fill="transparent"
           stroke="#303030"
@@ -187,29 +187,16 @@ function initSvg(parentElement) {
 
   setTimeout(() => {
     path1.style['stroke-dasharray'] = '0';
-    path2.style['stroke-dasharray'] = '0';
-  }, 1500);
+  }, 500);
+
+  setTimeout(() => {
+     path2.style['stroke-dasharray'] = '0';
+  }, 800);
+
+  parentElement.style.width = rectRef.width + 20 + 'px';
+  parentElement.style.height = rectRef.height + 20 + 'px';
 
   updateForce();
 }
 
-export default function Demo() {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    initSvg(ref.current);
-  }, []);
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingTop: 250,
-        paddingBottom: 30000,
-      }}
-      ref={ref}
-    />
-  );
-}
+initSvg(document.querySelector('#demo'));

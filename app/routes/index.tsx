@@ -45,33 +45,37 @@ export default function Index() {
   let { sketches, featured } = useLoaderData();
   return (
     <Layout name="home">
-      <div style={{ border: '1px solid gray', height: 250, marginTop: 50 }}>
-        (demo)
-      </div>
-      <h1>Welcome to my sketchbook.</h1>
-      <div className="description">
-        <p>
-          I like to write about novel technologies, dive deep into how things
-          work, and think about things in my own way. My past: created{' '}
-          <a href="https://prettier.io">prettier</a>, made databases work on the
-          web with <a href="https://jlongster.com/future-sql-web">absurd-sql</a>
-          , and more. Currently at <a href="https://stripe.com">Stripe</a>.
-        </p>
-        <p>
-          -{' '}
-          <a target="_blank" href="https://twitter.com/jlongster">
-            James
-          </a>
-        </p>
-        <p style={{ fontStyle: 'italic' }}>
-          P.S. I have a{' '}
-          <a href="https://buttondown.email/jlongster">newsletter</a> if you
-          want content in your email.
-        </p>
+      <h1>This is my sketchbook.</h1>
+      <div className="hero">
+        <div className="description">
+          <p>
+            I like to experiment with technology and art. I write about
+            compilers, color theory, and much more. My past: created{' '}
+            <a href="https://prettier.io">prettier</a>, made databases work on
+            the web with{' '}
+            <a href="https://jlongster.com/future-sql-web">absurd-sql</a>, and
+            more. Currently at <a href="https://stripe.com">Stripe</a>.
+          </p>
+          <p>
+            -{' '}
+            <a target="_blank" href="https://twitter.com/jlongster">
+              James
+            </a>
+          </p>
+          <p style={{ fontStyle: 'italic' }}>
+            P.S. I have a{' '}
+            <a href="https://buttondown.email/jlongster">newsletter</a> if you
+            want content in your email.
+          </p>
+        </div>
+        <div id="demo" />
       </div>
       {featured.length > 0 && <Featured pages={featured} />}
-      Previous sketches:
-      <PageList pages={sketches} />
+      <div className="reading-list">
+        <h3>Also worth reading</h3>
+        <PageList pages={sketches} />
+      </div>
+      <script type="module" src="/index-demo.js" />
     </Layout>
   );
 }
