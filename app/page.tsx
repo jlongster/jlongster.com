@@ -21,10 +21,12 @@ function Value({ value }) {
 function BlockContent({ block, root }) {
   let Component = root ? 'p' : 'span';
 
+  let result = null;
+
   if (block.properties.render === 'inline') {
-    return null;
+    result = null;
   } else if (block.properties.render === 'css') {
-    return (
+    result = (
       <style
         type="text/css"
         dangerouslySetInnerHTML={{ __html: block.string }}
@@ -48,7 +50,7 @@ function BlockContent({ block, root }) {
       'then' in res ? res.then(insert) : insert(res)
     `;
 
-    return (
+    result = (
       <>
         <div id={id + '-placeholder'} style={{ width, height }} />
         <script
@@ -59,12 +61,12 @@ function BlockContent({ block, root }) {
       </>
     );
   } else if (block.properties.render === 'js-no-module') {
-    return <script dangerouslySetInnerHTML={{ __html: block.string }} />;
+    result = <script dangerouslySetInnerHTML={{ __html: block.string }} />;
   } else if (
     block.properties.render === 'js' ||
     block.properties.render === 'javascript'
   ) {
-    return (
+    result = (
       <script
         type="module"
         dangerouslySetInnerHTML={{ __html: block.string }}
@@ -73,14 +75,14 @@ function BlockContent({ block, root }) {
   } else if (block.properties.render === 'html') {
     let bleed = block.properties.bleed;
 
-    return (
+    result = (
       <inspect-code
         data-block-id={block.uuid}
         dangerouslySetInnerHTML={{ __html: block.string }}
       />
     );
   } else if (block.properties.render === 'figure') {
-    return (
+    result = (
       <figure>
         <span dangerouslySetInnerHTML={{ __html: block.string }} />
         {block.properties.caption && (
@@ -91,6 +93,17 @@ function BlockContent({ block, root }) {
           />
         )}
       </figure>
+    );
+  }
+
+  if (result) {
+    return (
+      <>
+        {result}
+        {block.properties.source === true && (
+          <Component dangerouslySetInnerHTML={{ __html: block.sourceString }} />
+        )}
+      </>
     );
   }
 
@@ -223,9 +236,7 @@ export function PageList({ pages }) {
       ) : (
         pages.map(page => (
           <li key={page.id}>
-            <a href={`/${page.url}`}>
-              {page.name}
-            </a>
+            <a href={`/${page.url}`}>{page.name}</a>
           </li>
         ))
       )}

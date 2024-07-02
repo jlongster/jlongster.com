@@ -31,6 +31,15 @@ export function renderBlock(block) {
 
     if (renderableTypes.has(b.properties.render)) {
       b.string = content.replace(/^```\w*/, '').replace(/```$/, '');
+
+      if (b.properties.source === true) {
+        // We don't want the <p> wrapper, but we can't use `renderInlineMd`
+        // because it doesn't properly render code blocks
+        let rendered = renderMd(content);
+        b.sourceString = rendered
+          .replace(/^\s*<p>/, '')
+          .replace(/<\/p>\s*$/, '');
+      }
     } else {
       // We don't want the <p> wrapper, but we can't use `renderInlineMd`
       // because it doesn't properly render code blocks
