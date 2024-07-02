@@ -42,6 +42,7 @@ function BlockContent({ block, root }) {
       const res = (() => {${block.string}})();
       const insert = el => {
         const inspector = document.createElement('inspect-code');
+        inspector.disabled = ${!!block.properties.source};
         inspector.dataset['blockId'] = "${block.uuid}";
         inspector.appendChild(el);
 
@@ -77,6 +78,7 @@ function BlockContent({ block, root }) {
 
     result = (
       <inspect-code
+        disabled={!!block.properties.source}
         data-block-id={block.uuid}
         dangerouslySetInnerHTML={{ __html: block.string }}
       />

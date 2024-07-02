@@ -150,6 +150,10 @@ class InspectorDialog extends HTMLElement {
 
 class InspectCode extends HTMLElement {
   connectedCallback() {
+    if(this.getAttribute('disabled') || this.disabled) {
+      return
+    }
+
     const btn = document.createElement('button');
     btn.className = 'inspect-button adornment';
     btn.innerHTML = 'view source';
