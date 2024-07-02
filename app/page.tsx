@@ -99,10 +99,10 @@ function BlockContent({ block, root }) {
   if (result) {
     return (
       <>
-        {result}
         {block.properties.source === true && (
           <Component dangerouslySetInnerHTML={{ __html: block.sourceString }} />
         )}
+        {result}
       </>
     );
   }
