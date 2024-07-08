@@ -34,11 +34,18 @@ export function Blocks({ blocks }) {
                 __inspector.disabled = ${!!block.meta.show};
                 __inspector.dataset['blockId'] = "${block.uuid}";
 
-                const placeholder = document.getElementById('${id}-placeholder');
-                placeholder.replaceWith(__inspector)
+                let placeholder = document.getElementById('${id}-placeholder');
 
                 const _insert = el => {
                   __inspector.appendChild(el);
+
+                  // We lazily replace the placeholder until at least one
+                  // piece of content is inserted to maintain a stable
+                  // height, which avoids layout shift
+                  if(placeholder) {
+                    placeholder.replaceWith(__inspector)
+                    placeholder = null;
+                  }
                 }
 
                 'then' in value ? value.then(_insert) : _insert(value)

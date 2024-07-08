@@ -1,4 +1,4 @@
-import * as db from './db';
+import * as db from './db.server';
 import { INDEX } from './indexer';
 
 export function getPage(conn) {
@@ -29,7 +29,11 @@ export function getPages() {
 export function getPagesWithTag(tag) {
   const pages = db.q(
     INDEX,
-    db.find('[(pull ?id [*]) ...]').where(['?id :post/uid']),
+    db
+      .find('[(pull ?id [*]) ...]')
+      .where(['?id :post/uid', '?id :post/tags ?tags', '(includes-tag ?tags)'])
+      .in('$ includes-tag'),
+    tags => tags.includes(tag),
   );
   return pages.map(db.stripNamespaces);
 }

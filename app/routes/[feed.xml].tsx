@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import html from 'html';
 // import { renderBlock } from '../md';
 // import { walkBlocks } from '../shared/data';
-import * as db from '../db/new/db';
+import * as db from '../db/new/db.server';
 import { renderBlock } from '../md/new/render';
 import settings from '../settings';
 import { getPages, getBlocks } from '../db/new/queries';
@@ -13,7 +13,7 @@ function siteUrl(siteUrl, url) {
 
 export function loader({ request }) {
   let url = settings.currentSite;
-  let posts = getPages().slice(0, 100);
+  let posts = getPages().slice(0, 50);
 
   let feed = (
     <feed xmlns="http://www.w3.org/2005/Atom" xmlLang="en-us">

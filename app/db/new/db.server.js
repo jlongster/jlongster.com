@@ -2,8 +2,15 @@ import fs from 'fs';
 import ds from 'datascript';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import LRUCache from 'lru-cache';
 import { schema, getDataPath } from './schema';
 import { updateIndex } from './indexer';
+
+// The atom feed renders 50 posts, and that URL is consistently hit.
+// Se this to 1 more to cover all the latest 50 posts and 1 other one
+// so for the common cases the filesystem is never hit
+console.log('loading cache');
+const CONN_CACHE = new LRUCache({ max: 51 });
 
 export function write(id, title, attrs, blocks) {
   const conn = ds.create_conn(schema);
@@ -16,7 +23,6 @@ export function write(id, title, attrs, blocks) {
     ':post/title': title || '',
     ':post/subtitle': attrs.subtitle || '',
     ':post/public': !!attrs.public,
-    ':post/url': attrs.url || '',
     ':post/tags': attrs.tags || [],
     ':post/date': attrs.date || new Date(),
     ':post/featured-image': attrs['featured-image'] || '',
@@ -45,13 +51,27 @@ export function write(id, title, attrs, blocks) {
 }
 
 export function load(name) {
+  const cached = CONN_CACHE.get(name);
+  console.log('cached', cached);
+  console.log('cache', CONN_CACHE)
+  if (cached) {
+    console.log('[cached] loading db:', name);
+    return cached;
+  }
+
   const filename = join(getDataPath(), name + '.json');
   try {
     var json = fs.readFileSync(filename, 'utf8');
   } catch (err) {
     return null;
   }
-  return ds.conn_from_db(ds.from_serializable(JSON.parse(json)));
+  const conn = ds.conn_from_db(ds.from_serializable(JSON.parse(json)));
+  console.log('loading db:', name);
+  CONN_CACHE.set(name, conn);
+
+  // console.log(CONN_CACHE, CONN_CACHE.get(name));
+
+  return conn;
 }
 
 function filterNull(obj) {

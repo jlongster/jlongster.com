@@ -5,7 +5,6 @@ export const pageSchema = {
   ':post/uid': {},
   ':post/title': {},
   ':post/public': {},
-  ':post/url': {},
   ':post/tags': { ':db/cardinality': ':db.cardinality/many' },
   ':post/date': {},
   ':post/featured-img': {},

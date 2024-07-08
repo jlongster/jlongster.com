@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { verify } from '../auth/verify';
 import { parse } from '../md/new/parse.js';
-import { write } from '../db/new/db.js';
+import { write } from '../db/new/db.server.js';
 
 const publicKey = fs.readFileSync(__dirname + '/../public-key.key', 'utf8');
 
@@ -35,30 +35,34 @@ async function bustCloudflareCache() {
   }
 }
 
+function errorResponse(msg, code = 400) {
+  let headers = new Headers();
+  headers.set('Access-Control-Allow-Origin', '*');
+
+  return new Response('url is invalid', { status: code, headers });
+}
+
 export async function action({ request }) {
   if (request.method !== 'POST') {
     return null;
   }
-
-  let headers = new Headers();
-  headers.set('Access-Control-Allow-Origin', '*');
 
   // Get the data and verify it
   let data = await request.text();
   let signature = request.headers.get('X-JLONGSTER-SIGN');
 
   if (!verify(data, signature, publicKey)) {
-    return new Response('', { status: 401, headers });
+    return errorResponse('signature check failed', 401);
   }
 
   try {
     var parsed = JSON.parse(data);
   } catch (e) {
-    return new Response('invalid json', { status: 400, headers });
+    return errorResponse('invalid json');
   }
 
   if (parsed.title == null || parsed.content == null) {
-    return new Response('invalid json shape', { status: 400, headers });
+    return errorResponse('invalid json shape');
   }
 
   // Compile data into a db
@@ -66,10 +70,19 @@ export async function action({ request }) {
   const { attrs, blocks } = parse(parsed.content);
 
   if (attrs.url == null) {
-    return new Response('url is required', { status: 400, headers });
+    return errorResponse('url is required');
   }
 
-  const uid = new URL(attrs.url).pathname.slice(1);
+  try {
+    var uid = new URL(attrs.url).pathname.slice(1);
+  } catch (e) {
+    return errorResponse('url is invalid');
+  }
+
+  if (uid.indexOf('/') !== -1) {
+    return errorResponse('url must only be 1 level deep');
+  }
+
   write(uid, parsed.title, attrs, blocks);
 
   // Tell everybody to reload the db
@@ -98,8 +111,5 @@ export async function action({ request }) {
 
   await bustCloudflareCache();
 
-  return new Response('ok', {
-    status: 200,
-    headers,
-  });
+  return new Response('ok', { status: 200, headers });
 }
