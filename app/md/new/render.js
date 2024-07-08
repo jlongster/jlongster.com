@@ -13,15 +13,20 @@ hljs.registerLanguage('javascript', javascript);
 
 const languages = new Set(['js', 'javascript']);
 
-export function renderString(str) {
+export function renderString(str, options = {}) {
   return micromark(str, {
     allowDangerousHtml: true,
-    extensions: [math(), gfmAutolinkLiteral()],
-    htmlExtensions: [mathHtml(), gfmAutolinkLiteralHtml()],
+    extensions: [options.nomath ? null : math(), gfmAutolinkLiteral()].filter(
+      Boolean,
+    ),
+    htmlExtensions: [
+      options.nomath ? null : mathHtml(),
+      gfmAutolinkLiteralHtml(),
+    ].filter(Boolean),
   });
 }
 
-export function renderBlock(block) {
+export function renderBlock(block, options = {}) {
   if (block.type === 'code' && languages.has(block.meta.lang)) {
     return (
       '<code>' +
@@ -32,10 +37,14 @@ export function renderBlock(block) {
 
   const output = micromark(block.md, {
     allowDangerousHtml: true,
-    extensions: [math(), gfmAutolinkLiteral()],
-    htmlExtensions: [mathHtml(), gfmAutolinkLiteralHtml()],
+    extensions: [options.nomath ? null : math(), gfmAutolinkLiteral()].filter(
+      Boolean,
+    ),
+    htmlExtensions: [
+      options.nomath ? null : mathHtml(),
+      gfmAutolinkLiteralHtml(),
+    ].filter(Boolean),
   });
 
-  // We don't want the <p> wrapper
   return output;
 }

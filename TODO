@@ -4,3 +4,5 @@
 * schema.js has some kind of weird functions in it
 * cache the db connections
 * port over AI file
+* post inconsistency with uid vs url
+* there is an extra unnecessary <span> wrapper

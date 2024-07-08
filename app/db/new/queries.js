@@ -23,7 +23,6 @@ export function getPages() {
     INDEX,
     db.find('[(pull ?id [*]) ...]').where(['?id :post/uid']),
   );
-  console.log(pages)
   return pages.map(db.stripNamespaces);
 }
 

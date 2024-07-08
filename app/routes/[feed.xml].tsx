@@ -1,9 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import html from 'html';
-import { renderBlock } from '../md';
-import { walkBlocks } from '../shared/data';
+// import { renderBlock } from '../md';
+// import { walkBlocks } from '../shared/data';
+import * as db from '../db/new/db';
+import { renderBlock } from '../md/new/render';
 import settings from '../settings';
-import { getPage, getPages } from '../db/website';
+import { getPages, getBlocks } from '../db/new/queries';
 
 function siteUrl(siteUrl, url) {
   return siteUrl + url;
@@ -11,7 +13,7 @@ function siteUrl(siteUrl, url) {
 
 export function loader({ request }) {
   let url = settings.currentSite;
-  let posts = getPages({ tags: ['sketchbook'] }).slice(0, 100);
+  let posts = getPages().slice(0, 100);
 
   let feed = (
     <feed xmlns="http://www.w3.org/2005/Atom" xmlLang="en-us">
@@ -29,55 +31,50 @@ export function loader({ request }) {
       <rights>© 2022 James Long</rights>
       <generator uri={url.href}>jimmy</generator>
       {posts.map(post => {
-        let pageUrl = siteUrl(url, `/${post.url}`);
+        let pageUrl = siteUrl(url, `/${post.uid}`);
         let date = post.date.toISOString();
 
-        const { page } = getPage(post.url);
-        renderBlock(page);
+        // const { page } = getPage(post.url);
+        // renderBlock(page);
+        const blocks = getBlocks(db.load(post.uid));
 
         let str = '';
-        walkBlocks(page, (b, nested) => {
-          if (
-            b.properties.render === 'js-element' ||
-            b.properties.render === 'html'
-          ) {
-            str += '<p><i>(content unavailable in feed)</i></p>';
-            return;
-          } else if (b.raw.trim() === '' || b.properties.render) {
-            return;
+        for (let block of blocks) {
+          if (block.type === 'code' && block.meta.run && !block.meta.show) {
+            str += '<em>(note: skipping interactive content block)</em><br />';
+            continue;
           }
 
-          let bstr = '';
-          for (let i = 1; i < nested; i++) {
-            bstr = '*';
+          if (block.type === 'code') {
+            str += '<pre>';
           }
-          if (nested > 1) {
-            bstr += ' ';
-          }
-          bstr += b.string;
 
-          str += `<p>${bstr}</p>\n`;
-        });
+          str += renderBlock(block, { nomath: true }) + '\n';
+
+          if (block.type === 'code') {
+            str += '</pre>';
+          }
+        }
 
         return (
-          <entry key={page.pageId}>
+          <entry key={post.uid}>
             <id>{pageUrl}</id>
             <link rel="alternate" type="text/html" href={pageUrl} />
             <published>{date}</published>
             <updated>{date}</updated>
-            <title>{post.name}</title>
+            <title>{post.title}</title>
             <author>
               <name>{settings.author}</name>
               <uri>{siteUrl(url, '/')}</uri>
             </author>
-            {[...new Set(post.properties.tags || [])].map(tag => (
-              <category term={tag} />
+            {[...new Set(post.tags || [])].map(tag => (
+              <category key={tag} term={tag} />
             ))}
             <content
               type="html"
               dangerouslySetInnerHTML={{ __html: `<![CDATA[${str}]]>` }}
             />
-            <rights>© 2022 James Long</rights>
+            <rights>© 2024 James Long</rights>
           </entry>
         );
       })}
