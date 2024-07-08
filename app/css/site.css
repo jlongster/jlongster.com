@@ -417,10 +417,6 @@ inspect-code .inspect-button {
   inset: 0;
 }
 
-@media (min-width: 801px) {
-  inset: 0;
-}
-
 .dialog-outer-container.animated {
   background-color: rgba(30, 30, 30, .2);
 }

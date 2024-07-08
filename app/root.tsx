@@ -18,6 +18,7 @@ export function links() {
     { rel: 'stylesheet', href: nightOwlStyles },
     { rel: 'stylesheet', href: siteStyles },
     { rel: 'stylesheet', href: box3d },
+    { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css' },
   ];
 }
 

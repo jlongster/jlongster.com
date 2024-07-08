@@ -1,0 +1,6 @@
+* clean up old files in md & db
+* autogenerate URL in page on first publish
+* port tag pages
+* schema.js has some kind of weird functions in it
+* cache the db connections
+* port over AI file

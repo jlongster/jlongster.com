@@ -23,7 +23,9 @@ class InspectorDialog extends HTMLElement {
     const header = document.createElement('div');
     header.className = 'header';
     const text = document.createElement('div');
-    text.textContent = this.customTitle || 'untitled';
+
+    const primaryBlock = this.codeBlocks.find(b => b.primary);
+    text.textContent = this.customTitle || primaryBlock?.title || 'untitled';
 
     text.className = 'title ' + (!this.title ? 'untitled' : '');
     header.appendChild(text);
@@ -150,8 +152,8 @@ class InspectorDialog extends HTMLElement {
 
 class InspectCode extends HTMLElement {
   connectedCallback() {
-    if(this.getAttribute('disabled') || this.disabled) {
-      return
+    if (this.getAttribute('disabled') === "true" || this.disabled) {
+      return;
     }
 
     const btn = document.createElement('button');
@@ -163,7 +165,8 @@ class InspectCode extends HTMLElement {
 
       let codeBlocks = codeBlockCache.get(uuid);
       if (!codeBlocks) {
-        const res = await fetch(`/code-look/${uuid}`);
+        const pageid = window.location.pathname.slice(1);
+        const res = await fetch(`/code-look/${pageid}/${uuid}`);
         const json = await res.json();
         // Render code blocks bottom up
         json.reverse();

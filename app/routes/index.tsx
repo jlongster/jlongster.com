@@ -1,13 +1,12 @@
 import { useLoaderData } from '@remix-run/react';
-import { PageList } from '../page';
-import { getPages } from '../db/website';
+import { getPages } from '../db/new/queries';
+import { PageList, formatDate } from '../page';
+// import { getPages } from '../db/website';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
-  let sketches = getPages({ tags: ['sketchbook'] });
-  let featured = sketches
-    .filter(page => !!page.properties['featured-image'])
-    .slice(0, 3);
+  let sketches = getPages();
+  let featured = sketches.filter(page => !!page['featured-image']).slice(0, 3);
   return { sketches, featured };
 }
 
@@ -15,25 +14,17 @@ function Featured({ pages }) {
   return (
     <div className={'featured-list ' + (pages.length > 2 ? 'breakout' : '')}>
       {pages.map(page => {
-        const imgText = page.properties['featured-image'];
-        // Match the part inside parens of [](...)
-        const match = imgText.match(/\]\((.*)\)/);
-        let imgUrl;
-        if (match) {
-          imgUrl = match[1];
-        }
+        const imgUrl = page['featured-image'];
 
         return (
-          <a key={page.uuid} href={`/${page.url}`} className="featured-item">
+          <a key={page.uuid} href={`/${page.uid}`} className="featured-item">
             {imgUrl && <img src={imgUrl} alt="" />}
-            <div className="featured-title">{page.name}</div>
-            {page.properties.subtitle && (
-              <div className="featured-subtitle">
-                {page.properties.subtitle}
-              </div>
+            <div className="featured-title">{page.title}</div>
+            {page.subtitle && (
+              <div className="featured-subtitle">{page.subtitle}</div>
             )}
 
-            <div className="date">{page.properties.date[0]}</div>
+            <div className="date">{formatDate(page.date)}</div>
           </a>
         );
       })}
