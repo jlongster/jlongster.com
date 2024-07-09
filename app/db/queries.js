@@ -1,6 +1,12 @@
 import * as db from './db';
 import * as indexer from './indexer';
 
+function sortedByDate(arr) {
+  return [...arr].sort(
+    (item1, item2) => item1.date.getTime() - item2.date.getTime(),
+  );
+}
+
 export function getPage(conn) {
   const [page] = db.q(
     conn,
@@ -23,7 +29,7 @@ export function getPages() {
     indexer.get(),
     db.find('[(pull ?id [*]) ...]').where(['?id :post/uuid']),
   );
-  return pages.map(db.stripNamespaces);
+  return sortedByDate(pages.map(db.stripNamespaces));
 }
 
 export function getPagesWithTag(tag) {
@@ -35,5 +41,5 @@ export function getPagesWithTag(tag) {
       .in('$ includes-tag'),
     tags => tags.includes(tag),
   );
-  return pages.map(db.stripNamespaces);
+  return sortedByDate(pages.map(db.stripNamespaces));
 }

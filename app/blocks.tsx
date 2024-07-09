@@ -1,5 +1,18 @@
 import { renderBlock } from './md/render';
 
+function stripOuterComponent(html) {
+  const m = html.match(/^\s*<([^>]*)>/);
+  if (m == null) {
+    throw new Error('Invalid html passed to `stripOuterComponent`:' + html);
+  }
+
+  const Component = m[1];
+  return {
+    Component,
+    html: html.replace(/^\s*<([^>]*)>/, '').replace(/<\/([^>]*)>\s*$/, ''),
+  };
+}
+
 export function Blocks({ blocks }) {
   return blocks
     .map((block, idx) => {
@@ -84,13 +97,16 @@ export function Blocks({ blocks }) {
         }
       }
 
-      const Component = block.type === 'code' ? 'pre' : 'span';
       const html = renderBlock(block);
+      const { Component, html: strippedHtml } = stripOuterComponent(html);
 
       return (
         <>
           {!block.meta.run || block.meta.show ? (
-            <Component key={idx} dangerouslySetInnerHTML={{ __html: html }} />
+            <Component
+              key={idx}
+              dangerouslySetInnerHTML={{ __html: strippedHtml }}
+            />
           ) : null}
           {live}
         </>

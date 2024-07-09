@@ -29,9 +29,9 @@ export function renderString(str, options = {}) {
 export function renderBlock(block, options = {}) {
   if (block.type === 'code' && languages.has(block.meta.lang)) {
     return (
-      '<code>' +
+      '<pre><code>' +
       hljs.highlight(block.string, { language: block.meta.lang }).value +
-      '</code>'
+      '</code></pre>'
     );
   }
 
