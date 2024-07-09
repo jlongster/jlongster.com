@@ -11,3 +11,4 @@
 * schema.js has some kind of weird functions in it
 * clean up old files in md & db
 * there is an extra unnecessary <span> wrapper
+* date formatting is off by one because of timezone issues

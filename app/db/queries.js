@@ -24,22 +24,24 @@ export function getBlocks(conn) {
   return blocks.map(db.stripNamespaces);
 }
 
+function _getPages(query, inputs) {
+  const pages = inputs
+    ? db.q(indexer.get(), query, inputs)
+    : db.q(indexer.get(), query);
+
+  return sortedByDate(pages.map(db.stripNamespaces)).filter(p => p.public);
+}
+
 export function getPages() {
-  const pages = db.q(
-    indexer.get(),
-    db.find('[(pull ?id [*]) ...]').where(['?id :post/uuid']),
-  );
-  return sortedByDate(pages.map(db.stripNamespaces));
+  return _getPages(db.find('[(pull ?id [*]) ...]').where(['?id :post/uuid']));
 }
 
 export function getPagesWithTag(tag) {
-  const pages = db.q(
-    indexer.get(),
+  return _getPages(
     db
       .find('[(pull ?id [*]) ...]')
       .where(['?id :post/uuid', '?id :post/tags ?tags', '(includes-tag ?tags)'])
       .in('$ includes-tag'),
     tags => tags.includes(tag),
   );
-  return sortedByDate(pages.map(db.stripNamespaces));
 }

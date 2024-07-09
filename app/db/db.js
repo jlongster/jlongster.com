@@ -129,6 +129,8 @@ export function q(conn, query, ...input) {
         .join(' ');
   }
   qstr += ']';
+
+  console.log('querying with', input);
   return ds.q(qstr, ds.db(conn), ...input);
 }
 

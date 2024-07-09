@@ -5,7 +5,7 @@ node_modules
 /build
 /public/build
 .env
-data/datoms.json
+data/site
 /.cloudflare.env
 
 private-key.key

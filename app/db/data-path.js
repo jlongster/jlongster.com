@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { join } from 'path';
 import * as url from 'url';
 
@@ -11,6 +12,12 @@ if (typeof __dirname === 'undefined') {
   localDataPath = join(__dirname, '/../data');
 }
 
+let siteDataPath = join(localDataPath, 'site');
+
+if (!fs.existsSync(siteDataPath)) {
+  fs.mkdirSync(siteDataPath);
+}
+
 export function getDataPath() {
-  return localDataPath;
+  return siteDataPath;
 }
