@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import html from 'html';
+import { addHours, toDate } from 'date-fns';
 import * as db from '../db';
 import { renderBlock } from '../md/render';
 import settings from '../settings';
@@ -30,10 +31,10 @@ export function loader({ request }) {
       <generator uri={url.href}>jimmy</generator>
       {posts.map(post => {
         let pageUrl = siteUrl(url, `/${post.url}`);
-        let date = post.date.toISOString();
+        // Add 12 hours because the date is always midnight, but we
+        // want the post to appear as the same day in all timezones
+        let date = toDate(addHours(post.date, 12)).toISOString()
 
-        // const { page } = getPage(post.url);
-        // renderBlock(page);
         const blocks = getBlocks(db.load(post.url));
 
         let str = '';
@@ -43,15 +44,7 @@ export function loader({ request }) {
             continue;
           }
 
-          if (block.type === 'code') {
-            str += '<pre>';
-          }
-
           str += renderBlock(block, { nomath: true }) + '\n';
-
-          if (block.type === 'code') {
-            str += '</pre>';
-          }
         }
 
         return (
