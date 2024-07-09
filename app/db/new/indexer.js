@@ -1,7 +1,8 @@
 import fs from 'fs';
 import ds from 'datascript';
 import { join } from 'path';
-import { pageSchema, getDataPath } from './schema.js';
+import { pageSchema } from './schema.js';
+import { getDataPath } from './data-path';
 
 const INDEX_PATH = join(getDataPath(), '_index.json');
 try {

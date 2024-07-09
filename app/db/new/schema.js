@@ -1,6 +1,3 @@
-import { join } from 'path';
-import * as url from 'url';
-
 export const pageSchema = {
   ':post/url': {},
   ':post/uuid': {},
@@ -24,17 +21,3 @@ export const schema = {
   ':block/string': {},
   ':block/meta': {},
 };
-
-let localDataPath;
-if (typeof __dirname === 'undefined') {
-  localDataPath = join(
-    url.fileURLToPath(new URL('.', import.meta.url)),
-    '/../../../data',
-  );
-} else {
-  localDataPath = join(__dirname, '/../data');
-}
-
-export function getDataPath() {
-  return localDataPath;
-}

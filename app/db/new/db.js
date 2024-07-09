@@ -3,7 +3,8 @@ import ds from 'datascript';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import LRUCache from 'lru-cache';
-import { schema, getDataPath } from './schema';
+import { schema } from './schema';
+import { getDataPath } from './data-path';
 import { updateIndex, INDEX } from './indexer';
 
 // The atom feed renders 50 posts, and that URL is consistently hit.
