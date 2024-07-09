@@ -11,15 +11,15 @@ import { updateIndex, INDEX } from './indexer';
 // so for the common cases the filesystem is never hit
 const CONN_CACHE = new LRUCache({ max: 51 });
 
-export function write(uid, title, attrs, blocks) {
+export function write(url, attrs, blocks) {
   let id = attrs.id;
   const conn = ds.create_conn(schema);
 
   const page = {
     ':db/id': -1,
-    ':post/uid': uid,
+    ':post/url': url,
     ':post/uuid': id,
-    ':post/title': title || '',
+    ':post/title': attrs.title || '',
     ':post/subtitle': attrs.subtitle || '',
     ':post/public': !!attrs.public,
     ':post/tags': attrs.tags || [],
@@ -51,18 +51,21 @@ export function write(uid, title, attrs, blocks) {
 }
 
 // TODO: currently we don't support removing a page yet
-export function remove(name) {}
+export function remove(url) {}
 
-export function load(name) {
-  const cached = CONN_CACHE.get(name);
+export function load(url) {
+  // We cache based on url to avoid having to do a lookup in the index
+  // every time. This should be fine; worst case some renamed urls
+  // will leave around some old dbs that won't get used
+  const cached = CONN_CACHE.get(url);
   if (cached) {
     return cached;
   }
 
   const pages = ds.q(
-    '[:find [?uuid ...] :in $ ?uid :where [?id ":post/uid" ?uid] [?id ":post/uuid" ?uuid]]',
+    '[:find [?uuid ...] :in $ ?url :where [?id ":post/url" ?url] [?id ":post/uuid" ?uuid]]',
     ds.db(INDEX),
-    name,
+    url,
   );
   if (pages.length === 0) {
     return null;
@@ -76,7 +79,7 @@ export function load(name) {
     return null;
   }
   const conn = ds.conn_from_db(ds.from_serializable(JSON.parse(json)));
-  CONN_CACHE.set(name, conn);
+  CONN_CACHE.set(url, conn);
   return conn;
 }
 

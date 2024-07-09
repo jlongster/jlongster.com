@@ -17,7 +17,7 @@ function Featured({ pages }) {
         const imgUrl = page['featured-image'];
 
         return (
-          <a key={page.uuid} href={`/${page.uid}`} className="featured-item">
+          <a key={page.uuid} href={`/${page.url}`} className="featured-item">
             {imgUrl && <img src={imgUrl} alt="" />}
             <div className="featured-title">{page.title}</div>
             {page.subtitle && (

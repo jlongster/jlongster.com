@@ -1,15 +1,11 @@
 import ds from 'datascript';
-import * as db from './db.server';
+import * as db from './db';
 import { INDEX } from './indexer';
 
 export function getPage(conn) {
   const [page] = db.q(
     conn,
     db.find('[(pull ?id [*]) ...]').where(['?id :post/title']),
-  );
-  console.log(
-    'PAGE',
-    ds.q('[:find ?id :where [?id]]', ds.db(conn)),
   );
   return db.stripNamespaces(page);
 }
@@ -26,7 +22,7 @@ export function getBlocks(conn) {
 export function getPages() {
   const pages = db.q(
     INDEX,
-    db.find('[(pull ?id [*]) ...]').where(['?id :post/uid']),
+    db.find('[(pull ?id [*]) ...]').where(['?id :post/uuid']),
   );
   return pages.map(db.stripNamespaces);
 }
@@ -36,7 +32,7 @@ export function getPagesWithTag(tag) {
     INDEX,
     db
       .find('[(pull ?id [*]) ...]')
-      .where(['?id :post/uid', '?id :post/tags ?tags', '(includes-tag ?tags)'])
+      .where(['?id :post/uuid', '?id :post/tags ?tags', '(includes-tag ?tags)'])
       .in('$ includes-tag'),
     tags => tags.includes(tag),
   );

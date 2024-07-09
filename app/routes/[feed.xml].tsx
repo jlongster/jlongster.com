@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import html from 'html';
 // import { renderBlock } from '../md';
 // import { walkBlocks } from '../shared/data';
-import * as db from '../db/new/db.server';
+import * as db from '../db/new/db';
 import { renderBlock } from '../md/new/render';
 import settings from '../settings';
 import { getPages, getBlocks } from '../db/new/queries';
@@ -31,12 +31,12 @@ export function loader({ request }) {
       <rights>© 2022 James Long</rights>
       <generator uri={url.href}>jimmy</generator>
       {posts.map(post => {
-        let pageUrl = siteUrl(url, `/${post.uid}`);
+        let pageUrl = siteUrl(url, `/${post.url}`);
         let date = post.date.toISOString();
 
         // const { page } = getPage(post.url);
         // renderBlock(page);
-        const blocks = getBlocks(db.load(post.uid));
+        const blocks = getBlocks(db.load(post.url));
 
         let str = '';
         for (let block of blocks) {
@@ -57,7 +57,7 @@ export function loader({ request }) {
         }
 
         return (
-          <entry key={post.uid}>
+          <entry key={post.url}>
             <id>{pageUrl}</id>
             <link rel="alternate" type="text/html" href={pageUrl} />
             <published>{date}</published>

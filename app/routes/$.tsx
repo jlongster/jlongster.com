@@ -1,5 +1,5 @@
 import { useLoaderData } from '@remix-run/react';
-import * as db from '../db/new/db.server';
+import * as db from '../db/new/db';
 import { getPage, getBlocks } from '../db/new/queries';
 import { formatDate } from '../page';
 import { Blocks } from '../blocks';

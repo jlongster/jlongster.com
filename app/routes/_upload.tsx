@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { verify } from '../auth/verify';
 import { parse } from '../md/new/parse.js';
-import { write } from '../db/new/db.server.js';
+import { write } from '../db/new/db.js';
 
 const publicKey = fs.readFileSync(__dirname + '/../public-key.key', 'utf8');
 
@@ -78,16 +78,16 @@ export async function action({ request }) {
   }
 
   try {
-    var uid = new URL(attrs.url).pathname.slice(1);
+    var url = new URL(attrs.url).pathname.slice(1);
   } catch (e) {
     return errorResponse('url is invalid');
   }
 
-  if (uid.indexOf('/') !== -1) {
+  if (url.indexOf('/') !== -1) {
     return errorResponse('url must only be 1 level deep');
   }
 
-  write(uid, parsed.title, attrs, blocks);
+  write(url, { ...attrs, title: parsed.title }, blocks);
 
   // Tell everybody to reload the db
   // let urls;

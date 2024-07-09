@@ -7,8 +7,8 @@ export function PageList({ pages }) {
         <li className="empty">No pages</li>
       ) : (
         pages.map(page => (
-          <li key={page.uid}>
-            <a href={`/${page.uid}`}>{page.title}</a>
+          <li key={page.url}>
+            <a href={`/${page.url}`}>{page.title}</a>
           </li>
         ))
       )}
