@@ -4,22 +4,21 @@ import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import LRUCache from 'lru-cache';
 import { schema, getDataPath } from './schema';
-import { updateIndex } from './indexer';
+import { updateIndex, INDEX } from './indexer';
 
 // The atom feed renders 50 posts, and that URL is consistently hit.
 // Se this to 1 more to cover all the latest 50 posts and 1 other one
 // so for the common cases the filesystem is never hit
-console.log('loading cache');
 const CONN_CACHE = new LRUCache({ max: 51 });
 
-export function write(id, title, attrs, blocks) {
+export function write(uid, title, attrs, blocks) {
+  let id = attrs.id;
   const conn = ds.create_conn(schema);
-
-  console.log(attrs);
 
   const page = {
     ':db/id': -1,
-    ':post/uid': id,
+    ':post/uid': uid,
+    ':post/uuid': id,
     ':post/title': title || '',
     ':post/subtitle': attrs.subtitle || '',
     ':post/public': !!attrs.public,
@@ -48,29 +47,36 @@ export function write(id, title, attrs, blocks) {
   fs.writeFileSync(filename, json, 'utf8');
 
   updateIndex(page);
+  CONN_CACHE.del(id);
 }
+
+// TODO: currently we don't support removing a page yet
+export function remove(name) {}
 
 export function load(name) {
   const cached = CONN_CACHE.get(name);
-  console.log('cached', cached);
-  console.log('cache', CONN_CACHE)
   if (cached) {
-    console.log('[cached] loading db:', name);
     return cached;
   }
 
-  const filename = join(getDataPath(), name + '.json');
+  const pages = ds.q(
+    '[:find [?uuid ...] :in $ ?uid :where [?id ":post/uid" ?uid] [?id ":post/uuid" ?uuid]]',
+    ds.db(INDEX),
+    name,
+  );
+  if (pages.length === 0) {
+    return null;
+  }
+  const id = pages[0];
+
+  const filename = join(getDataPath(), id + '.json');
   try {
     var json = fs.readFileSync(filename, 'utf8');
   } catch (err) {
     return null;
   }
   const conn = ds.conn_from_db(ds.from_serializable(JSON.parse(json)));
-  console.log('loading db:', name);
   CONN_CACHE.set(name, conn);
-
-  // console.log(CONN_CACHE, CONN_CACHE.get(name));
-
   return conn;
 }
 

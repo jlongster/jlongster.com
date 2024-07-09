@@ -69,6 +69,10 @@ export async function action({ request }) {
 
   const { attrs, blocks } = parse(parsed.content);
 
+  if (attrs.id === null) {
+    return errorResponse('id is required');
+  }
+
   if (attrs.url == null) {
     return errorResponse('url is required');
   }
@@ -111,5 +115,7 @@ export async function action({ request }) {
 
   await bustCloudflareCache();
 
+  let headers = new Headers();
+  headers.set('Access-Control-Allow-Origin', '*');
   return new Response('ok', { status: 200, headers });
 }

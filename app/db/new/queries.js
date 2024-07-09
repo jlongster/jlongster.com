@@ -1,3 +1,4 @@
+import ds from 'datascript';
 import * as db from './db.server';
 import { INDEX } from './indexer';
 
@@ -5,6 +6,10 @@ export function getPage(conn) {
   const [page] = db.q(
     conn,
     db.find('[(pull ?id [*]) ...]').where(['?id :post/title']),
+  );
+  console.log(
+    'PAGE',
+    ds.q('[:find ?id :where [?id]]', ds.db(conn)),
   );
   return db.stripNamespaces(page);
 }

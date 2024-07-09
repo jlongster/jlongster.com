@@ -13,9 +13,9 @@ export const INDEX = json
 
 export function updateIndex(page) {
   let pages = ds.q(
-    '[:find [?id ...] :in $ ?uid :where [?id ":post/uid" ?uid]]',
+    '[:find [?id ...] :in $ ?uid :where [?id ":post/uuid" ?uid]]',
     ds.db(INDEX),
-    page[':post/uid'],
+    page[':post/uuid'],
   );
 
   let id = -1;

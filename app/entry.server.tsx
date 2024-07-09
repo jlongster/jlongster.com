@@ -21,8 +21,8 @@ export default function handleRequest(
     url.host !== 'jlongster.com' &&
     url.search !== '?live'
   ) {
-    responseHeaders.set('Location', 'https://jlongster.com' + pathname);
-    return new Response('', { status: 301, headers: responseHeaders });
+    // responseHeaders.set('Location', 'https://jlongster.com' + pathname);
+    // return new Response('', { status: 301, headers: responseHeaders });
   } else if (redirects[pathname]) {
     responseHeaders.set('Location', redirects[pathname]);
     return new Response('', { status: 301, headers: responseHeaders });

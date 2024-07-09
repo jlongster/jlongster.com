@@ -2,7 +2,8 @@ import { join } from 'path';
 import * as url from 'url';
 
 export const pageSchema = {
-  ':post/uid': {},
+  ':post/url': {},
+  ':post/uuid': {},
   ':post/title': {},
   ':post/public': {},
   ':post/tags': { ':db/cardinality': ':db.cardinality/many' },
