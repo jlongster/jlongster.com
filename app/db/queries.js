@@ -1,6 +1,5 @@
-import ds from 'datascript';
 import * as db from './db';
-import { INDEX } from './indexer';
+import * as indexer from './indexer';
 
 export function getPage(conn) {
   const [page] = db.q(
@@ -21,7 +20,7 @@ export function getBlocks(conn) {
 
 export function getPages() {
   const pages = db.q(
-    INDEX,
+    indexer.get(),
     db.find('[(pull ?id [*]) ...]').where(['?id :post/uuid']),
   );
   return pages.map(db.stripNamespaces);
@@ -29,7 +28,7 @@ export function getPages() {
 
 export function getPagesWithTag(tag) {
   const pages = db.q(
-    INDEX,
+    indexer.get(),
     db
       .find('[(pull ?id [*]) ...]')
       .where(['?id :post/uuid', '?id :post/tags ?tags', '(includes-tag ?tags)'])

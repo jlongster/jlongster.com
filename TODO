@@ -1,7 +1,6 @@
+* clean up old files in md & db
 * sort page list by date
 * port over AI file
-* schema.js has some kind of weird functions in it
-* clean up old files in md & db
 * there is an extra unnecessary <span> wrapper
 * fix esm/cjs dependency problem
 
@@ -11,3 +10,4 @@
 * autogenerate URL in page on first publish
 * post inconsistency with uid vs url
 * cache the db connections
+* schema.js has some kind of weird functions in it

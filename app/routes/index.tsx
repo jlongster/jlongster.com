@@ -1,7 +1,6 @@
 import { useLoaderData } from '@remix-run/react';
-import { getPages } from '../db/new/queries';
+import { getPages } from '../db/queries';
 import { PageList, formatDate } from '../page';
-// import { getPages } from '../db/website';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {

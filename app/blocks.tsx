@@ -1,4 +1,4 @@
-import { renderBlock } from './md/new/render';
+import { renderBlock } from './md/render';
 
 export function Blocks({ blocks }) {
   return blocks

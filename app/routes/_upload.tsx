@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { verify } from '../auth/verify';
-import { parse } from '../md/new/parse.js';
-import { write } from '../db/new/db.js';
+import { parse } from '../md/parse.js';
+import { write } from '../db';
 
 const publicKey = fs.readFileSync(__dirname + '/../public-key.key', 'utf8');
 

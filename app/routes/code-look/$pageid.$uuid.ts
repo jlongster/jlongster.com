@@ -1,6 +1,6 @@
 import ds from 'datascript';
-import * as db from '../../db/new/db';
-import { renderBlock } from '../../md/new/render.js';
+import * as db from '../../db';
+import { renderBlock } from '../../md/render.js';
 import hljs from 'highlight.js';
 import javascript from 'highlight.js/lib/languages/javascript';
 

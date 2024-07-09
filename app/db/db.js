@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import LRUCache from 'lru-cache';
 import { schema } from './schema';
 import { getDataPath } from './data-path';
-import { updateIndex, INDEX } from './indexer';
+import * as indexer from './indexer';
 
 // The atom feed renders 50 posts, and that URL is consistently hit.
 // Se this to 1 more to cover all the latest 50 posts and 1 other one
@@ -47,7 +47,7 @@ export function write(url, attrs, blocks) {
   const json = JSON.stringify(ds.serializable(ds.db(conn)));
   fs.writeFileSync(filename, json, 'utf8');
 
-  updateIndex(page);
+  indexer.update(page);
   CONN_CACHE.del(id);
 }
 
@@ -65,7 +65,7 @@ export function load(url) {
 
   const pages = ds.q(
     '[:find [?uuid ...] :in $ ?url :where [?id ":post/url" ?url] [?id ":post/uuid" ?uuid]]',
-    ds.db(INDEX),
+    ds.db(indexer.get()),
     url,
   );
   if (pages.length === 0) {
@@ -82,6 +82,10 @@ export function load(url) {
   const conn = ds.conn_from_db(ds.from_serializable(JSON.parse(json)));
   CONN_CACHE.set(url, conn);
   return conn;
+}
+
+export function clearCache() {
+  CONN_CACHE.reset();
 }
 
 function filterNull(obj) {

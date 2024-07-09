@@ -1,11 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import html from 'html';
-// import { renderBlock } from '../md';
-// import { walkBlocks } from '../shared/data';
-import * as db from '../db/new/db';
-import { renderBlock } from '../md/new/render';
+import * as db from '../db';
+import { renderBlock } from '../md/render';
 import settings from '../settings';
-import { getPages, getBlocks } from '../db/new/queries';
+import { getPages, getBlocks } from '../db/queries';
 
 function siteUrl(siteUrl, url) {
   return siteUrl + url;

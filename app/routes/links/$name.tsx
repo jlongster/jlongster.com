@@ -1,11 +1,11 @@
 import { useLoaderData } from '@remix-run/react';
 import { PageList } from '../../page';
-import * as db from '../../db/new/queries';
+import * as queries from '../../db/queries';
 import { Layout } from '../../layout';
 
 export async function loader({ params }) {
   let name = params['name'];
-  let pages = db.getPagesWithTag(name);
+  let pages = queries.getPagesWithTag(name);
   return { name, pages };
 }
 

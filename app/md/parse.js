@@ -1,55 +1,35 @@
-import ds from 'datascript';
+import fm from 'front-matter';
+import { mathFromMarkdown, mathToMarkdown } from 'mdast-util-math';
+import { math } from 'micromark-extension-math';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { toMarkdown } from 'mdast-util-to-markdown';
+import { toString } from 'mdast-util-to-string';
+import { parseProperties } from './parse-properties';
 
-import { create, persist, load } from '../db/new/db.js';
-import { parse } from '../md/new/parse.js';
-import { renderBlock } from '../md/new/render.js';
+export function parse(str) {
+  const { attributes: attrs, body } = fm(str);
 
-const str = `---
-public: false
-url: https://jlongster.com/little-learnings
-tags:
-  - foo
-  - bar
-series:
-date: 2024-07-08
----
+  // We must include any extensions that require syntactic extension,
+  // otherwise it may be parsed or converted back to md wrongly
+  const ast = fromMarkdown(body, {
+    extensions: [math()],
+    mdastExtensions: [mathFromMarkdown()],
+  });
 
-## bar
-
-This is a _link_: [go here](http://jlongster.com)
-
-http://jlongster.com
-
-$O^2 + 5 * O_1$
-
-O^2
-
-O$_2$
-
-* foo
-* bar
-* baz
-
-This is code: \`blah\`
-
-
-
-
-\`\`\`js position=true
-function fff() {
+  return {
+    attrs,
+    blocks: ast.children.map((n, idx) => ({
+      type: n.type,
+      order: idx,
+      md: toMarkdown(n, { extensions: [mathToMarkdown()] }),
+      string: toString(n),
+      meta:
+        n.type === 'code'
+          ? {
+              lang: n.lang,
+              ...(n.meta ? parseProperties(n.meta) : null),
+            }
+          : null,
+    })),
+  };
 }
-\`\`\`
-`;
-
-const { attrs, blocks } = parse(str);
-
-console.log(blocks.slice(6))
-
-let conn = create('foo', attrs, blocks);
-
-persist(conn, 'foo');
-
-// And then use `katex` CSS to typeset it:
-// <link
-// href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" rel="stylesheet">
-// from https://github.com/remarkjs/remark-math
