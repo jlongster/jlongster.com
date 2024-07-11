@@ -1,5 +1,10 @@
 * port over AI file
 
+-- later --
+
+* add support for publishing all files to the plugin
+* create a repo for the plugin in case code gets lost
+
 -- done --
 
 * sort page list by date

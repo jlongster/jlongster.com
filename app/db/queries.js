@@ -3,7 +3,7 @@ import * as indexer from './indexer';
 
 function sortedByDate(arr) {
   return [...arr].sort(
-    (item1, item2) => item1.date.getTime() - item2.date.getTime(),
+    (item1, item2) => item2.date.getTime() - item1.date.getTime(),
   );
 }
 

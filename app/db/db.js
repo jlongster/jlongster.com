@@ -48,7 +48,7 @@ export function write(url, attrs, blocks) {
   fs.writeFileSync(filename, json, 'utf8');
 
   indexer.update(page);
-  CONN_CACHE.del(id);
+  CONN_CACHE.del(url);
 }
 
 // TODO: currently we don't support removing a page yet
@@ -60,8 +60,11 @@ export function load(url) {
   // will leave around some old dbs that won't get used
   const cached = CONN_CACHE.get(url);
   if (cached) {
+    console.log(`[cached] loading ${url}`);
     return cached;
   }
+
+  console.log(`loading ${url}`);
 
   const pages = ds.q(
     '[:find [?uuid ...] :in $ ?url :where [?id ":post/url" ?url] [?id ":post/uuid" ?uuid]]',

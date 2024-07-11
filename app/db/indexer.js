@@ -37,6 +37,9 @@ export function update(page) {
     id = pages[0];
   }
 
+  // TODO: if a page changes ids (which shouldn't happen regularly,
+  // but still can) the index can end up with two entries for a page
+  // with the same URL. We should fix this
   ds.transact(INDEX, [
     {
       ...page,

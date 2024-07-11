@@ -113,6 +113,10 @@ header .context {
   font-style: italic;
 }
 
+pre {
+  overflow: auto;
+}
+
 /* featured */
 
 .featured-list {
@@ -380,6 +384,51 @@ footer {
   margin: 0 auto;
 }
 
+/* code */
+
+.runnable-code {
+  border: 3px solid #eaedfc;
+  border-radius: 10px;
+}
+
+.runnable-code > pre {
+  margin: 0;
+  padding: 20px;
+  border-bottom: 3px solid #eaedfc;
+}
+
+.runnable-code inspect-code, .runnable-code .placeholder {
+  padding: 20px;
+  background-color: #eaedfc;
+  border-radius: 0;
+}
+
+.runnable-code .placeholder {
+  font-style: italic;
+}
+
+.runnable-code inspect-code pre {
+  margin: 0;
+}
+
+.runnable-code inspect-code > * {
+  margin-top: 1em;
+}
+
+.runnable-code inspect-code > *:first-child {
+  margin-top: 0;
+}
+
+inspect-code {
+  padding: 20px;
+  background-color: #eaedfc;
+  border-radius: 10px;
+}
+
+inspect-code pre {
+  margin: 0;
+}
+
 /* inspector */
 
 inspect-code {
@@ -388,12 +437,22 @@ inspect-code {
 }
 
 inspect-code .inspect-button {
-  background: #f0f0f0;
+  background-color: white;
+  border: 1px solid #eaedfc;
   color: #606060;
-  border: 0;
   font-size: 15px;
-  border-radius: 6px;
+  border-radius: 0 6px 0 6px;
   padding: 8px 10px;
+  transition: box-shadow .2s, border-radius .2s;
+}
+
+inspect-code .inspect-button:hover {
+  box-shadow: 0 2px 5px var(--blue-5);
+  border-radius: 6px;
+}
+
+inspect-code .inspect-button:active {
+  background-color: #eaedfc;
 }
 
 @media (max-width: 800px) {

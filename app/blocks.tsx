@@ -40,14 +40,26 @@ export function Blocks({ blocks }) {
             const width = block.meta.width;
             const height = block.meta.height;
             const id = '' + Math.random();
-            const code = `
-              let __inspector = null;
-              const render = value => {
-                __inspector = document.createElement('inspect-code');
-                __inspector.disabled = ${!!block.meta.show};
-                __inspector.dataset['blockId'] = "${block.uuid}";
 
-                let placeholder = document.getElementById('${id}-placeholder');
+            function wrapCode(code) {
+              return `
+                const result = (() => {${code}})();
+                if(result) {
+                  render(result)
+                }
+              `;
+            }
+
+            const code = `
+              let __inspector = document.createElement('inspect-code');
+              __inspector.disabled = ${!!block.meta.show};
+              __inspector.dataset['blockId'] = "${block.uuid}";
+
+              let __placeholder = document.getElementById('${id}-placeholder');
+              let __renderCalled = false;
+
+              const render = value => {
+                __renderCalled = true;
 
                 const _insert = el => {
                   __inspector.appendChild(el);
@@ -55,25 +67,38 @@ export function Blocks({ blocks }) {
                   // We lazily replace the placeholder until at least one
                   // piece of content is inserted to maintain a stable
                   // height, which avoids layout shift
-                  if(placeholder) {
-                    placeholder.replaceWith(__inspector)
-                    placeholder = null;
+                  if(__placeholder) {
+                    __placeholder.replaceWith(__inspector)
+                    __placeholder = null;
                   }
                 }
 
-                'then' in value ? value.then(_insert) : _insert(value)
+                if(typeof value === 'number') {
+                  const pre = document.createElement('pre');
+                  const code = document.createElement('code');
+                  code.textContent = value;
+                  pre.appendChild(code);
+                  _insert(pre);
+                }
+                else {
+                  'then' in value ? value.then(_insert) : _insert(value)
+                }
               }
 
-              ${block.string}
+              ${
+                block.string.startsWith('import')
+                  ? block.string
+                  : wrapCode(block.string)
+              }
 
-              if(!__inspector) {
-                document.getElementById('${id}-placeholder').remove()
+              if(!__renderCalled) {
+                document.getElementById('${id}-placeholder').textContent = '(no output)'
               }
             `;
 
             live = (
               <>
-                <div id={id + '-placeholder'} style={{ width, height }} />
+                <div id={id + '-placeholder'} className="placeholder" style={{ width, height }} />
                 <script
                   type={block.meta.unscoped ? '' : 'module'}
                   id={id}
@@ -100,17 +125,27 @@ export function Blocks({ blocks }) {
       const html = renderBlock(block);
       const { Component, html: strippedHtml } = stripOuterComponent(html);
 
-      return (
-        <>
-          {!block.meta.run || block.meta.show ? (
-            <Component
-              key={idx}
-              dangerouslySetInnerHTML={{ __html: strippedHtml }}
-            />
-          ) : null}
-          {live}
-        </>
+      const source = (
+        <Component
+          key={idx}
+          dangerouslySetInnerHTML={{ __html: strippedHtml }}
+        />
       );
+
+      if (live) {
+        if (block.meta.show) {
+          return (
+            <div key={idx} className="runnable-code">
+              {source}
+              {live}
+            </div>
+          );
+        } else {
+          return live;
+        }
+      }
+
+      return source;
     })
     .filter(Boolean);
 }
