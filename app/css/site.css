@@ -439,6 +439,7 @@ inspect-code {
 inspect-code .inspect-button {
   background-color: white;
   border: 1px solid #eaedfc;
+  margin: 0;
   color: #606060;
   font-size: 15px;
   border-radius: 0 6px 0 6px;

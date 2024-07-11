@@ -92,7 +92,12 @@ export function Blocks({ blocks }) {
               }
 
               if(!__renderCalled) {
-                document.getElementById('${id}-placeholder').textContent = '(no output)'
+                if(${!!block.meta.show}) {
+                  document.getElementById('${id}-placeholder').textContent = '(no output)'
+                }
+                else {
+                  document.getElementById('${id}-placeholder').remove()
+                }
               }
             `;
 
