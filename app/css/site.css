@@ -46,6 +46,12 @@
   scroll-padding-top: 25px;
 }
 
+@media (max-width: 1150px) {
+  :root {
+    scroll-padding-top: 65px;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -398,7 +404,7 @@ footer {
   margin-bottom: 3em;
 }
 
-@media (max-width: 1100px) {
+/*@media (max-width: 1100px) {
   .toc-pointer {
     display: none;
   }
@@ -428,7 +434,7 @@ footer {
   .site-content.has-toc {
     margin-right: auto;
   }
-}
+}*/
 
 .toc a:link, .toc a:visited, .toc a:hover, .toc a:active {
   color: gray;

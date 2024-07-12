@@ -14,6 +14,12 @@ if (toc) {
     left: 0,
     fontSize: '14px',
     margin: '20px',
+    backgroundColor: 'rgba(255, 255, 255, 1)',
+    lineHeight: '1em',
+    padding: '8px 8px',
+    paddingTop: '9px',
+    borderRadius: '6px',
+    verticalAlign: 'baseline'
   });
   div.appendChild(a);
   document.body.appendChild(div);
