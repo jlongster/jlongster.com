@@ -42,6 +42,8 @@
   --blue-3: #6485e2;
   --blue-4: #7892e6;
   --blue-5: #8ba0ea;
+
+  scroll-padding-top: 25px;
 }
 
 * {
@@ -56,6 +58,7 @@ body {
   margin: 0;
   color: black;
   background-color: white;
+  
   --site-width: 800px;
   --outer-spacing: 20px;
 
@@ -94,10 +97,12 @@ h1 {
 h2 {
   letter-spacing: 0;
   line-height: 1em;
-  margin-top: 1.875em;
-  margin-bottom: 1.25em;
+  margin-top: 2.5em;
+  margin-bottom: 1.35em;
 }
 h3 {
+  margin-top: 2em;
+  margin-bottom: 1.1em;
   letter-spacing: 0;
 }
 h4 {
@@ -115,6 +120,7 @@ header .context {
 
 pre {
   overflow: auto;
+  font-size: 15px;
 }
 
 /* featured */
@@ -382,6 +388,50 @@ footer {
   line-height: 1.5em;
   width: 75%;
   margin: 0 auto;
+}
+
+/* table of contents */
+
+.toc {
+  font-size: 14px;
+  line-height: 1.5em;
+  margin-bottom: 3em;
+}
+
+@media (max-width: 1100px) {
+  .toc-pointer {
+    display: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .toc {
+    margin-left: 20px;
+    position: absolute;
+    top: 305px;
+    left: 0;
+    width: calc((100% - var(--site-width)) / 2 + 10px);
+    font-size: 14px;
+    line-height: 1.5em;
+  }
+
+  .site-content.has-toc {
+    margin-right: calc((100% - var(--site-width)) / 2 - 70px);
+  }
+}
+
+@media (min-width: 1320px) {
+  .toc {
+    width: calc((100% - var(--site-width)) / 2 - 60px);
+  }
+
+  .site-content.has-toc {
+    margin-right: auto;
+  }
+}
+
+.toc a:link, .toc a:visited, .toc a:hover, .toc a:active {
+  color: gray;
 }
 
 /* code */

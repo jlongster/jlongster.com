@@ -1,5 +1,13 @@
 import { renderBlock } from './md/render';
 
+export function slug(str) {
+  return str
+    .replace(/[^a-zA-Z]+/g, '-')
+    .replace(/^-/, '')
+    .replace(/-$/, '')
+    .toLowerCase();
+}
+
 function stripOuterComponent(html) {
   const m = html.match(/^\s*<([^>]*)>/);
   if (m == null) {
@@ -103,7 +111,11 @@ export function Blocks({ blocks }) {
 
             live = (
               <>
-                <div id={id + '-placeholder'} className="placeholder" style={{ width, height }} />
+                <div
+                  id={id + '-placeholder'}
+                  className="placeholder"
+                  style={{ width, height }}
+                />
                 <script
                   type={block.meta.unscoped ? '' : 'module'}
                   id={id}
@@ -130,10 +142,16 @@ export function Blocks({ blocks }) {
       const html = renderBlock(block);
       const { Component, html: strippedHtml } = stripOuterComponent(html);
 
+      let props = {};
+      if (block.type === 'heading') {
+        props = { id: slug(block.string) };
+      }
+
       const source = (
         <Component
           key={idx}
           dangerouslySetInnerHTML={{ __html: strippedHtml }}
+          {...props}
         />
       );
 

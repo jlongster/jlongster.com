@@ -3,6 +3,7 @@ export const pageSchema = {
   ':post/uuid': {},
   ':post/title': {},
   ':post/public': {},
+  ':post/toc': {},
   ':post/tags': { ':db/cardinality': ':db.cardinality/many' },
   ':post/date': {},
   ':post/featured-img': {},

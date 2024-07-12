@@ -18,18 +18,24 @@ export function parse(str) {
 
   return {
     attrs,
-    blocks: ast.children.map((n, idx) => ({
-      type: n.type,
-      order: idx,
-      md: toMarkdown(n, { extensions: [mathToMarkdown()] }),
-      string: toString(n),
-      meta:
-        n.type === 'code'
-          ? {
-              lang: n.lang,
-              ...(n.meta ? parseProperties(n.meta) : null),
-            }
-          : null,
-    })),
+    blocks: ast.children.map((n, idx) => {
+      let meta = null;
+      if (n.type === 'code') {
+        meta = {
+          lang: n.lang,
+          ...(n.meta ? parseProperties(n.meta) : null),
+        };
+      } else if (n.type === 'heading') {
+        meta = { depth: n.depth };
+      }
+
+      return {
+        type: n.type,
+        order: idx,
+        md: toMarkdown(n, { extensions: [mathToMarkdown()] }),
+        string: toString(n),
+        meta,
+      };
+    }),
   };
 }

@@ -45,3 +45,14 @@ export function getPagesWithTag(tag) {
     tags => tags.includes(tag),
   );
 }
+
+export function getTableOfContents(conn) {
+  const blocks = db.q(
+    conn,
+    db
+      .find('[(pull ?id [*]) ...]')
+      .where(['?id :block/uuid', '?id :block/type "heading"']),
+  );
+  blocks.sort((n1, n2) => n1[':block/order'] - n2[':block/order']);
+  return blocks.map(db.stripNamespaces);
+}

@@ -23,6 +23,7 @@ export function write(url, attrs, blocks) {
     ':post/title': attrs.title || '',
     ':post/subtitle': attrs.subtitle || '',
     ':post/public': !!attrs.public,
+    ':post/toc': !!attrs.toc,
     ':post/tags': attrs.tags || [],
     ':post/date': attrs.date || new Date(),
     ':post/featured-image': attrs['featured-image'] || '',

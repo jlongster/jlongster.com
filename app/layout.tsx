@@ -4,7 +4,7 @@ function Header() {
       <a href="/">
         <img src="/logo.png" width="50" />
       </a>
-      <button id="color-picker">
+      {/*<button id="color-picker">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 64 64"
@@ -22,7 +22,7 @@ function Header() {
             d="M40 24a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM24 24a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM20 40a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
           />
         </svg>
-      </button>
+        </button>*/}
     </header>
   );
 }
@@ -42,9 +42,9 @@ function Footer() {
   );
 }
 
-export function Layout({ name, children }) {
+export function Layout({ name, children, className }) {
   return (
-    <div className={'site-content ' + (name || '')}>
+    <div className={'site-content ' + (name || '') + ' ' + className}>
       <Header />
       {children}
       <Footer />
