@@ -21,7 +21,25 @@ function stripOuterComponent(html) {
   };
 }
 
-export function Blocks({ blocks }) {
+function TableOfContents({ toc }) {
+  return (
+    <div className="toc" id="toc">
+      {toc.map(h => {
+        const id = slug(h.string);
+        return (
+          <div
+            key={id}
+            style={{ marginLeft: (h.meta.depth - 2) * 10, marginBottom: 5 }}
+          >
+            <a href={`#${id}`}>{h.string}</a>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function Blocks({ blocks, toc }) {
   return blocks
     .map((block, idx) => {
       let live = null;
@@ -58,6 +76,9 @@ export function Blocks({ blocks }) {
               `;
             }
 
+            // Note: some of this rendering logic needs to be in sync
+            // with the "/code-look/script" that url that renders live
+            // examples
             const code = `
               let __inspector = document.createElement('inspect-code');
               __inspector.disabled = ${!!block.meta.show};
@@ -137,6 +158,10 @@ export function Blocks({ blocks }) {
             break;
           }
         }
+      }
+
+      if (block.type === 'paragraph' && block.string === '^TOC') {
+        return <TableOfContents toc={toc} />;
       }
 
       const html = renderBlock(block);

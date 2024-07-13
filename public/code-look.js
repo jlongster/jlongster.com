@@ -152,21 +152,20 @@ class InspectorDialog extends HTMLElement {
 
 class InspectCode extends HTMLElement {
   connectedCallback() {
-    if (this.getAttribute('disabled') === "true" || this.disabled) {
+    if (this.getAttribute('disabled') === 'true' || this.disabled) {
       return;
     }
 
-    const btn = document.createElement('button');
-    btn.className = 'inspect-button adornment';
-    btn.innerHTML = 'view source';
-
-    btn.addEventListener('click', async e => {
+    const viewSource = document.createElement('button');
+    viewSource.className = 'view-code adornment';
+    viewSource.innerHTML = 'view source';
+    viewSource.addEventListener('click', async e => {
       const uuid = this.dataset['blockId'];
 
       let codeBlocks = codeBlockCache.get(uuid);
       if (!codeBlocks) {
         const pageid = window.location.pathname.slice(1);
-        const res = await fetch(`/code-look/${pageid}/${uuid}`);
+        const res = await fetch(`/code-look/source/${pageid}/${uuid}`);
         const json = await res.json();
         // Render code blocks bottom up
         json.reverse();
@@ -182,7 +181,21 @@ class InspectCode extends HTMLElement {
       this.appendChild(dialog);
     });
 
-    this.appendChild(btn);
+    const openExternal = document.createElement('button');
+    openExternal.className = 'open-external adornment';
+    openExternal.innerHTML = 'open';
+    openExternal.addEventListener('click', e => {
+      // The page id is the current URL (without the slash)
+      const pageid = window.location.pathname.slice(1);
+      const uuid = this.dataset['blockId'];
+      window.open(`/code-look/html/${pageid}/${uuid}`, '_blank');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'inspect-code-actions';
+    actions.appendChild(openExternal);
+    actions.appendChild(viewSource);
+    this.appendChild(actions);
   }
 }
 

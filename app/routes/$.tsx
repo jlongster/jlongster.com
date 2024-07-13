@@ -2,7 +2,7 @@ import { useLoaderData } from '@remix-run/react';
 import * as db from '../db';
 import { getPage, getBlocks, getTableOfContents } from '../db/queries';
 import { formatDate } from '../page';
-import { Blocks, slug } from '../blocks';
+import { Blocks } from '../blocks';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
@@ -79,24 +79,6 @@ function PageProps({ page }) {
   );
 }
 
-function TableOfContents({ toc }) {
-  return (
-    <div className="toc" id="toc">
-      {toc.map(h => {
-        const id = slug(h.string);
-        return (
-          <div
-            key={id}
-            style={{ marginLeft: (h.meta.depth - 2) * 10, marginBottom: 5 }}
-          >
-            <a href={`#${id}`}>{h.string}</a>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function RenderPage(props) {
   let { page, blocks, toc } = useLoaderData();
 
@@ -108,8 +90,7 @@ export default function RenderPage(props) {
           {page.subtitle && <h2>{page.subtitle}</h2>}
         </div>
         <PageProps page={page} />
-        {page.toc && <TableOfContents toc={toc} />}
-        <Blocks blocks={blocks} />
+        <Blocks blocks={blocks} toc={toc} />
       </main>
       <script src="/code-look.js" />
       <script src="/toc.js" />

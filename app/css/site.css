@@ -124,9 +124,14 @@ header .context {
   font-style: italic;
 }
 
-pre {
+code {
+  font-size: 16px;
+}
+
+pre, pre code {
   overflow: auto;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.6em;
 }
 
 /* featured */
@@ -364,7 +369,8 @@ footer {
 }
 
 .page-content p,
-.code-look-wrapper.root {
+.code-look-wrapper.root,
+inspect-code {
   margin: 1.1em 0;
 }
 
@@ -401,7 +407,7 @@ footer {
 .toc {
   font-size: 14px;
   line-height: 1.5em;
-  margin-bottom: 3em;
+  margin: 3em 0;
 }
 
 /*@media (max-width: 1100px) {
@@ -475,7 +481,23 @@ footer {
   margin-top: 0;
 }
 
+.inline-code-block {
+  margin: 1.5em;
+  background-color: #eaedfc;
+  border-radius: 6px;
+  padding: 20px;
+  width: fit-content;
+}
+
+.inline-code-block pre {
+  margin: 0;
+}
+
+/* inspector */
+
 inspect-code {
+  display: block;
+  position: relative;
   padding: 20px;
   background-color: #eaedfc;
   border-radius: 10px;
@@ -485,14 +507,12 @@ inspect-code pre {
   margin: 0;
 }
 
-/* inspector */
-
-inspect-code {
-  display: block;
-  position: relative;
+.inspect-code-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
-inspect-code .inspect-button {
+.inspect-code-actions .adornment {
   background-color: white;
   border: 1px solid #eaedfc;
   margin: 0;
@@ -503,23 +523,27 @@ inspect-code .inspect-button {
   transition: box-shadow .2s, border-radius .2s;
 }
 
-inspect-code .inspect-button:hover {
+.inspect-code-actions .adornment:hover {
   box-shadow: 0 2px 5px var(--blue-5);
   border-radius: 6px;
 }
 
-inspect-code .inspect-button:active {
+.inspect-code-actions .adornment:active {
   background-color: #eaedfc;
 }
 
+.inspect-code-actions .open-external {
+  border-radius: 0 0 6px 6px;
+}
+
 @media (max-width: 800px) {
-  inspect-code .inspect-button {
+  inspect-code .inspect-code-actions {
     width: 100%;
   }
 }
 
 @media (min-width: 801px) {
-  inspect-code .inspect-button {
+  inspect-code .inspect-code-actions {
     position: absolute;
     right: 0;
     top: 0;
