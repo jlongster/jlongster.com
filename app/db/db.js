@@ -33,7 +33,7 @@ export function write(url, attrs, blocks) {
     page,
     ...blocks.map((b, idx) =>
       filterNull({
-        ':block/uuid': uuidv4(),
+        ':block/uuid': b.uuid || uuidv4(),
         ':block/post': -1,
         ':block/type': b.type,
         ':block/md': b.md,
@@ -49,7 +49,7 @@ export function write(url, attrs, blocks) {
   fs.writeFileSync(filename, json, 'utf8');
 
   indexer.update(page);
-  CONN_CACHE.del(url);
+  CONN_CACHE.set(url, conn);
 }
 
 // TODO: currently we don't support removing a page yet
@@ -64,8 +64,6 @@ export function load(url) {
     console.log(`[cached] loading ${url}`);
     return cached;
   }
-
-  console.log(`loading ${url}`);
 
   const pages = ds.q(
     '[:find [?uuid ...] :in $ ?url :where [?id ":post/url" ?url] [?id ":post/uuid" ?uuid]]',

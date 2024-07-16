@@ -161,7 +161,7 @@ export function Blocks({ blocks, toc }) {
       }
 
       if (block.type === 'paragraph' && block.string === '^TOC') {
-        return <TableOfContents toc={toc} />;
+        return <TableOfContents key={idx} toc={toc} />;
       }
 
       const html = renderBlock(block);

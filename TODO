@@ -1,19 +1,4 @@
-* port over AI file
+Future ideas:
 
--- later --
-
-* add support for publishing all files to the plugin
-* create a repo for the plugin in case code gets lost
-
--- done --
-
-* sort page list by date
-* fix esm/cjs dependency problem
-* port tag pages
-* autogenerate URL in page on first publish
-* post inconsistency with uid vs url
-* cache the db connections
-* schema.js has some kind of weird functions in it
-* clean up old files in md & db
-* there is an extra unnecessary <span> wrapper
-* date formatting is off by one because of timezone issues
+* Measure the height of all the demos once they run, store them locally, and apply them statically next time the page loads. This would avoid any layout changes
+* Take the above further and send back the measurements to the server so all fresh pages get the fixed layout

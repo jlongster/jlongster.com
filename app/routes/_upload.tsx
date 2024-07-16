@@ -2,6 +2,7 @@ import fs from 'fs';
 import { verify } from '../auth/verify';
 import { parse } from '../md/parse.js';
 import { write } from '../db';
+import { broadcast } from './_refresh-event';
 
 const publicKey = fs.readFileSync(__dirname + '/../public-key.key', 'utf8');
 
@@ -114,6 +115,8 @@ export async function action({ request }) {
   // let failed = responses.some(status => status !== 200);
 
   await bustCloudflareCache();
+
+  broadcast();
 
   let headers = new Headers();
   headers.set('Access-Control-Allow-Origin', '*');

@@ -11,7 +11,7 @@ export default function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
-  remixContext: EntryContext
+  remixContext: EntryContext,
 ) {
   let url = new URL(request.url);
   let pathname = url.pathname;
@@ -21,8 +21,10 @@ export default function handleRequest(
     url.host !== 'jlongster.com' &&
     url.search !== '?live'
   ) {
-    // responseHeaders.set('Location', 'https://jlongster.com' + pathname);
-    // return new Response('', { status: 301, headers: responseHeaders });
+    // This protects users from accessing the underlying fly instance
+    // directly at https://jlongster.fly.dev
+    responseHeaders.set('Location', 'https://jlongster.com' + pathname);
+    return new Response('', { status: 301, headers: responseHeaders });
   } else if (redirects[pathname]) {
     responseHeaders.set('Location', redirects[pathname]);
     return new Response('', { status: 301, headers: responseHeaders });
@@ -37,18 +39,24 @@ export default function handleRequest(
   }
 
   let markup = renderToString(
-    <RemixServer context={remixContext} url={request.url} />
+    <RemixServer context={remixContext} url={request.url} />,
   );
 
   responseHeaders.set('Content-Type', 'text/html');
-  responseHeaders.set(
-    'CDN-Cache-Control',
-    'max-age=3600, stale-while-revalidate=3, stale-if-error=86400'
-  );
+
+  if (url.pathname.startsWith('/code-look/')) {
+    // Never cache the live coding pages
+    responseHeaders.set('CDN-Cache-Control', 'max-age=0, no-store');
+  } else {
+    responseHeaders.set(
+      'CDN-Cache-Control',
+      'max-age=3600, stale-while-revalidate=3, stale-if-error=86400',
+    );
+  }
   responseHeaders.set('Cache-Control', 'max-age=0, no-store');
 
   return new Response('<!DOCTYPE html>' + markup, {
     status: responseStatusCode,
-    headers: responseHeaders
+    headers: responseHeaders,
   });
 }

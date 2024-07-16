@@ -370,7 +370,8 @@ footer {
 
 .page-content p,
 .code-look-wrapper.root,
-inspect-code {
+inspect-code,
+.runnable-code {
   margin: 1.1em 0;
 }
 
@@ -463,6 +464,7 @@ inspect-code {
   padding: 20px;
   background-color: #eaedfc;
   border-radius: 0;
+  margin: 0;
 }
 
 .runnable-code .placeholder {
@@ -473,12 +475,19 @@ inspect-code {
   margin: 0;
 }
 
-.runnable-code inspect-code > * {
-  margin-top: 1em;
-}
-
 .runnable-code inspect-code > *:first-child {
   margin-top: 0;
+}
+
+inspect-code .inspect-code-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.runnable-code .inspect-code-actions .action {
+  transform: translateY(-4px);
+  border: none;
 }
 
 .inline-code-block {
@@ -512,7 +521,7 @@ inspect-code pre {
   justify-content: flex-end;
 }
 
-.inspect-code-actions .adornment {
+.inspect-code-actions .action {
   background-color: white;
   border: 1px solid #eaedfc;
   margin: 0;
@@ -523,17 +532,22 @@ inspect-code pre {
   transition: box-shadow .2s, border-radius .2s;
 }
 
-.inspect-code-actions .adornment:hover {
+.inspect-code-actions .action:hover {
   box-shadow: 0 2px 5px var(--blue-5);
   border-radius: 6px;
 }
 
-.inspect-code-actions .adornment:active {
+.inspect-code-actions .action:active {
   background-color: #eaedfc;
 }
 
 .inspect-code-actions .open-external {
   border-radius: 0 0 6px 6px;
+  display: none;
+}
+
+inspect-code:hover .inspect-code-actions .open-external {
+  display: block;
 }
 
 @media (max-width: 800px) {

@@ -152,12 +152,12 @@ class InspectorDialog extends HTMLElement {
 
 class InspectCode extends HTMLElement {
   connectedCallback() {
-    if (this.getAttribute('disabled') === 'true' || this.disabled) {
-      return;
-    }
+    const showViewSource = !(
+      this.getAttribute('disabled') === 'true' || this.disabled
+    );
 
     const viewSource = document.createElement('button');
-    viewSource.className = 'view-code adornment';
+    viewSource.className = 'view-code action';
     viewSource.innerHTML = 'view source';
     viewSource.addEventListener('click', async e => {
       const uuid = this.dataset['blockId'];
@@ -182,7 +182,7 @@ class InspectCode extends HTMLElement {
     });
 
     const openExternal = document.createElement('button');
-    openExternal.className = 'open-external adornment';
+    openExternal.className = 'open-external action';
     openExternal.innerHTML = 'open';
     openExternal.addEventListener('click', e => {
       // The page id is the current URL (without the slash)
@@ -192,9 +192,11 @@ class InspectCode extends HTMLElement {
     });
 
     const actions = document.createElement('div');
-    actions.className = 'inspect-code-actions';
+    actions.className = 'inspect-code-actions adornment';
     actions.appendChild(openExternal);
-    actions.appendChild(viewSource);
+    if (showViewSource) {
+      actions.appendChild(viewSource);
+    }
     this.appendChild(actions);
   }
 }

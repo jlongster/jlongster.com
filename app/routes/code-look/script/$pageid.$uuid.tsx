@@ -30,6 +30,7 @@ export function loader({ params }) {
   if (conn == null) {
     throw new Response('Page not found', { status: 404 });
   }
+
   const blocks =
     conn &&
     ds.q(
