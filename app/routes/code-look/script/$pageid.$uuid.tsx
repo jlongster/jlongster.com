@@ -3,25 +3,7 @@ import ds from 'datascript';
 import * as db from '../../../db';
 import { getBlocks } from '../../../db/queries';
 import { renderBlock } from '../../../md/render.js';
-
-function wrapCode(code) {
-  return `
-  const result = (() => {
-
-  
-/*************** user code *********************/
-  
-${code}
-
-/*************** end user code *********************/
-
-
-})();
-
-if(result) {
-  render(result)
-}`;
-}
+import { generateRunString } from '../../../../public/generate-run-string';
 
 export function loader({ params }) {
   const { pageid, uuid } = params;
@@ -44,37 +26,7 @@ export function loader({ params }) {
   }
 
   const block = db.stripNamespaces(blocks[0]);
-
-  const str = `
-let __renderCalled = false;
-let __placeholder = document.getElementById('${block.uuid}-placeholder');
-  
-const render = value => {
-  __renderCalled = true;
-const _insert = el => {
-    if(__placeholder) {
-      __placeholder.appendChild(el);
-    }
-  }
-  
-  if(typeof value === 'number') {
-    const pre = document.createElement('pre');
-    const code = document.createElement('code');
-    code.textContent = value;
-    pre.appendChild(code);
-    _insert(pre);
-  }
-  else {
-    'then' in value ? value.then(_insert) : _insert(value)
-  }
-}
-
-${block.string.startsWith('import') ? block.string : wrapCode(block.string)}
-
-if(!__renderCalled && __placeholder) {
-  __placeholder.textContent = '(no output)'
-}
-  `;
+  const str = generateRunString(block.uuid, block.string);
 
   return new Response(str.trim(), {
     status: 200,

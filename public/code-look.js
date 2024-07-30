@@ -22,6 +22,10 @@ class InspectorDialog extends HTMLElement {
     // Header
     const header = document.createElement('div');
     header.className = 'header';
+    header.addEventListener('click', e => {
+      e.stopPropagation();
+    });
+
     const text = document.createElement('div');
 
     const primaryBlock = this.codeBlocks.find(b => b.primary);
@@ -30,6 +34,16 @@ class InspectorDialog extends HTMLElement {
     text.className = 'title ' + (!this.title ? 'untitled' : '');
     header.appendChild(text);
 
+    const edit = document.createElement('button');
+    edit.className = 'edit';
+    edit.innerHTML = 'edit';
+    edit.addEventListener('click', () => {
+      const pageid = window.location.pathname.slice(1);
+      const primaryBlock = this.codeBlocks[0];
+      this.close();
+      window.open(`/code-look/html/${pageid}/${primaryBlock.uuid}`, '_blank');
+    });
+
     const close = document.createElement('button');
     close.className = 'close';
     close.innerHTML = 'X';
@@ -37,7 +51,11 @@ class InspectorDialog extends HTMLElement {
       this.close();
     });
 
-    header.appendChild(close);
+    const actions = document.createElement('div');
+    actions.appendChild(edit);
+    actions.appendChild(close);
+
+    header.appendChild(actions);
     dialog.appendChild(header);
 
     // Left pane
@@ -59,6 +77,10 @@ class InspectorDialog extends HTMLElement {
           };
         }
 
+        // We clone the node, but use the original node in the dialog
+        // and use the clone on the page. This maintains any event
+        // listeners that have been wired up; we truly want the exact
+        // same demo to be running inside the dialog
         const cl = child.cloneNode(true);
         child.replaceWith(cl);
         left.appendChild(child);
@@ -152,12 +174,12 @@ class InspectorDialog extends HTMLElement {
 
 class InspectCode extends HTMLElement {
   connectedCallback() {
-    const showViewSource = !(
-      this.getAttribute('disabled') === 'true' || this.disabled
-    );
+    if (this.getAttribute('disabled') === 'true' || this.disabled) {
+      return;
+    }
 
     const viewSource = document.createElement('button');
-    viewSource.className = 'view-code action';
+    viewSource.className = 'view-source adornment';
     viewSource.innerHTML = 'view source';
     viewSource.addEventListener('click', async e => {
       const uuid = this.dataset['blockId'];
@@ -180,24 +202,7 @@ class InspectCode extends HTMLElement {
       dialog.customTitle = this.dataset['title'];
       this.appendChild(dialog);
     });
-
-    const openExternal = document.createElement('button');
-    openExternal.className = 'open-external action';
-    openExternal.innerHTML = 'open';
-    openExternal.addEventListener('click', e => {
-      // The page id is the current URL (without the slash)
-      const pageid = window.location.pathname.slice(1);
-      const uuid = this.dataset['blockId'];
-      window.open(`/code-look/html/${pageid}/${uuid}`, '_blank');
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'inspect-code-actions adornment';
-    actions.appendChild(openExternal);
-    if (showViewSource) {
-      actions.appendChild(viewSource);
-    }
-    this.appendChild(actions);
+    this.appendChild(viewSource);
   }
 }
 

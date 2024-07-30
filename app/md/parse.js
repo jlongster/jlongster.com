@@ -17,8 +17,12 @@ function getStringForNode(node) {
   return str;
 }
 
+function isReservedId(str) {
+  return ['^TOC'].includes(str);
+}
+
 function stripId(str) {
-  if (str.endsWith('^TOC')) {
+  if (isReservedId(str)) {
     return str;
   }
   return str.replace(/\^[^\s]+$/, '').trim();
@@ -28,7 +32,7 @@ function idLookahead(nodes, idx) {
   for (let i = idx + 1; i < nodes.length; i++) {
     const str = getStringForNode(nodes[i]);
 
-    if (str !== '') {
+    if (str !== '' && !isReservedId(str)) {
       if (str.match(/^\^[^\s]+$/)) {
         return str.slice(1);
       } else {

@@ -1,4 +1,0 @@
-Future ideas:
-
-* Measure the height of all the demos once they run, store them locally, and apply them statically next time the page loads. This would avoid any layout changes
-* Take the above further and send back the measurements to the server so all fresh pages get the fixed layout

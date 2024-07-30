@@ -1,49 +1,80 @@
 import { useLoaderData, useParams, useLocation } from '@remix-run/react';
-import ds from 'datascript';
 import * as db from '../../../db';
-import { getBlocks } from '../../../db/queries';
+import { getPage, getBlocks } from '../../../db/queries';
+import { generateRunString } from '../../../../public/generate-run-string';
 
-function renderCodeBlock(block, pageid, isCurrent, location) {
+function renderCodeBlock(block, pageid, focusedId, location) {
+  let live = null;
+
   switch (block.meta.lang) {
     case 'css':
-      return (
+      live = (
         <style
           key={block.uuid}
           type="text/css"
           dangerouslySetInnerHTML={{ __html: block.string }}
         />
       );
+      break;
 
     case 'html':
-      return isCurrent ? (
-        <div
-          key={block.uuid}
-          dangerouslySetInnerHTML={{ __html: block.string }}
-        />
-      ) : null;
+      live =
+        !focusedId || focusedId === block.uuid ? (
+          <div
+            key={block.uuid}
+            dangerouslySetInnerHTML={{ __html: block.string }}
+          />
+        ) : null;
+      break;
 
     case 'javascript':
-    case 'js':
-      return (
-        <>
-          <script
-            key={block.uuid}
-            // Passing along the search query allows cache busting
-            src={`/code-look/script/${pageid}/${block.uuid}${location.search}`}
-            type="module"
-          />
-          {isCurrent ? (
-            <div
-              className="inline-code-block"
-              id={`${block.uuid}-placeholder`}
-            />
-          ) : null}
-        </>
+    case 'js': {
+      const code = generateRunString(block.uuid, block.string);
+
+      live = (
+        <script
+          key={block.uuid}
+          type="module"
+          dangerouslySetInnerHTML={{ __html: code }}
+        />
       );
+    }
   }
 
-  throw new Error(
-    'unable to render block language (${block.uuid}): ' + block.meta.lang,
+  if (focusedId && focusedId !== block.uuid) {
+    return live;
+  }
+
+  const readonly = !(
+    block.meta.lang === 'js' || block.meta.lang === 'javascript'
+  );
+  const code = `
+    (window.__editorSources || (window.__editorSources = [], window.__editorSources)).push({
+      id: "${block.uuid}",
+      source: ${JSON.stringify(block.string)},
+      readonly: ${readonly}
+    })
+  `;
+
+  return (
+    <div key={block.uuid} className="runnable-code focused">
+      <div className="editor" id={`editor-${block.uuid}`}>
+        <div className="editor-instance" />
+        {!readonly && (
+          <div className="editor-actions">
+            <button className="btn-run">run</button>
+            {!focusedId && <button className="btn-focus">focus</button>}
+          </div>
+        )}
+      </div>
+
+      <div className="runnable-code-output">
+        <div id={`${block.uuid}-placeholder`} />
+        {live}
+      </div>
+
+      <script type="module" dangerouslySetInnerHTML={{ __html: code }} />
+    </div>
   );
 }
 
@@ -55,6 +86,7 @@ export function loader({ params }) {
     throw new Response('Page not found', { status: 404 });
   }
 
+  const page = getPage(conn);
   const blocks = getBlocks(conn);
 
   let codeBlocks = blocks.filter(
@@ -69,37 +101,101 @@ export function loader({ params }) {
     codeBlocks = codeBlocks.slice(0, idx + 1);
   }
 
-  return { codeBlocks };
+  return { page, codeBlocks };
 }
 
-export default function RunScript() {
+export default function CodeBlocksExecute() {
   let location = useLocation();
   let { pageid, uuid } = useParams();
-  let { codeBlocks } = useLoaderData();
+  let { page, codeBlocks } = useLoaderData();
 
   return (
     <>
       {uuid ? (
         <div style={{ fontStyle: 'italic', fontSize: '14px', margin: '1.5em' }}>
-          Viewing output of a single code block. You can also{' '}
-          <a href={`/code-look/html/${pageid}`}>show all outputs</a>
+          Viewing output of a single code block from{' '}
+          <a href={`/${pageid}`}>{page.title}</a>. Press cmd+enter to evaluate
+          code.
+          <div>
+            <a href={`/code-look/html/${pageid}`}>
+              Show all code blocks
+            </a>{' '}
+            - <a href={`/${pageid}#block-${uuid}`}>View in post</a>
+          </div>
         </div>
-      ) : null}
+      ) : (
+        <div style={{ fontStyle: 'italic', fontSize: '14px', margin: '1.5em' }}>
+          Viewing all examples from <a href={`/${pageid}`}>{page.title}</a>.
+          <div>
+            <a href={`/code-look/downloadable/${pageid}.html`} download>
+              Download scripts as HTML file
+            </a>
+          </div>
+        </div>
+      )}
       {codeBlocks.map(block => {
-        const isCurrent = !uuid || block.uuid === uuid;
-        return renderCodeBlock(block, pageid, isCurrent, location);
+        return renderCodeBlock(block, pageid, uuid, location);
       })}
-      {/*<div
-        style={{
-          fontStyle: 'italic',
-          fontSize: '14px',
-          margin: '1.5em',
-          color: 'gray',
+
+      <script type="module" src="/refresh.js" />
+
+      {/* We build this in the `codemirror-bundle` repo and copied it over */}
+      <script type="module" src="/codemirror.bundle.js" />
+
+      {/* Allow reevalution of scripts.
+       *
+       * NOTE: This is a simple approach that doesn't guarantee the
+       * same execution semantics as modules inlined into the raw HTML
+       * page. One example is how async module are treated: if a module
+       * contains an `import` statement from a remote source, that will
+       * cause the script to block until the import loads. In the
+       * normal page environment, that blocks the rest of the inline
+       * module scripts. However here it does not, so later scripts
+       * will execute *before* the async script executes
+       */}
+      <script
+        type="module"
+        dangerouslySetInnerHTML={{
+          __html: `
+          import {generateRunString} from "/generate-run-string.js";
+
+          const evalSources = new Map();
+
+          if(window.__editorSources) {
+            function reevaluate() {
+              window.__editorSources.forEach(data => {
+                if(!data.readonly) {
+                  const script = document.createElement('script');
+                  script.type = 'module';
+                  script.textContent = evalSources.get(data.id);
+                  document.body.appendChild(script);
+                }
+              })
+            }
+
+            window.__editorSources.forEach(data => {
+              const el = document.getElementById("editor-" + data.id);
+
+              const onChange = src => {
+                evalSources.set(data.id, generateRunString(data.id, src));
+                reevaluate();
+              }
+
+              el.querySelector('.btn-run')?.addEventListener('click', () => {
+                onChange(cm.state.doc.toString());
+              })
+
+              el.querySelector('.btn-focus')?.addEventListener('click', () => {
+                window.location.href = window.location.pathname + '/' + data.id;
+              })
+
+              const cm = window.__createCodeMirror(data.source, el.querySelector('.editor-instance'), onChange, data.readonly);
+              evalSources.set(data.id, generateRunString(data.id, data.source));
+            })
+          }
+          `,
         }}
-      >
-        reqid: {Math.random()}
-      </div>*/}
-      {uuid && <script type="module" src="/refresh.js" />}
+      />
     </>
   );
 }

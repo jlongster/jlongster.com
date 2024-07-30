@@ -2,7 +2,7 @@ import { renderBlock } from './md/render';
 
 export function slug(str) {
   return str
-    .replace(/[^a-zA-Z]+/g, '-')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
     .replace(/^-/, '')
     .replace(/-$/, '')
     .toLowerCase();
@@ -39,7 +39,7 @@ function TableOfContents({ toc }) {
   );
 }
 
-export function Blocks({ blocks, toc }) {
+export function Blocks({ blocks, toc, pageid }) {
   return blocks
     .map((block, idx) => {
       let live = null;
@@ -167,33 +167,65 @@ export function Blocks({ blocks, toc }) {
       const html = renderBlock(block);
       const { Component, html: strippedHtml } = stripOuterComponent(html);
 
-      let props = {};
       if (block.type === 'heading') {
-        props = { id: slug(block.string) };
+        const id = slug(block.string);
+        return (
+          <Component key={idx} id={id}>
+            <a
+              href={'#' + id}
+              dangerouslySetInnerHTML={{ __html: strippedHtml }}
+            />
+          </Component>
+        );
       }
 
-      const source = (
-        <Component
-          key={idx}
-          dangerouslySetInnerHTML={{ __html: strippedHtml }}
-          {...props}
-        />
-      );
-
       if (live) {
+        const anchor = <a id={`block-${block.uuid}`} />;
+
         if (block.meta.show) {
           return (
-            <div key={idx} className="runnable-code">
-              {source}
-              {live}
-            </div>
+            <>
+              {anchor}
+              <div key={idx} className="runnable-code">
+                <div className="runnable-code-source">
+                  <Component
+                    key={idx}
+                    dangerouslySetInnerHTML={{
+                      __html: strippedHtml,
+                    }}
+                  />
+                </div>
+
+                {live}
+
+                <a
+                  href={`/code-look/html/${pageid}/${block.uuid}`}
+                  target="_blank"
+                  className="edit"
+                >
+                  <span>edit</span>
+                </a>
+              </div>
+            </>
           );
         } else {
-          return live;
+          return (
+            <>
+              {anchor}
+              {live}
+            </>
+          );
         }
       }
 
-      return source;
+      return (
+        <Component
+          key={idx}
+          dangerouslySetInnerHTML={{
+            __html: strippedHtml,
+          }}
+        />
+      );
     })
     .filter(Boolean);
 }

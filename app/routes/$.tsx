@@ -90,10 +90,9 @@ export default function RenderPage(props) {
           {page.subtitle && <h2>{page.subtitle}</h2>}
         </div>
         <PageProps page={page} />
-        <Blocks blocks={blocks} toc={toc} />
+        <Blocks blocks={blocks} toc={toc} pageid={page.url} />
       </main>
       <script src="/code-look.js" />
-      <script src="/toc.js" />
     </Layout>
   );
 }
