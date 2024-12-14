@@ -1,10 +1,15 @@
 import { useLoaderData, useParams, useLocation } from '@remix-run/react';
 import * as db from '../../../db';
+import { renderBlock } from '../../../md/render';
 import { getPage, getBlocks } from '../../../db/queries';
 import { generateRunString } from '../../../../public/generate-run-string';
 
 function renderCodeBlock(block, pageid, focusedId, location) {
   let live = null;
+
+  if (block.type === 'heading') {
+    return <span dangerouslySetInnerHTML={{ __html: renderBlock(block) }} />;
+  }
 
   switch (block.meta.lang) {
     case 'css':
@@ -57,7 +62,10 @@ function renderCodeBlock(block, pageid, focusedId, location) {
   `;
 
   return (
-    <div key={block.uuid} className="runnable-code focused">
+    <div
+      key={block.uuid}
+      className={'runnable-code' + (focusedId ? ' focused' : '')}
+    >
       <div className="editor" id={`editor-${block.uuid}`}>
         <div className="editor-instance" />
         {!readonly && (
@@ -69,8 +77,13 @@ function renderCodeBlock(block, pageid, focusedId, location) {
       </div>
 
       <div className="runnable-code-output">
-        <div id={`${block.uuid}-placeholder`} />
-        {live}
+        <div
+          className="runnable-code-output-content"
+          id={`${block.uuid}-placeholder`}
+        >
+          {block.meta.lang === 'html' ? live : null}
+        </div>
+        {block.meta.lang !== 'html' ? live : null}
       </div>
 
       <script type="module" dangerouslySetInnerHTML={{ __html: code }} />
@@ -91,9 +104,10 @@ export function loader({ params }) {
 
   let codeBlocks = blocks.filter(
     b =>
-      b.type === 'code' &&
-      ['js', 'javascript', 'html', 'css'].includes(b.meta.lang) &&
-      b.meta.run,
+      (!uuid && b.type === 'heading') ||
+      (b.type === 'code' &&
+        ['js', 'javascript', 'html', 'css'].includes(b.meta.lang) &&
+        b.meta.run),
   );
 
   if (uuid) {
@@ -117,10 +131,8 @@ export default function CodeBlocksExecute() {
           <a href={`/${pageid}`}>{page.title}</a>. Press cmd+enter to evaluate
           code.
           <div>
-            <a href={`/code-look/html/${pageid}`}>
-              Show all code blocks
-            </a>{' '}
-            - <a href={`/${pageid}#block-${uuid}`}>View in post</a>
+            <a href={`/code-look/html/${pageid}`}>Show all code blocks</a> -{' '}
+            <a href={`/${pageid}#block-${uuid}`}>View in post</a>
           </div>
         </div>
       ) : (
@@ -133,9 +145,12 @@ export default function CodeBlocksExecute() {
           </div>
         </div>
       )}
-      {codeBlocks.map(block => {
-        return renderCodeBlock(block, pageid, uuid, location);
-      })}
+
+      <div className="code-blocks">
+        {codeBlocks.map(block => {
+          return renderCodeBlock(block, pageid, uuid, location);
+        })}
+      </div>
 
       <script type="module" src="/refresh.js" />
 

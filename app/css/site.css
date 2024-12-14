@@ -469,11 +469,14 @@ inspect-code,
 
 /* code */
 
+.code-blocks {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
 .runnable-code {
   border: 3px solid #eaedfc;
   border-radius: 10px;
-  margin-left: 20px;
-  margin-right: 20px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -489,7 +492,6 @@ inspect-code,
 @media (min-width: 801px) {
   .runnable-code {
     flex-direction: row;
-    max-height: 650px;
   }
 }
 
@@ -614,17 +616,31 @@ inspect-code,
 
 .runnable-code-output {
   background-color: #eaedfc;
-  padding: 20px;
+}
+
+.runnable-code.focused {
+  max-height: calc(100vh - 120px);
+}
+
+.runnable-code.focused .runnable-code-output {
   overflow: auto;
+}
+
+@media (max-width: 800px) {
+  .runnable-code.focused {
+    max-height: inherit;
+  }
+}
+
+.runnable-code .runnable-code-output-content {
+  position: sticky;
+  top: 0;
+  padding: 20px;
 }
 
 .runnable-code-output pre {
   margin: 0;
   overflow: visible;
-}
-
-.runnable-code.focused {
-  margin: 1.5em;
 }
 
 /* inspector */
