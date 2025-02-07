@@ -35,7 +35,14 @@ export default function Index() {
   let { sketches, featured } = useLoaderData();
   return (
     <Layout name="home">
+      <div className="bleed">
+        <div style={{ top: 0, zIndex: -1 }}>
+          <canvas />
+        </div>
+      </div>
+
       <h1>This is my sketchbook.</h1>
+
       <div className="hero">
         <div className="description">
           <p>
@@ -58,8 +65,8 @@ export default function Index() {
             want content in your email.
           </p>
         </div>
-        <div id="demo" />
       </div>
+
       {featured.length > 0 && <Featured pages={featured} />}
       <div className="reading-list">
         <h3>Also worth reading</h3>

@@ -244,7 +244,17 @@ a.featured-item:hover .featured-title {
 .site-content.collapsed {
   margin: 0;
   margin-left: 20px;
-}  
+}
+
+.site-content .bleed {
+  height: 100px;
+}
+
+.site-content .bleed > div {
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
 
 @media (max-width: 840px) {
   .site-content {
@@ -256,8 +266,16 @@ a.featured-item:hover .featured-title {
 
 /* home */
 
+.home {
+  padding-bottom: 1000px;
+}
+
 .home h1 {
   margin-top: 60px;
+  background-color: white;
+  padding: 20px;
+  width: fit-content;
+  margin-left: -20px;
 }
 
 .home h1 a,
@@ -302,6 +320,11 @@ a.featured-item:hover .featured-title {
 
 .home .featured-list, .home .reading-list {
   margin-top: 100px;
+}
+
+.home canvas {
+  width: 100%;
+  height: 800px;
 }
 
 /* tags */

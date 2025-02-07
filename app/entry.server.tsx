@@ -47,6 +47,9 @@ export default function handleRequest(
   if (url.pathname.startsWith('/code-look/')) {
     // Never cache the live coding pages
     responseHeaders.set('CDN-Cache-Control', 'max-age=0, no-store');
+  } else if (process.env.NODE_ENV !== 'production') {
+    // Never cache anything in dev
+    responseHeaders.set('CDN-Cache-Control', 'max-age=0, no-store');
   } else {
     responseHeaders.set(
       'CDN-Cache-Control',
