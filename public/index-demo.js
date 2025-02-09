@@ -140,6 +140,32 @@
   }
   var vec_3drotateZ = vec_pure_operation(_vec_3drotateZ);
 
+  function _vec_3drotate(v1, axis, angle) {
+    let v = v1;
+    let k = vec_unit(axis);
+
+    let cosTheta = Math.cos(angle);
+    let sinTheta = Math.sin(angle);
+
+    // Cross product k × v
+    let cross = [
+      k[1] * v[2] - k[2] * v[1],
+      k[2] * v[0] - k[0] * v[2],
+      k[0] * v[1] - k[1] * v[0],
+    ];
+
+    // Dot product k · v
+    let dot = vec_dot(k, v);
+
+    // Rodrigues' formula
+    return [
+      v[0] * cosTheta + cross[0] * sinTheta + k[0] * dot * (1 - cosTheta),
+      v[1] * cosTheta + cross[1] * sinTheta + k[1] * dot * (1 - cosTheta),
+      v[2] * cosTheta + cross[2] * sinTheta + k[2] * dot * (1 - cosTheta),
+    ];
+  }
+  var vec_3drotate = _vec_3drotate;
+
   function _vec_unit(v1) {
     var len = vec_length(v1);
     v1[X] = v1[X] / len;
@@ -187,6 +213,12 @@
   assert_equal('vec_3drotateX', vec_3drotateX(x, Math.PI / 2.0), vec(0, 0, 1));
   assert_equal('vec_3drotateY', vec_3drotateY(y, Math.PI / 2.0), vec(0, 0, -1));
   assert_equal('vec_3drotateZ', vec_3drotateZ(x, Math.PI / 2.0), vec(-1, 0, 0));
+
+  assert_equal(
+    'vec_3drotate',
+    vec_3drotate(x, vec(0, 0, 1), Math.PI / 2.0),
+    vec(-1, 0, 0),
+  );
 
   var LEFT = 2;
   var RIGHT = 3;
@@ -303,58 +335,69 @@ wasm-function[0]:
   //   data: [[[0, 0, 10], [0, 0, 8]]],
   // });
 
-  for (let i = 0; i < 20; i++) {
-    let x = Math.random() * 10 - 2;
-    let y = Math.random() * 3 - 1;
-    meshes.push({
-      seed: Math.random() * 2 - 1,
-      yaw: 0,
-      pitch: 0,
-      roll: 0,
-      // translate: vec(0, 0, 12),
-      // scale: vec(7, 7, 7),
-      color: `rgb(${(Math.random() * 100 + 100) | 0},
-                    ${(Math.random() * 100 + 100) | 0},
-                    ${(Math.random() * 100 + 100) | 0})`,
-      data: [[[x, y, 10], [x, y, 8]]],
-    });
-  }
+  // for (let i = 0; i < 20; i++) {
+  //   let x = Math.random() * 10 - 2;
+  //   let y = Math.random() * 3 - 1;
+  //   meshes.push({
+  //     seed: Math.random() * 2 - 1,
+  //     yaw: 0,
+  //     pitch: 0,
+  //     roll: 0,
+  //     // translate: vec(0, 0, 12),
+  //     // scale: vec(7, 7, 7),
+  //     color: `rgb(${(Math.random() * 100 + 100) | 0},
+  //                   ${(Math.random() * 100 + 100) | 0},
+  //                   ${(Math.random() * 100 + 100) | 0})`,
+  //     data: [[[x, y, 10], [x, y, 8]]],
+  //   });
+  // }
 
-  for (let x = -10; x < 10; x += 0.4) {
-    for (let y = 2; y < 10; y += 0.4) {
-      const x_ = x + Math.random() * 0.35;
-      const y_ = y + Math.random() * 0.35 - ((x + 10) / 20) * 2;
-      meshes.push({
-        seed: Math.random() * 2 - 1,
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
-        // translate: vec(0, 0, 12),
-        // scale: vec(7, 7, 7),
-        color: `rgb(${(Math.random() * 100 + 100) | 0},
-                    ${(Math.random() * 100 + 100) | 0},
-                    ${(Math.random() * 100 + 100) | 0})`,
-        data: [[[x_, y_, 10], [x_, y_, 8]]],
-      });
-      // {
-      //   yaw: 0,
-      //   pitch: 0,
-      //   roll: 0,
-      //   // translate: vec(0, 0, 100),
-      //   // scale: vec(7, 7, 7),
-      //   color: 'green',
-      //   data: [[[0, 0, 0], [0, 1, 0]]],
-      // },
-      // {
-      //   hidden: true,
-      //   yaw: 0,
-      //   pitch: 0,
-      //   roll: 0,
-      //   // translate: vec(0, 0, 100),
-      //   // scale: vec(1, 1, 1),
-      //   color: 'blue',
-      //   data: [[[0, 0, 0], [1, 0, 0]]],
-      // },
+  // for (let x = -10; x < 10; x += 0.4) {
+  //   for (let y = 2; y < 3.5; y += 0.025) {
+  //     const x_ = x + Math.random() * 0.35;
+  //     const y_ = y + Math.random() * 0.35 - ((x + 10) / 20) * 2;
+  //     meshes.push({
+  //       seed: Math.random() * 3 - 1.5,
+  //       yaw: 0,
+  //       pitch: 0,
+  //       roll: 0,
+  //       // translate: vec(0, 0, 12),
+  //       // scale: vec(7, 7, 7),
+  //       color: `rgb(${(Math.random() * 100 + 100) | 0},
+  //                   ${(Math.random() * 100 + 100) | 0},
+  //                   ${(Math.random() * 100 + 100) | 0})`,
+  //       data: [[[x_, y_, 10], [x_, y_, 8]]],
+  //     });
+  //     // {
+  //     //   yaw: 0,
+  //     //   pitch: 0,
+  //     //   roll: 0,
+  //     //   // translate: vec(0, 0, 100),
+  //     //   // scale: vec(7, 7, 7),
+  //     //   color: 'green',
+  //     //   data: [[[0, 0, 0], [0, 1, 0]]],
+  //     // },
+  //     // {
+  //     //   hidden: true,
+  //     //   yaw: 0,
+  //     //   pitch: 0,
+  //     //   roll: 0,
+  //     //   // translate: vec(0, 0, 100),
+  //     //   // scale: vec(1, 1, 1),
+  //     //   color: 'blue',
+  //     //   data: [[[0, 0, 0], [1, 0, 0]]],
+  //     // },
+  //   }
+  // }
+
+  for (let mesh of meshes) {
+    if (
+      mesh.data[0][X] < 2 &&
+      mesh.data[0][X] > -2 &&
+      mesh.data[0][Y] < 2 &&
+      mesh.data[0][Y] > -2
+    ) {
+      console.log(mesh);
     }
   }
 
@@ -400,7 +443,7 @@ wasm-function[0]:
       [rawMousePos[0], rawMousePos[1] + window.scrollY],
       [[canvasRect.left], [canvasRect.top]],
     );
-    mousePos = unproject2d(pos, 13, frustum);
+    mousePos = unproject2d(pos, 8, frustum);
   });
 
   document.addEventListener('mousemove', e => {
@@ -410,7 +453,7 @@ wasm-function[0]:
       [rawMousePos[0], rawMousePos[1] + window.scrollY],
       [[canvasRect.left], [canvasRect.top]],
     );
-    mousePos = unproject2d(pos, 12, frustum);
+    mousePos = unproject2d(pos, 8, frustum);
   });
 
   // Newer iOS phones have sucky tendency to bring up a bottom tab bar
@@ -451,8 +494,9 @@ wasm-function[0]:
   }
 
   function _project2d(point, frustum) {
-    var x = point[X] / point[Z];
-    var y = point[Y] / point[Z];
+    let z = point[Z] === 0 ? 0.000001 : point[Z];
+    let x = point[X] / z;
+    let y = point[Y] / z;
 
     x = (frustum.xmax - x) / (frustum.xmax - frustum.xmin);
     y = (frustum.ymax - y) / (frustum.ymax - frustum.ymin);
@@ -601,22 +645,24 @@ wasm-function[0]:
 
       if (mousePos) {
         const line = mesh.data[0];
-        const start = line[0];
-        const end = vec_subtract(start, mousePos);
+        const end = line[1];
+        const end_ = vec_subtract(end, mousePos);
 
-        if (vec_length(end) > 1.3) {
-          const size = 1.3;
-          _vec_unit(end);
-          _vec_multiply(end, [-size, -size, -size]);
+        if (mousePos && vec_length(end_) < 1.5) {
+          // if (vec_length(end) > 1.3) {
+          //   const size = 1.3;
+          //   _vec_unit(end);
+          //   _vec_multiply(end, [-size, -size, -size]);
+          // } else {
+          //   _vec_multiply(end, [-1, -1, -1]);
+          // }
+          // // line[0] = [0, 0, 1];
+          // _vec_3drotateZ(
+          //   end,
+          //   Math.sin(totalTime * 0.0005 + mesh.seed * 1.1) / 6,
+          // );
+          // line[1] = vec_add(start, end);
         }
-        else {
-          _vec_multiply(end, [-1, -1, -1]);
-        }
-
-        // line[0] = [0, 0, 1];
-        _vec_3drotateZ(end, Math.sin(totalTime * 0.0005 + mesh.seed * 1.1) / 6);
-
-        line[1] = vec_add(start, end);
       }
     }
 
@@ -698,6 +744,32 @@ wasm-function[0]:
     //   ctx.fillStyle = 'red';
     //   ctx.fill();
     // }
+
+    let points = [vec(1, 1, 10), vec(1, 1, 8)];
+    let vec1 = vec_subtract(points[1], points[0]);
+    points.color = 'red';
+    // render3d(ctx, points, camera, frustum);
+
+    if (mousePos) {
+      let toMouse = [points[1], mousePos];
+
+      let vec2 = vec_subtract(mousePos, points[1]);
+      let vec3 = vec_cross(vec1, vec2);
+      let points2 = [points[1], vec_add(vec3, points[1])];
+      points2.color = 'green';
+      // render3d(ctx, points2, camera, frustum);
+
+      for (let i = 0; i < 20; i++) {
+        let v = vec_3drotate(vec1, vec3, -i / 30);
+        let p = [points[0], vec_add(points[0], v)];
+        p.color = 'gray';
+        render3d(ctx, p, camera, frustum);
+      }
+
+      let points3 = toMouse;
+      points3.color = 'blue';
+      // render3d(ctx, points3, camera, frustum);
+    }
   }
 
   function renderMesh(mesh, heap) {
@@ -782,7 +854,8 @@ wasm-function[0]:
     gradient.addColorStop(0.2, 'rgb(130, 200, 140, 0)');
     gradient.addColorStop(1, 'rgb(130, 200, 140)');
 
-    _renderLine(pointA, pointB, gradient);
+    // _renderLine(pointA, pointB, gradient);
+    _renderLine(pointA, pointB, color);
   }
 
   function _renderLine(pointA, pointB, color) {
