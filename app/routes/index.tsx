@@ -43,7 +43,7 @@ export default function Index() {
 
     {/*<h1>This is my sketchbook.</h1>*/}
 
-      <div className="hero" style={{marginTop:1000}}>
+      <div className="hero">
         <div className="description">
           <p>
             I like to experiment with technology and art. I write about
