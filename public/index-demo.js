@@ -1,7 +1,3 @@
-// poly
-// animations
-// math
-
 (function() {
   'use strict';
 
@@ -172,55 +168,89 @@
   }
   var vec_unit = vec_pure_operation(_vec_unit);
 
-  function anyNaN(vec) {
-    return vec.findIndex(n => isNaN(n) || n === Infinity) !== -1;
+  function anyNaN(v) {
+    return v.findIndex(n => isNaN(n)) !== -1;
   }
 
-  // tests
+  // Rotations
 
-  function assert(msg, exp) {
-    if (!exp) throw '[FAILED] ' + msg;
+  function axisAngleToQuaternion({ axis, angle }) {
+    const halfAngle = angle / 2;
+    const s = Math.sin(halfAngle);
+    return {
+      w: Math.cos(halfAngle),
+      x: axis[X] * s,
+      y: axis[Y] * s,
+      z: axis[Z] * s,
+    };
   }
 
-  function assert_equal(msg, v1, v2) {
-    if (typeof v1 == 'object') {
-      assert(msg + ' ' + v1 + ' ' + v2, vec_equals(v1, v2));
+  function quaternionToAxisAngle(q) {
+    const angle = 2 * Math.acos(q.w);
+    const s = Math.sqrt(1 - q.w * q.w);
+
+    if (s < 0.0001) {
+      // If s is close to zero, direction doesn't matter (pure rotation around w)
+      return { type: 'rotate', axis: vec(1, 0, 0), angle }; // Default to x-axis
     } else {
-      assert(msg + ' ' + v1 + ' ' + v2, v1 == v2);
+      return { type: 'rotate', axis: vec(q.x / s, q.y / s, q.z / s), angle };
     }
   }
 
-  var x = vec(4, 5, 6);
-  var y;
-  var z = vec(2, 3, 4);
+  function slerp(q1, q2, t) {
+    let dot = q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z;
 
-  assert_equal('vec_subtract', vec_subtract(x, z), vec(2, 2, 2));
-  assert_equal('vec_add', vec_add(x, z), vec(6, 8, 10));
+    // If dot is negative, invert one quaternion to take the shorter path
+    if (dot < 0) {
+      q2 = { w: -q2.w, x: -q2.x, y: -q2.y, z: -q2.z };
+      dot = -dot;
+    }
 
-  x = vec(0, 1, 0);
-  y = vec(1, 0, 0);
-  assert_equal('vec_dot', vec_dot(x, y), 0);
+    // Use linear interpolation if the quaternions are very close
+    // if (dot > 0.9995) {
+    //   return {
+    //     w: q1.w + t * (q2.w - q1.w),
+    //     x: q1.x + t * (q2.x - q1.x),
+    //     y: q1.y + t * (q2.y - q1.y),
+    //     z: q1.z + t * (q2.z - q1.z),
+    //   };
+    // }
 
-  x = vec(-1, 0, 0);
-  assert_equal('vec_dot', vec_dot(x, y), -1);
+    const theta_0 = Math.acos(dot); // Angle between quaternions
+    const sin_theta_0 = Math.sin(theta_0);
 
-  x = vec(1, 1, 0);
-  y = vec(1.5, 1, 0);
-  assert_equal('vec_dot', vec_dot(x, y), 2.5);
+    const theta = theta_0 * t;
 
-  x = vec(0, 1, 0);
-  y = vec(1, 0, 0);
-  assert_equal('vec_cross', vec_cross(x, y), vec(0, 0, -1));
+    const sin_theta = Math.sin(theta);
 
-  assert_equal('vec_3drotateX', vec_3drotateX(x, Math.PI / 2.0), vec(0, 0, 1));
-  assert_equal('vec_3drotateY', vec_3drotateY(y, Math.PI / 2.0), vec(0, 0, -1));
-  assert_equal('vec_3drotateZ', vec_3drotateZ(x, Math.PI / 2.0), vec(-1, 0, 0));
+    const s0 = Math.cos(theta) - (dot * sin_theta) / sin_theta_0;
+    const s1 = sin_theta / sin_theta_0;
 
-  // assert_equal(
-  //   'vec_3drotate',
-  //   vec_3drotate(x, vec(0, 0, 1), Math.PI / 2.0),
-  //   vec(-1, 0, 0),
-  // );
+    return {
+      w: s0 * q1.w + s1 * q2.w,
+      x: s0 * q1.x + s1 * q2.x,
+      y: s0 * q1.y + s1 * q2.y,
+      z: s0 * q1.z + s1 * q2.z,
+    };
+  }
+
+  function interpolateRotation(rotation1, rotation2, t) {
+    t = _spring(t);
+
+    const q1 = axisAngleToQuaternion(rotation1);
+    const q2 = axisAngleToQuaternion(rotation2);
+    const qInterp = slerp(q1, q2, t);
+    const transform = quaternionToAxisAngle(qInterp);
+
+    if (anyNaN(transform.axis)) {
+      debugger;
+      slerp(q1, q2, t);
+    }
+
+    return transform;
+  }
+
+  // Heap
 
   var LEFT = 2;
   var RIGHT = 3;
@@ -273,10 +303,9 @@
   canvas.width = size[0] * dpi;
   canvas.height = size[1] * dpi;
   let ctx = canvas.getContext('2d');
-  ctx.scale(2, 2);
 
   let camera = vec(0, 0, 0);
-  let frustum = make_frustum(60.0, size[0] / size[1], 1, 1000.0);
+  let frustum = make_frustum(60.0, 1.8, 1, 1000.0);
   let currentColor = 'red';
   let totalTime = 0;
 
@@ -284,7 +313,6 @@
     size = [canvas.clientWidth | 0, canvas.clientHeight | 0];
     canvas.width = size[0] * dpi;
     canvas.height = size[1] * dpi;
-    ctx.scale(2, 2);
   });
 
   // let codeString = `(define (shift* f) (let* ((parent-denv (vector-ref *meta-continuation* 2)) (curr-denv (current-dynamic-env)) (diff-denv (dynamic-env-sub curr-denv parent-denv))) (let ((v (call/cc (lambda (k) (abort-env* (lambda () (f (lambda (v) (reset (k v)))))))))) (current-dynamic-env-set! (dynamic-env-add diff-denv (vector-ref *meta-continuation* 2))) v))) (define (reset* thunk) (let ((mc *meta-continuation*) (denv (current-dynamic-env))) (continuation-capture (lambda (k-pure) (current-dynamic-wind-set! ##initial-dynwind) (abort-pure* ((call/cc (lambda (k) (set! *meta-continuation* (make-vector-values (lambda (v) (set! *meta-continuation* mc) (current-dynamic-env-set! denv) (##continuation-return-no-winding k-pure v)) k denv)) thunk))))))))`;
@@ -354,6 +382,14 @@ wasm-function[0]:
   //   });
   // }
 
+  let idx = 0;
+
+  let TRANSFORM_WAVE_IDX = 0;
+  let TRANSFORM_ROTATE_IDX = 1;
+  let TRANSFORM_TRANSLATE_IDX = 2;
+
+  let DEFAULT_ROTATION = { type: 'rotate', axis: vec(0, 0, 1), angle: 0 };
+
   for (let x = -10; x < 10; x += 0.4) {
     for (let y = 2; y < 3.5; y += 0.05) {
       // for (let x = -10; x < 10; x += 0.4) {
@@ -361,11 +397,21 @@ wasm-function[0]:
       const x_ = x + Math.random() * 0.35;
       const y_ = y + Math.random() * 0.35 - ((x + 10) / 20) * 2;
       meshes.push({
+        idx: idx++,
         seed: Math.random() * 3 - 1.5,
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
-        translate: vec(x_, y_, 10),
+
+        // The transforms are static; we want all the transforms that
+        // are mutated by the system to exist at creation. This is way
+        // some of these are basically noops right now.
+        transforms: [
+          // wave
+          DEFAULT_ROTATION,
+          // rotation applied from the mouse
+          DEFAULT_ROTATION,
+          // moves the line to the right point in space
+          { type: 'translate', pos: vec(x_, y_, 10) },
+        ],
+
         // rotate: {
         //   axis: vec(Math.random(), Math.random(), Math.random()),
         //   angle: 0,
@@ -407,6 +453,10 @@ wasm-function[0]:
   let canvasPos = [canvasRect.left, canvasRect.top];
   let mousePos;
   let rawMousePos;
+  let lastMousePos;
+  let mousePosStarted;
+  let projectedOffset = vec(0, 0);
+  let projectedScale = vec(1, 1);
 
   // function startExplode(e) {
   //   explodeStarted = Date.now();
@@ -436,45 +486,63 @@ wasm-function[0]:
   // touchArea.addEventListener('mouseleave', stopExplode);
   // touchArea.addEventListener('touchstart', startExplode);
 
-  // document.addEventListener('scroll', e => {
-  //   const pos = vec_subtract(
-  //     [rawMousePos[0], rawMousePos[1] + window.scrollY],
-  //     [[canvasRect.left], [canvasRect.top]],
-  //   );
-  //   mousePos = unproject2d(pos, 8, frustum);
-  // });
+  document.addEventListener('scroll', e => {
+    if (rawMousePos) {
+      const pos = vec_subtract(
+        [rawMousePos[0], rawMousePos[1] + window.scrollY],
+        [[canvasRect.left], [canvasRect.top]],
+      );
+      _vec_multiply(pos, vec(1 / projectedScale[X], 1 / projectedScale[Y]));
+
+      mousePos = unproject2d(vec_subtract(pos, projectedOffset), 8, frustum);
+    }
+  });
 
   document.addEventListener('mousemove', e => {
+    if (rawMousePos == null) {
+      mousePosStarted = Date.now();
+    }
+
     rawMousePos = [e.clientX, e.clientY];
 
     const pos = vec_subtract(
       [rawMousePos[0], rawMousePos[1] + window.scrollY],
       [[canvasRect.left], [canvasRect.top]],
     );
-    mousePos = unproject2d(pos, 8, frustum);
+    _vec_multiply(pos, vec(1 / projectedScale[X], 1 / projectedScale[Y]));
+
+    mousePos = unproject2d(vec_subtract(pos, projectedOffset), 8, frustum);
   });
 
-  // Newer iOS phones have sucky tendency to bring up a bottom tab bar
-  // but still think that 100vh means you want to go underneath it. This
-  // is stupid. window.innerHeight is correct so set it to that, and we
-  // have to do it a little in the future because it's racy.
-  if (window.innerWidth < 500) {
-    setTimeout(() => {
-      document.querySelector('.demo-full-screen').style.height =
-        window.innerHeight + 'px';
-    }, 100);
-  }
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 0) {
+      if (rawMousePos == null) {
+        mousePosStarted = Date.now();
+      }
 
-  let resumeTimeout;
-  let animationFrame;
-  window.addEventListener('resize', () => {
-    clearTimeout(resumeTimeout);
-    cancelAnimationFrame(animationFrame);
+      rawMousePos = vec(e.touches[0].clientX, e.touches[0].clientY);
 
-    resumeTimeout = setTimeout(() => {
-      frame(0, 0, ctx);
-    }, 250);
+      const pos = vec_subtract(
+        [rawMousePos[0], rawMousePos[1] + window.scrollY],
+        [[canvasRect.left], [canvasRect.top]],
+      );
+      _vec_multiply(pos, vec(1 / projectedScale[X], 1 / projectedScale[Y]));
+
+      mousePos = unproject2d(vec_subtract(pos, projectedOffset), 8, frustum);
+      console.log(mousePos);
+    }
   });
+
+  // let resumeTimeout;
+  // let animationFrame;
+  // window.addEventListener('resize', () => {
+  //   clearTimeout(resumeTimeout);
+  //   cancelAnimationFrame(animationFrame);
+
+  //   resumeTimeout = setTimeout(() => {
+  //     frame(0, 0, ctx);
+  //   }, 250);
+  // });
 
   frame(0, 0, ctx);
 
@@ -499,7 +567,7 @@ wasm-function[0]:
     x = (frustum.xmax - x) / (frustum.xmax - frustum.xmin);
     y = (frustum.ymax - y) / (frustum.ymax - frustum.ymin);
 
-    return vec(x * size[0], y * size[1]);
+    return vec(x * 1425, y * 700);
   }
 
   function project2d(points, frustum) {
@@ -507,8 +575,8 @@ wasm-function[0]:
   }
 
   function unproject2d(point, depth, frustum) {
-    let x = point[0] / size[0];
-    let y = point[1] / size[1];
+    let x = point[0] / 1425;
+    let y = point[1] / 600;
 
     x = frustum.xmin + (frustum.xmax - frustum.xmin) * (1 - x);
     y = frustum.ymin + (frustum.ymax - frustum.ymin) * (1 - y);
@@ -522,44 +590,27 @@ wasm-function[0]:
   function _transform_points(mesh, points) {
     var p = [vec_copy(points[0]), vec_copy(points[1])];
 
-    if (mesh.scale) {
-      _line_apply(p, function(v) {
-        _vec_multiply(v, mesh.scale);
-      });
-    }
-
-    // if (mesh.yaw) {
-    //   _line_apply(p, function(v) {
-    //     _vec_3drotateX(v, mesh.yaw);
-    //   });
-    // }
-
-    // if (mesh.pitch) {
-    //   _line_apply(p, function(v) {
-    //     _vec_3drotateY(v, mesh.pitch);
-    //   });
-    // }
-
-    // if (mesh.roll) {
-    //   _line_apply(p, function(v) {
-    //     _vec_3drotateZ(v, mesh.roll);
-    //   });
-    // }
-
-    if (mesh.rotate) {
-      _line_apply(p, function(v) {
-        _vec_3drotate(v, mesh.rotate.axis, mesh.rotate.angle);
-      });
-
-      if (anyNaN(p[0]) || anyNaN(p[1])) {
-        debugger;
+    if (mesh.transforms) {
+      for (let i = 0; i < mesh.transforms.length; i++) {
+        let t = mesh.transforms[i];
+        switch (t.type) {
+          case 'translate':
+            _line_apply(p, function(v) {
+              _vec_add(v, t.pos);
+            });
+            break;
+          case 'rotate':
+            _line_apply(p, function(v) {
+              _vec_3drotate(v, t.axis, t.angle);
+            });
+            break;
+          case 'scale':
+            _line_apply(p, function(v) {
+              _vec_multiply(v, t.amount);
+            });
+            break;
+        }
       }
-    }
-
-    if (mesh.translate) {
-      _line_apply(p, function(v) {
-        _vec_add(v, mesh.translate);
-      });
     }
 
     return p;
@@ -574,12 +625,12 @@ wasm-function[0]:
     update(time - lastTime);
     render(ctx);
 
-    animationFrame = requestAnimationFrame(newTime => {
+    requestAnimationFrame(newTime => {
       frame(newTime, time, ctx);
     });
   }
 
-  function x$1(progress) {
+  function _spring(progress) {
     let damping = 10.0;
     let mass = 1.0;
     let stiffness = 100.0;
@@ -623,7 +674,7 @@ wasm-function[0]:
   }
 
   function spring(v1, v2, progress) {
-    return (v2 - v1) * x$1(progress) + v1;
+    return (v2 - v1) * _spring(progress) + v1;
   }
 
   function lerp(v1, v2, progress, func) {
@@ -632,6 +683,13 @@ wasm-function[0]:
 
   function update(dt) {
     totalTime += dt;
+
+    if (window.innerWidth < 570) {
+      projectedOffset = vec(-400, 100);
+    } else {
+      const p = 1 - Math.max(0, Math.min(1, (window.innerWidth - 570) / 1425));
+      projectedOffset = vec(-400 * p, 40 * p);
+    }
 
     // mousePos = unproject2d(
     //   [(size[0] * 0.75) | 0, (size[1] * 0.7) | 0],
@@ -644,66 +702,62 @@ wasm-function[0]:
     //   angle: totalTime / 900,
     // };
     // meshes[500].color = 'red';
-    meshes[500].color = 'red';
 
     for (let mesh of meshes) {
-      // if (mesh.translate == null) {
-      //   mesh.translate = vec(0, 0, 0);
-      // } else {
-      //   mesh.translate[2] += 0.0005 * dt;
-      // }
-      // mesh.pitch  = Math.cos(totalTime * 0.002);
-      // mesh.yaw  = Math.sin(totalTime * 0.002);
-      // mesh.pitch = totalTime * 0.0005 * 2;
-      // mesh.yaw = totalTime * 0.0005 * 2;
-      // mesh.roll = totalTime * 0.0002 * 2;
+      mesh.transforms[TRANSFORM_WAVE_IDX] = {
+        type: 'rotate',
+        axis: vec(0, 1, 0),
+        angle:
+          Math.sin(
+            mesh.transforms[TRANSFORM_TRANSLATE_IDX].pos[X] * 0.2 +
+              totalTime * 0.0005 +
+              mesh.seed * 0.2,
+          ) * 0.1,
+      };
 
-      // FUN IDEA
-      // if (mesh.rotate) {
-      //   mesh.rotate.angle += 0.01;
+      // if (Math.random() < 0.005) {
+      //   console.log(
+      //     'updating',
+      //     lastMousePos,
+      //     lastMousePos ? vec_equals(mousePos, lastMousePos) : null,
+      //   );
       // }
-
       if (mousePos) {
         const line = mesh.data[0];
         const start = line[0];
         const end = line[1];
         const vec1 = vec_subtract(end, start);
-        let vec2 = vec_subtract(mousePos, vec_add(end, mesh.translate));
+        let vec2 = vec_subtract(
+          mousePos,
+          vec_add(end, mesh.transforms[TRANSFORM_TRANSLATE_IDX].pos),
+        );
 
-        if (mousePos && vec_length(vec2) < 3) {
-          let vec3 = vec_cross(vec2, vec1);
+        let p = vec_length(vec2);
 
-          // if (vec3[0] == 0 && vec3[1] == 0 && vec3[2] == 0) {
-          //   debugger;
-          // }
+        // mesh.transforms[TRANSFORM_WAVE_IDX] = {
+        //   type: 'rotate',
+        //   axis: vec(0, 1, 0),
+        //   angle:
+        //     Math.sin(
+        //       mesh.transforms[TRANSFORM_TRANSLATE_IDX].pos[X] * 0.2 +
+        //         totalTime * 0.0005,
+        //     ) *
+        //     0.1 *
+        //     (vec_length(vec2) / 6),
+        // };
 
-          // let points2 = [points[1], vec_add(vec3, points[1])];
-          // points2.color = 'green';
-          // render3d(ctx, points2, camera, frustum);
+        let vec3 = vec_unit(vec_cross(vec2, vec1));
 
-          // if (anyNaN(vec3)) {
-          // }
-
-          mesh.rotate = {
+        mesh.transforms[TRANSFORM_ROTATE_IDX] = interpolateRotation(
+          DEFAULT_ROTATION,
+          {
+            type: 'rotate',
             axis: vec3,
-            // angle: 1.5 - vec_length(vec1),
-            angle: -Math.PI * 0.3 * ((3 - vec_length(vec2)) * 0.3),
-            // angle: totalTime * 0.001,
-          };
-
-          // for (let i = 0; i < 20; i++) {
-          //   let v = vec_3drotate(vec1, vec3, -i / 30);
-          //   let p = [start, vec_add(start, v)];
-          //   p.color = 'gray';
-          //   render3d(ctx, p, camera, frustum);
-          // }
-
-          // let points3 = toMouse;
-          // points3.color = 'blue';
-          // render3d(ctx, points3, camera, frustum);
-        } else {
-          mesh.rotate = null;
-        }
+            // angle: -Math.PI * 0.3 * ((3 - vec_length(vec2)) * 0.3),
+            angle: -Math.PI * 0.3 * Math.pow(p, -1.5),
+          },
+          Math.min(1, (Date.now() - mousePosStarted) / 900),
+        );
       }
     }
 
@@ -765,7 +819,16 @@ wasm-function[0]:
   function render(ctx) {
     let heap = make_heap();
 
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     ctx.clearRect(0, 0, size[0], size[1]);
+
+    if (window.innerWidth < 570) {
+      projectedScale = vec(0.6, 0.6);
+      ctx.scale(projectedScale[X], projectedScale[Y]);
+    } else {
+      projectedScale = vec(1, 1);
+    }
 
     for (var i = 0; i < meshes.length; i++) {
       if (!meshes[i].hidden) {
@@ -822,6 +885,10 @@ wasm-function[0]:
         );
       }
 
+      // if (mesh.idx === 500) {
+      //   console.log(mesh.transforms[TRANSFORM_ROTATE_IDX]);
+      // }
+
       var line = _transform_points(mesh, data[i]);
 
       _line_apply(line, function(v) {
@@ -833,6 +900,7 @@ wasm-function[0]:
       line.zs = [line[0][Z], line[1][Z]];
       line.meshId = mesh.id;
       line.debug = !!mesh.rotate;
+      line.idx = mesh.idx;
 
       heap_add(heap, line);
     }
@@ -870,27 +938,29 @@ wasm-function[0]:
     // shade = Math.min(1.0, shade + ambient);
 
     let projected = project2d(p_camera, frustum);
-    renderLine(ctx, projected, points.zs, color, length);
+    _vec_add(projected[0], projectedOffset);
+    _vec_add(projected[1], projectedOffset);
+    renderLine(ctx, projected, points.zs, points.idx, length);
 
-    if (points.debug) {
-      let a = projected[0];
-      let b = projected[1];
+    // if (points.debug) {
+    //   let a = projected[0];
+    //   let b = projected[1];
 
-      const getSize = x => (x / 2) * (x / 2) * (x / 2) * 0.02;
+    //   const getSize = x => (x / 2) * (x / 2) * (x / 2) * 0.02;
 
-      let size = getSize(points[0][Z]);
-      let size_ = (size / 2) | 0;
+    //   let size = getSize(points[0][Z]);
+    //   let size_ = (size / 2) | 0;
 
-      // ctx.rect(a[X] - size_, a[Y] - size_, size_, size_);
-      // ctx.fillStyle = 'red';
-      // ctx.fill();
+    //   // ctx.rect(a[X] - size_, a[Y] - size_, size_, size_);
+    //   // ctx.fillStyle = 'red';
+    //   // ctx.fill();
 
-      // size = getSize(points[1][Z]);
-      // size_ = (size / 2) | 0;
-      // ctx.rect(b[X] - size_, b[Y] - size_, size_, size_);
-      // ctx.fillStyle = 'red';
-      // ctx.fill();
-    }
+    //   // size = getSize(points[1][Z]);
+    //   // size_ = (size / 2) | 0;
+    //   // ctx.rect(b[X] - size_, b[Y] - size_, size_, size_);
+    //   // ctx.fillStyle = 'red';
+    //   // ctx.fill();
+    // }
   }
 
   // function render2d(ctx, points, color) {
@@ -902,7 +972,7 @@ wasm-function[0]:
   //   ctx.stroke();
   // }
 
-  function renderLine(ctx, points, zs, color, length) {
+  function renderLine(ctx, points, zs, idx, length) {
     const pointA = points[0];
     const pointB = points[1];
 
@@ -913,14 +983,17 @@ wasm-function[0]:
       pointA[Y],
     );
 
-    // if(Math.random() < .01) {
-    //   console.log(zs)
-    // }
+    gradient.addColorStop(0, `rgba(130, 200, 140, 0)`);
+    gradient.addColorStop(1, `rgba(130, 200, 140, 0.5)`);
 
-    const f = n => (n < 0 ? 0 : n > 1 ? 1 : n);
-
-    gradient.addColorStop(0, `rgba(130, 200, 140, ${f((zs[0] - 8) / 1)})`);
-    gradient.addColorStop(1, `rgba(130, 200, 140, ${f((zs[1] - 9.5) / 1)})`);
+    // gradient.addColorStop(
+    //   1,
+    //   `rgba(130, 200, 140, ${f(1 - (zs[0] - 8) / 0.09)})`,
+    // );
+    // gradient.addColorStop(
+    //   0,
+    //   `rgba(130, 200, 140, ${f(1 - (zs[1] - 8) / 0.09)})`,
+    // );
 
     // _renderLine(pointA, pointB, gradient);
     _renderLine(pointA, pointB, gradient);

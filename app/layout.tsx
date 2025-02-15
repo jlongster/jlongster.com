@@ -2,7 +2,7 @@ function Header() {
   return (
     <header>
       <a href="/">
-        <img src="/logo.png" width="50" />
+        <img src="/logo2.png" width="50" />
       </a>
       {/*<button id="color-picker">
         <svg

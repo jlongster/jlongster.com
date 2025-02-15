@@ -41,7 +41,7 @@ export default function Index() {
         </div>
       </div>
 
-    {/*<h1>This is my sketchbook.</h1>*/}
+      <h1>This is my sketchbook.</h1>
 
       <div className="hero">
         <div className="description">
