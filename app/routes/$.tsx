@@ -42,7 +42,7 @@ export function meta({ data }) {
 
   return {
     title: page.title,
-    'twitter:card': 'summary_large_image',
+    'twitter:card': imgUrl ? 'summary_large_image' : 'summary',
     ...(imgUrl ? { 'og:image': imgUrl } : null),
     'og:title': page.title,
     'og:description':
