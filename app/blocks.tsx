@@ -1,3 +1,4 @@
+
 import { renderBlock } from './md/render';
 
 export function slug(str) {
@@ -21,7 +22,7 @@ function stripOuterComponent(html) {
   };
 }
 
-function TableOfContents({ toc }) {
+function TableOfContents({ pageid, toc }) {
   return (
     <div className="toc" id="toc">
       {toc.map(h => {
@@ -30,8 +31,11 @@ function TableOfContents({ toc }) {
           <div
             key={id}
             style={{ marginLeft: (h.meta.depth - 2) * 10, marginBottom: 5 }}
-          >
-            <a href={`#${id}`}>{h.string}</a>
+            >
+            {/* TOC may be rendered while the content is filtered, so
+                we must render a full link to ensure it navigates if
+                necessary */}
+            <a href={`/${pageid}#${id}`}>{h.string}</a>
           </div>
         );
       })}
@@ -39,10 +43,18 @@ function TableOfContents({ toc }) {
   );
 }
 
-export function Blocks({ blocks, toc, pageid }) {
+export function Blocks({ blocks, toc, pageid, sectionName }) {
+  let currentSectionName;
+
   return blocks
     .map((block, idx) => {
+      if (block.type === 'heading' && block.meta.depth === 2) {
+        currentSectionName = slug(block.string);
+      }
+
       let live = null;
+      let shouldShowBlock =
+        sectionName == null || currentSectionName === sectionName;
 
       if (
         block.string.trim() === '' ||
@@ -52,6 +64,8 @@ export function Blocks({ blocks, toc, pageid }) {
       }
 
       if (block.type === 'code' && block.meta.run) {
+        let shouldRenderCode = block.meta.show && shouldShowBlock;
+
         switch (block.meta.lang) {
           case 'css':
             live = (
@@ -81,13 +95,17 @@ export function Blocks({ blocks, toc, pageid }) {
             // examples
             const code = `
               let __inspector = document.createElement('inspect-code');
-              __inspector.disabled = ${!!block.meta.show};
+              __inspector.disabled = ${!!shouldRenderCode};
               __inspector.dataset['blockId'] = "${block.uuid}";
 
               let __placeholder = document.getElementById('${id}-placeholder');
               let __renderCalled = false;
 
               const render = value => {
+                if(!${shouldShowBlock}) {
+                  return;
+                }
+
                 __renderCalled = true;
 
                 const _insert = el => {
@@ -121,7 +139,7 @@ export function Blocks({ blocks, toc, pageid }) {
               }
 
               if(!__renderCalled) {
-                if(${!!block.meta.show}) {
+                if(${!!shouldRenderCode}) {
                   document.getElementById('${id}-placeholder').textContent = '(no output)'
                 }
                 else {
@@ -150,7 +168,7 @@ export function Blocks({ blocks, toc, pageid }) {
           case 'html': {
             live = (
               <inspect-code
-                disabled={!!block.meta.show}
+                disabled={!!shouldRenderCode}
                 data-block-id={block.uuid}
                 dangerouslySetInnerHTML={{ __html: block.string }}
               />
@@ -158,31 +176,13 @@ export function Blocks({ blocks, toc, pageid }) {
             break;
           }
         }
-      }
 
-      if (block.type === 'paragraph' && block.string === '^TOC') {
-        return <TableOfContents key={idx} toc={toc} />;
-      }
-
-      const html = renderBlock(block);
-      const { Component, html: strippedHtml } = stripOuterComponent(html);
-
-      if (block.type === 'heading') {
-        const id = slug(block.string);
-        return (
-          <Component key={idx} id={id}>
-            <a
-              href={'#' + id}
-              dangerouslySetInnerHTML={{ __html: strippedHtml }}
-            />
-          </Component>
-        );
-      }
-
-      if (live) {
         const anchor = <a id={`block-${block.uuid}`} />;
 
-        if (block.meta.show) {
+        if (shouldRenderCode) {
+          const html = renderBlock(block);
+          const { Component, html: strippedHtml } = stripOuterComponent(html);
+
           return (
             <>
               {anchor}
@@ -216,6 +216,29 @@ export function Blocks({ blocks, toc, pageid }) {
             </>
           );
         }
+      }
+
+      if (block.type === 'paragraph' && block.string === '^TOC') {
+        return <TableOfContents key={idx} pageid={pageid} toc={toc} />;
+      }
+
+      if (!shouldShowBlock) {
+        return null;
+      }
+
+      const html = renderBlock(block);
+      const { Component, html: strippedHtml } = stripOuterComponent(html);
+
+      if (block.type === 'heading') {
+        const id = slug(block.string);
+        return (
+          <Component key={idx} id={id}>
+            <a
+              href={'#' + id}
+              dangerouslySetInnerHTML={{ __html: strippedHtml }}
+            />
+          </Component>
+        );
       }
 
       return (

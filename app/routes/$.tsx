@@ -8,7 +8,11 @@ import { Layout } from '../layout';
 export async function loader({ params }) {
   let pageUrl = params['*'];
 
-  let conn = db.load(pageUrl);
+  let [name, sectionName] = pageUrl.includes('/')
+    ? pageUrl.split('/')
+    : [pageUrl, null];
+
+  let conn = db.load(name);
   if (conn == null) {
     throw new Response('Page not found', { status: 404 });
   }
@@ -21,6 +25,7 @@ export async function loader({ params }) {
 
   return {
     page,
+    sectionName,
     blocks: getBlocks(conn),
     toc,
   };
@@ -80,7 +85,7 @@ function PageProps({ page }) {
 }
 
 export default function RenderPage(props) {
-  let { page, blocks, toc } = useLoaderData();
+  let { page, sectionName, blocks, toc } = useLoaderData();
 
   return (
     <Layout name="page" className={toc ? ' has-toc' : ''}>
@@ -90,9 +95,17 @@ export default function RenderPage(props) {
           {page.subtitle && <h2>{page.subtitle}</h2>}
         </div>
         <PageProps page={page} />
-        <Blocks blocks={blocks} toc={toc} pageid={page.url} />
+        {/* render it here */}
+        THIS IS A SECTION
+        <Blocks
+          blocks={blocks}
+          toc={toc}
+          pageid={page.url}
+          sectionName={sectionName}
+        />
       </main>
       <script src="/code-look.js" />
+      <script src="/enhance-links.js" />
     </Layout>
   );
 }
