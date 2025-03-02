@@ -42,12 +42,15 @@ function Footer() {
   );
 }
 
-export function Layout({ name, children, className }) {
+export function Layout({ name, children, className, sidebar }) {
   return (
     <div className={'site-content ' + (name || '') + ' ' + className}>
-      <Header />
-      {children}
-      <Footer />
+      {sidebar}
+      <div className="site-content-inner">
+        <Header />
+        {children}
+        <Footer />
+      </div>
     </div>
   );
 }

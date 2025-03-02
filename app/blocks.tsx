@@ -22,7 +22,7 @@ function stripOuterComponent(html) {
   };
 }
 
-function TableOfContents({ pageid, toc }) {
+export function TableOfContents({ pageid, toc }) {
   return (
     <div className="toc" id="toc">
       {toc.map(h => {
@@ -43,7 +43,7 @@ function TableOfContents({ pageid, toc }) {
   );
 }
 
-export function Blocks({ blocks, toc, pageid, sectionName }) {
+export function Blocks({ blocks, pageid, sectionName }) {
   let currentSectionName;
 
   return blocks
@@ -216,10 +216,6 @@ export function Blocks({ blocks, toc, pageid, sectionName }) {
             </>
           );
         }
-      }
-
-      if (block.type === 'paragraph' && block.string === '^TOC') {
-        return <TableOfContents key={idx} pageid={pageid} toc={toc} />;
       }
 
       if (!shouldShowBlock) {

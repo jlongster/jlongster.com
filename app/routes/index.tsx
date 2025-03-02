@@ -69,7 +69,7 @@ export default function Index() {
 
       {featured.length > 0 && <Featured pages={featured} />}
       <div className="reading-list">
-        <h3>Also worth reading</h3>
+        <h3>All posts</h3>
         <PageList pages={sketches} />
       </div>
       <script type="module" src="/index-demo.js" />

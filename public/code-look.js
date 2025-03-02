@@ -1,5 +1,14 @@
 const codeBlockCache = new Map();
 
+function getPageId() {
+  const m = window.location.pathname.match(/\/([^/]*)\/?/);
+  if (m == null) {
+    throw new Error('Invalid location: ' + window.location.pathname);
+  }
+  console.log(m);
+  return m[1];
+}
+
 class InspectorDialog extends HTMLElement {
   constructor() {
     super();
@@ -38,7 +47,7 @@ class InspectorDialog extends HTMLElement {
     edit.className = 'edit';
     edit.innerHTML = 'edit';
     edit.addEventListener('click', () => {
-      const pageid = window.location.pathname.slice(1);
+      const pageid = getPageId();
       const primaryBlock = this.codeBlocks[0];
       this.close();
       window.open(`/code-look/html/${pageid}/${primaryBlock.uuid}`, '_blank');
@@ -186,7 +195,7 @@ class InspectCode extends HTMLElement {
 
       let codeBlocks = codeBlockCache.get(uuid);
       if (!codeBlocks) {
-        const pageid = window.location.pathname.slice(1);
+        const pageid = getPageId();
         const res = await fetch(`/code-look/source/${pageid}/${uuid}`);
         const json = await res.json();
         // Render code blocks bottom up

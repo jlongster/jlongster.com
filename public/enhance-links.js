@@ -1,3 +1,5 @@
+/* alt-clicking headers to focus them */
+
 for (let link of document.querySelectorAll('h2 a')) {
   const href = link.getAttribute('href');
   if (href.startsWith('#')) {

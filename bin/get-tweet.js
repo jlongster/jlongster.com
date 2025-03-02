@@ -26,7 +26,7 @@ async function getTweetThread(tweetId) {
     const authorId = tweet.author_id;
     const conversationId = tweet.conversation_id;
 
-    console.log(`Original Tweet: ${tweet.text}\n`);
+    console.log(JSON.stringify(tweet));
 
     // Get all tweets in the same conversation
     const threadResponse = await fetch(
@@ -54,7 +54,7 @@ async function getTweetThread(tweetId) {
 
     console.log(`Thread:\n`);
     threadTweets.forEach(tweet => {
-      console.log(`${tweet.text}\n`);
+      console.log(JSON.stringify(tweet));
     });
   } catch (error) {
     console.error('Error fetching tweet thread:', error.message);

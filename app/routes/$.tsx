@@ -2,7 +2,7 @@ import { useLoaderData } from '@remix-run/react';
 import * as db from '../db';
 import { getPage, getBlocks, getTableOfContents } from '../db/queries';
 import { formatDate } from '../page';
-import { Blocks } from '../blocks';
+import { Blocks, TableOfContents } from '../blocks';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
@@ -84,28 +84,74 @@ function PageProps({ page }) {
   );
 }
 
+function FilteredSectionNotification({ title, url, sectionName, position }) {
+  return (
+    <>
+      {position === 'bottom' && (
+        <div className="filtered-section-dots">
+          <div>&middot;</div>
+          <div>&middot;</div>
+          <div>&middot;</div>
+        </div>
+      )}
+      <div className="filtered-section-notification">
+        You are viewing a filtered version of a post. This is a single section
+        pulled from <a href={`/${url}`}>{title}</a> intended to focus on this
+        specific content. You can{' '}
+        <a href={`/${url}#${sectionName}`}>
+          view this section in the context of the full article
+        </a>{' '}
+        if you'd like.
+      </div>
+      {position === 'top' && (
+        <div className="filtered-section-dots">
+          <div>&middot;</div>
+          <div>&middot;</div>
+          <div>&middot;</div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function RenderPage(props) {
   let { page, sectionName, blocks, toc } = useLoaderData();
 
   return (
-    <Layout name="page" className={toc ? ' has-toc' : ''}>
+    <Layout
+      name="page"
+      sidebar={toc ? <TableOfContents toc={toc} pageid={page.url} /> : null}
+    >
       <main className="page-content">
         <div className="title">
           <h1>{page.title}</h1>
           {page.subtitle && <h2>{page.subtitle}</h2>}
         </div>
         <PageProps page={page} />
-        {/* render it here */}
-        THIS IS A SECTION
-        <Blocks
-          blocks={blocks}
-          toc={toc}
-          pageid={page.url}
-          sectionName={sectionName}
-        />
+
+        {sectionName && (
+          <FilteredSectionNotification
+            title={page.title}
+            sectionName={sectionName}
+            url={page.url}
+            position="top"
+          />
+        )}
+
+        <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
+
+        {sectionName && (
+          <FilteredSectionNotification
+            title={page.title}
+            sectionName={sectionName}
+            url={page.url}
+            position="bottom"
+          />
+        )}
       </main>
       <script src="/code-look.js" />
       <script src="/enhance-links.js" />
+      <script src="/toc.js" />
     </Layout>
   );
 }
