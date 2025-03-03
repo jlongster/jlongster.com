@@ -1,4 +1,4 @@
-
+import { EmbeddedTweet } from 'react-tweet';
 import { renderBlock } from './md/render';
 
 export function slug(str) {
@@ -31,7 +31,7 @@ export function TableOfContents({ pageid, toc }) {
           <div
             key={id}
             style={{ marginLeft: (h.meta.depth - 2) * 10, marginBottom: 5 }}
-            >
+          >
             {/* TOC may be rendered while the content is filtered, so
                 we must render a full link to ensure it navigates if
                 necessary */}
@@ -220,6 +220,11 @@ export function Blocks({ blocks, pageid, sectionName }) {
 
       if (!shouldShowBlock) {
         return null;
+      }
+
+      if (block.type === 'code' && block.meta.tweet) {
+        console.log(block.string)
+        return <EmbeddedTweet tweet={JSON.parse(block.string)} />;
       }
 
       const html = renderBlock(block);
