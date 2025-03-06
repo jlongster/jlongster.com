@@ -1,12 +1,24 @@
 import fs from 'fs';
+import { join } from 'path';
 import { verify } from '../auth/verify';
 import { parse } from '../md/parse.js';
+import { rootPath } from '../shared/util';
 import { write } from '../db';
 import { broadcast } from './_refresh-event';
 
-const publicKey = fs.readFileSync(__dirname + '/../public-key.key', 'utf8');
+const publicKey = fs.readFileSync(join(rootPath(), 'public-key.key'), 'utf8');
 
-export function loader() {
+// This shows the log:
+// curl -X GET http://localhost/_upload
+//
+// No log:
+// curl -X GET http://localhost/_upload
+//
+// curl > remix
+
+export function loader({ request }) {
+  console.log('Loader called with method:', request.method);
+
   return new Response('', {
     status: 200,
     headers: {
@@ -40,19 +52,25 @@ function errorResponse(msg, code = 400) {
   let headers = new Headers();
   headers.set('Access-Control-Allow-Origin', '*');
 
-  return new Response('url is invalid', { status: code, headers });
+  return new Response(msg, { status: code, headers });
 }
 
 export async function action({ request }) {
-  if (request.method !== 'POST') {
+  console.log('jwl', request.method);
+  if (request.method === 'OPTIONS') {
+    let headers = new Headers();
+    headers.set('Access-Control-Allow-Origin', '*');
+    return new Response('', { status: 200, headers });
+  } else if (request.method !== 'POST') {
     return null;
   }
 
   // Get the data and verify it
   let data = await request.text();
+  console.log('jwl', JSON.stringify(data));
   let signature = request.headers.get('X-JLONGSTER-SIGN');
 
-  if (!verify(data, signature, publicKey)) {
+  if (data === '' || !verify(data, signature, publicKey)) {
     return errorResponse('signature check failed', 401);
   }
 

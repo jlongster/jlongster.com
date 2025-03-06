@@ -1,74 +1,73 @@
-const fs = require('fs');
+const SYNDICATION_URL = 'https://cdn.syndication.twimg.com';
+const TWEET_ID = /^[0-9]+$/;
 
-// Your Twitter Bearer Token
-// const BEARER_TOKEN =
-//   'AAAAAAAAAAAAAAAAAAAAABk1cwAAAAAAzPofiORQ8qX48R6D9JgdQGEvp6E%3D7H2oDjXX8nD8hnOZauaDnvon7bxVKga6LRlU5qZpSM1gyUJrNe';
+function getToken(id) {
+  return ((Number(id) / 1e15) * Math.PI)
+    .toString(6 ** 2)
+    .replace(/(0+|\.)/g, '');
+}
 
-// // Function to get tweet thread
-// async function getTweetThread(tweetId) {
-//   try {
-//     // Get the main tweet and its conversation id
-//     const tweetResponse = await fetch(
-//       `https://api.twitter.com/2/tweets/${tweetId}?tweet.fields=conversation_id,author_id,created_at&expansions=author_id`,
-//       {
-//         method: 'GET',
-//         headers: {
-//           Authorization: `Bearer ${BEARER_TOKEN}`,
-//           'Content-Type': 'application/json',
-//         },
-//       },
-//     );
+export async function fetchTweet(id, fetchOptions) {
+  var _res_headers_get;
+  if (id.length > 40 || !TWEET_ID.test(id)) {
+    throw new Error(`Invalid tweet id: ${id}`);
+  }
+  const url = new URL(`${SYNDICATION_URL}/tweet-result`);
+  url.searchParams.set('id', id);
+  url.searchParams.set('lang', 'en');
+  url.searchParams.set(
+    'features',
+    [
+      'tfw_timeline_list:',
+      'tfw_follower_count_sunset:true',
+      'tfw_tweet_edit_backend:on',
+      'tfw_refsrc_session:on',
+      'tfw_fosnr_soft_interventions_enabled:on',
+      'tfw_show_birdwatch_pivots_enabled:on',
+      'tfw_show_business_verified_badge:on',
+      'tfw_duplicate_scribes_to_settings:on',
+      'tfw_use_profile_image_shape_enabled:on',
+      'tfw_show_blue_verified_badge:on',
+      'tfw_legacy_timeline_sunset:true',
+      'tfw_show_gov_verified_badge:on',
+      'tfw_show_business_affiliate_badge:on',
+      'tfw_tweet_edit_frontend:on',
+    ].join(';'),
+  );
+  url.searchParams.set('token', getToken(id));
 
-//     if (!tweetResponse.ok) {
-//       throw new Error(`Failed to fetch tweet: ${tweetResponse.statusText}`);
-//     }
+  const res = await fetch(url.toString(), fetchOptions);
 
-//     const tweetData = await tweetResponse.json();
-//     const tweet = tweetData.data;
-//     const authorId = tweet.author_id;
-//     const conversationId = tweet.conversation_id;
+  const isJson =
+    (_res_headers_get = res.headers.get('content-type')) == null
+      ? void 0
+      : _res_headers_get.includes('application/json');
 
-//     console.log(JSON.stringify(tweet));
+  const data = isJson ? await res.json() : undefined;
 
-//     // Get all tweets in the same conversation
-//     const threadResponse = await fetch(
-//       `https://api.twitter.com/2/tweets/search/recent?query=conversation_id:${conversationId} from:${authorId}&tweet.fields=created_at&max_results=100`,
-//       {
-//         method: 'GET',
-//         headers: {
-//           Authorization: `Bearer ${BEARER_TOKEN}`,
-//           'Content-Type': 'application/json',
-//         },
-//       },
-//     );
+  if (res.ok) {
+    return data?.__typename === 'TweetTombstone'
+      ? { tombstone: true }
+      : { data };
+  }
 
-//     if (!threadResponse.ok) {
-//       throw new Error(`Failed to fetch thread: ${threadResponse.statusText}`);
-//     }
+  if (res.status === 404) {
+    return {
+      notFound: true,
+    };
+  }
 
-//     const threadData = await threadResponse.json();
-//     console.log(JSON.stringify(threadData));
-
-//     const threadTweets = threadData.data;
-
-//     // Sort tweets by creation time
-//     threadTweets.sort(
-//       (a, b) => new Date(a.created_at) - new Date(b.created_at),
-//     );
-
-//     console.log(`Thread:\n`);
-//     threadTweets.forEach(tweet => {
-//       console.log(JSON.stringify(tweet));
-//     });
-//   } catch (error) {
-//     console.error('Error fetching tweet thread:', error.message);
-//   }
-// }
+  throw new Error({
+    message:
+      typeof data.error === 'string'
+        ? data.error
+        : `Failed to fetch tweet at "${url}" with "${res.status}".`,
+    status: res.status,
+    data,
+  });
+}
 
 async function run() {
-  const { getTweet } = await import('react-tweet/api');
-
-  // // Get the tweet ID from command line argument
   const tweetId = process.argv[2];
   if (!tweetId) {
     console.error('Please provide a tweet ID.');
@@ -78,7 +77,7 @@ async function run() {
   // Fetch and display the tweet thread
   // getTweetThread(tweetId);
 
-  getTweet(tweetId).then(t => {
+  fetchTweet(tweetId).then(t => {
     console.log(JSON.stringify(t));
   });
 }

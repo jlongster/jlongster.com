@@ -1,17 +1,19 @@
 {
   "private": true,
   "sideEffects": false,
+  "type": "module",
   "scripts": {
-    "build": "remix build",
-    "dev": "remix dev",
-    "start": "remix-serve build",
+    "build": "remix vite:build",
+    "dev": "remix vite:dev",
+    "start": "remix-serve ./build/server/index.js",
     "deploy": "yarn build && flyctl deploy"
   },
   "dependencies": {
-    "@remix-run/css-bundle": "^1.19.3",
-    "@remix-run/node": "^1.19.3",
-    "@remix-run/react": "^1.19.3",
-    "@remix-run/serve": "^1.19.3",
+    "@remix-run/node": "^2.16.0",
+    "@remix-run/react": "^2.16.0",
+    "@remix-run/serve": "^2.16.0",
+    "@remix-run/v1-route-convention": "^0.1.4",
+    "clsx": "^2.1.1",
     "csv": "^6.2.0",
     "datascript": "1.7.2",
     "date-fns": "^2.29.1",
@@ -33,8 +35,8 @@
     "micromark-extension-gfm-autolink-literal": "^2.1.0",
     "micromark-extension-math": "^3.0.0",
     "mldoc": "^1.4.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "react-tweet": "^3.2.2",
     "rehype-stringify": "^10.0.0",
     "remark-parse": "^11.0.0",
@@ -44,12 +46,13 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "@remix-run/dev": "^1.19.3",
-    "@remix-run/eslint-config": "^1.19.3",
+    "@remix-run/dev": "^2.16.0",
+    "@remix-run/eslint-config": "^2.16.0",
     "@types/react": "^17.0.47",
     "@types/react-dom": "^17.0.17",
     "eslint": "^8.20.0",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "vite": "^6.2.0"
   },
   "engines": {
     "node": ">=14"

@@ -23,46 +23,50 @@ window.addEventListener('hashchange', () => {
 
 const toc = document.querySelector('.toc');
 
-const observer = new IntersectionObserver(
-  ([entry]) => {
-    if (entry.intersectionRatio < 1) {
-      toc.style.overflow = 'hidden';
-      toc.scrollTop = 0;
-    } else {
-      // It's fully in view, make it scrollable
-      toc.style.overflow = 'auto';
-    }
-  },
-  { threshold: [1] },
-);
+if (toc) {
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.intersectionRatio < 1) {
+        toc.style.overflow = 'hidden';
+        toc.scrollTop = 0;
+      } else {
+        // It's fully in view, make it scrollable
+        toc.style.overflow = 'auto';
+      }
+    },
+    { threshold: [1] },
+  );
 
-observer.observe(toc);
+  observer.observe(toc);
+}
 
 /* move the TOC down to align with the page content */
 
-// assumes the `toc` variable exists
-const pageContent = document.querySelector('.page-content');
+if (toc) {
+  // assumes the `toc` variable exists
+  const pageContent = document.querySelector('.page-content');
 
-// Look 5 elements ahead
-let idx;
-for (let i = 0; i < 5; i++) {
-  let child = pageContent.childNodes[i];
-  if (
-    !(
-      child.nodeType === Node.TEXT_NODE ||
-      child.classList.contains('title') ||
-      child.classList.contains('properties')
-    )
-  ) {
-    idx = i;
-    break;
+  // Look 5 elements ahead
+  let idx;
+  for (let i = 0; i < 5; i++) {
+    let child = pageContent.childNodes[i];
+    if (
+      !(
+        child.nodeType === Node.TEXT_NODE ||
+        child.classList.contains('title') ||
+        child.classList.contains('properties')
+      )
+    ) {
+      idx = i;
+      break;
+    }
   }
-}
 
-if (idx) {
-  const el = pageContent.childNodes[idx];
-  const rect = el.getBoundingClientRect();
+  if (idx) {
+    const el = pageContent.childNodes[idx];
+    const rect = el.getBoundingClientRect();
 
-  toc.style.marginTop = rect.top - 5 + 'px';
-  toc.style.opacity = '1';
+    toc.style.marginTop = rect.top - 5 + 'px';
+    toc.style.opacity = '1';
+  }
 }

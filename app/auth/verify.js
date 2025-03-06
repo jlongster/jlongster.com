@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import * as crypto from 'crypto';
 
 export function verify(data, signature, publicKey) {
   let verifier = crypto.createVerify('sha256');

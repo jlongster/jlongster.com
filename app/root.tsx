@@ -6,12 +6,13 @@ import {
   Outlet,
   Scripts,
   useLocation,
+  useMatches,
 } from '@remix-run/react';
 import settings from './settings';
 
-import siteStyles from '~/css/site.css';
-import nightOwlStyles from '~/css/night-owl.css';
-import box3d from '~/css/box3d.css';
+import siteStyles from '~/css/site.css?url';
+import nightOwlStyles from '~/css/night-owl.css?url';
+import box3d from '~/css/box3d.css?url';
 
 export function links() {
   return [
@@ -25,14 +26,15 @@ export function links() {
   ];
 }
 
-export const meta: MetaFunction = () => ({
-  charset: 'utf-8',
-  title: settings.title,
-  viewport: 'width=device-width,initial-scale=1',
-});
+export const meta: MetaFunction = () => [
+  { charset: 'utf-8' },
+  { title: settings.title },
+  { viewport: 'width=device-width,initial-scale=1' },
+];
 
 export default function App() {
   const location = useLocation();
+  const matches = useMatches();
 
   return (
     <html lang="en">
@@ -49,7 +51,6 @@ export default function App() {
       </head>
       <body>
         <Outlet />
-        <LiveReload />
         {location.pathname.startsWith('/interactive') && <Scripts />}
 
         {typeof process !== 'undefined' && process.env !== 'development' && (

@@ -31,7 +31,11 @@ export async function loader({ params }) {
   };
 }
 
-export function meta({ data }) {
+export function meta({ matches, data }) {
+  const parentMeta = matches
+    .flatMap(match => match.meta || [])
+    .filter(m => m.title == null);
+
   let { page, blocks } = data;
   let contentIndex = 0;
 
@@ -45,14 +49,17 @@ export function meta({ data }) {
 
   let imgUrl = page['featured-image'];
 
-  return {
-    title: page.title,
-    'twitter:card': imgUrl ? 'summary_large_image' : 'summary',
-    ...(imgUrl ? { 'og:image': imgUrl } : null),
-    'og:title': page.title,
-    'og:description':
-      contentIndex < blocks.length ? blocks[contentIndex].string : '',
-  };
+  return [
+    ...parentMeta,
+    { title: page.title },
+    { 'twitter:card': imgUrl ? 'summary_large_image' : 'summary' },
+    imgUrl ? { 'og:image': imgUrl } : null,
+    { 'og:title': page.title },
+    {
+      'og:description':
+        contentIndex < blocks.length ? blocks[contentIndex].string : '',
+    },
+  ];
 }
 
 function PageProps({ page }) {
@@ -152,6 +159,7 @@ export default function RenderPage(props) {
       <script src="/code-look.js" />
       <script src="/enhance-links.js" />
       <script src="/toc.js" />
+      <script src="/tweet.js" />
     </Layout>
   );
 }

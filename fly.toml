@@ -14,6 +14,10 @@ processes = []
   source="jlongstercom_data"
   destination="/data"
 
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "512mb"
+
 [[services]]
   http_checks = []
   internal_port = 3000

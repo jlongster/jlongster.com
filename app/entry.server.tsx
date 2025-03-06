@@ -1,10 +1,12 @@
 import fs from 'fs';
+import { join } from 'path';
 import type { EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToString } from 'react-dom/server';
 import { parse } from 'csv/sync';
+import { rootPath } from './shared/util';
 
-let redirectData = parse(fs.readFileSync(__dirname + '/../data/redirects'));
+let redirectData = parse(fs.readFileSync(join(rootPath(), 'data/redirects')));
 let redirects = Object.fromEntries(redirectData);
 
 export default function handleRequest(

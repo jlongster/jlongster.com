@@ -1,4 +1,4 @@
-import { EmbeddedTweet } from 'react-tweet';
+import { EmbeddedTweet } from './tweets/embedded-tweet';
 import { renderBlock } from './md/render';
 
 export function slug(str) {
@@ -223,8 +223,12 @@ export function Blocks({ blocks, pageid, sectionName }) {
       }
 
       if (block.type === 'code' && block.meta.tweet) {
-        console.log(block.string)
-        return <EmbeddedTweet tweet={JSON.parse(block.string)} />;
+        return (
+          <EmbeddedTweet
+            tweet={JSON.parse(block.string)}
+            connect={block.meta.connect}
+          />
+        );
       }
 
       const html = renderBlock(block);
