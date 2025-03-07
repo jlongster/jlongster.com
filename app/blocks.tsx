@@ -57,7 +57,7 @@ export function Blocks({ blocks, pageid, sectionName }) {
         sectionName == null || currentSectionName === sectionName;
 
       if (
-        block.string.trim() === '' ||
+        block.md.trim() === '' ||
         (block.type === 'code' && block.meta.lang === 'comment')
       ) {
         return null;
