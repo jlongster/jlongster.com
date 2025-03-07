@@ -57,8 +57,11 @@ export function Blocks({ blocks, pageid, sectionName }) {
         sectionName == null || currentSectionName === sectionName;
 
       if (
-        block.md.trim() === '' ||
-        (block.type === 'code' && block.meta.lang === 'comment')
+        // TODO: This is a quick fix to make images render, need to
+        // fix this
+        !block.md.startsWith('![') &&
+        (block.string.trim() === '' ||
+          (block.type === 'code' && block.meta.lang === 'comment'))
       ) {
         return null;
       }
