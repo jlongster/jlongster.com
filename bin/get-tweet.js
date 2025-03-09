@@ -1,5 +1,17 @@
+import { spawn } from 'child_process';
+
+// Your Twitter Bearer Token
+const BEARER_TOKEN =
+  'AAAAAAAAAAAAAAAAAAAAABk1cwAAAAAAzPofiORQ8qX48R6D9JgdQGEvp6E%3D7H2oDjXX8nD8hnOZauaDnvon7bxVKga6LRlU5qZpSM1gyUJrNe';
+
 const SYNDICATION_URL = 'https://cdn.syndication.twimg.com';
 const TWEET_ID = /^[0-9]+$/;
+
+function pbcopy(data) {
+  var proc = spawn('pbcopy');
+  proc.stdin.write(data);
+  proc.stdin.end();
+}
 
 function getToken(id) {
   return ((Number(id) / 1e15) * Math.PI)
@@ -7,7 +19,7 @@ function getToken(id) {
     .replace(/(0+|\.)/g, '');
 }
 
-export async function fetchTweet(id, fetchOptions) {
+export async function fetchTweet(id) {
   var _res_headers_get;
   if (id.length > 40 || !TWEET_ID.test(id)) {
     throw new Error(`Invalid tweet id: ${id}`);
@@ -36,7 +48,7 @@ export async function fetchTweet(id, fetchOptions) {
   );
   url.searchParams.set('token', getToken(id));
 
-  const res = await fetch(url.toString(), fetchOptions);
+  const res = await fetch(url.toString());
 
   const isJson =
     (_res_headers_get = res.headers.get('content-type')) == null
@@ -67,19 +79,100 @@ export async function fetchTweet(id, fetchOptions) {
   });
 }
 
-async function run() {
-  const tweetId = process.argv[2];
-  if (!tweetId) {
-    console.error('Please provide a tweet ID.');
-    process.exit(1);
+async function getThreadedIds(tweetId) {
+  const tweetResponse = await fetch(
+    `https://api.twitter.com/2/tweets/${tweetId}?tweet.fields=conversation_id,author_id,created_at&expansions=author_id`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${BEARER_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  if (!tweetResponse.ok) {
+    throw new Error(`Failed to fetch tweet: ${tweetResponse.statusText}`);
   }
 
-  // Fetch and display the tweet thread
-  // getTweetThread(tweetId);
+  const tweetData = await tweetResponse.json();
+  const tweet = tweetData.data;
+  const authorId = tweet.author_id;
+  const conversationId = tweet.conversation_id;
 
-  fetchTweet(tweetId).then(t => {
-    console.log(JSON.stringify(t));
-  });
+  // Get all tweets in the same conversation
+  const threadResponse = await fetch(
+    `https://api.twitter.com/2/tweets/search/recent?query=conversation_id:${conversationId} from:${authorId}&tweet.fields=author_id,created_at,conversation_id,referenced_tweets&max_results=100`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${BEARER_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  if (!threadResponse.ok) {
+    throw new Error(`Failed to fetch thread: ${threadResponse.statusText}`);
+  }
+
+  const threadData = await threadResponse.json();
+  const threadTweets = threadData.data;
+
+  // The first tweet should be the "root" and we want to pull all
+  // direct replies afterwards. (tweets are already filtered by author
+  // so this will pull in only the tweet thread and no replies from
+  // other people)
+  let tweets = [tweet.id];
+  while (1) {
+    const lastTweetId = tweets[tweets.length - 1];
+    const reply = threadTweets.find(t =>
+      t.referenced_tweets.find(
+        t => t.type === 'replied_to' && t.id === lastTweetId,
+      ),
+    );
+    if (reply == null) {
+      break;
+    } else {
+      tweets.push(reply.id);
+    }
+  }
+
+  return tweets;
+}
+
+// Get the tweet ID from command line argument
+const tweetId = process.argv[2];
+if (!tweetId) {
+  console.error('Please provide a tweet ID.');
+  process.exit(1);
+}
+
+function tweetToString(tweet, connect) {
+  return (
+    '```json tweet' +
+    (connect ? ' connect' : '') +
+    '\n' +
+    JSON.stringify(tweet) +
+    '\n```'
+  );
+}
+
+async function run() {
+  // Fetch and display the tweet thread
+  const ids = await getThreadedIds(tweetId);
+
+  let str = '';
+  for (let id of ids) {
+    const tweet = (await fetchTweet(id)).data;
+    if (str !== '') {
+      str += '\n\n';
+    }
+    str += tweetToString(tweet, str !== '');
+  }
+  pbcopy(str);
+
+  console.log('Tweet data copied to clipboard');
 }
 
 run();

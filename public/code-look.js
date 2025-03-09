@@ -217,3 +217,16 @@ class InspectCode extends HTMLElement {
 
 customElements.define('inspector-dialog', InspectorDialog);
 customElements.define('inspect-code', InspectCode);
+
+document.addEventListener('mousemove', e => {
+  const cursor = document.querySelector('.cursor');
+  const follower = document.querySelector('.cursor-follower');
+
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+
+  setTimeout(() => {
+    follower.style.left = e.clientX + 'px';
+    follower.style.top = e.clientY + 'px';
+  }, 50);
+});

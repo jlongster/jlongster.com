@@ -45,19 +45,12 @@ export default function Index() {
 
       <div className="hero">
         <div className="description">
-          <p>
-            I like to experiment with technology and art. I write about
-            compilers, color theory, and much more. My past: created{' '}
-            <a href="https://prettier.io">prettier</a>, made databases work on
-            the web with{' '}
-            <a href="https://jlongster.com/future-sql-web">absurd-sql</a>, and
-            more. Currently at <a href="https://stripe.com">Stripe</a>.
-          </p>
-          <p>
-            -{' '}
-            <a target="_blank" href="https://twitter.com/jlongster">
-              James
-            </a>
+          <p class="bio">
+            Building at the intersection of code and creativity. Exploring
+            compilers, graphics, and interactive experiences. Staff Engineer at
+            Stripe, creator of <a href="https://prettier.io">Prettier</a>, made
+            databases work on the web with{' '}
+            <a href="https://jlongster.com/future-sql-web">absurd-sql</a>.
           </p>
           <p style={{ fontStyle: 'italic' }}>
             P.S. I have a{' '}

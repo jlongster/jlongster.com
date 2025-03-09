@@ -37,12 +37,6 @@
   --tweet-replies-font-weight: 700;
 }
 
-:where(.react-tweet-theme) * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 :is([data-theme='light'], .light) :where(.react-tweet-theme),
 :where(.react-tweet-theme) {
   --tweet-skeleton-gradient: linear-gradient(
