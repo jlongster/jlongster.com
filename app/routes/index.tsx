@@ -4,23 +4,22 @@ import { PageList, formatDate } from '../page';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
-  let sketches = getPages();
-  let featured = sketches.filter(page => !!page['featured-image']).slice(0, 3);
-  return { sketches, featured };
+  let pages = getPages();
+  return { pages };
 }
 
-function Featured({ pages }) {
+function PageGrid({ pages }) {
   return (
-    <div className={'featured-list ' + (pages.length > 2 ? 'breakout' : '')}>
+    <div className="posts-grid">
       {pages.map(page => {
         const imgUrl = page['featured-image'];
 
         return (
-          <a key={page.uuid} href={`/${page.url}`} className="featured-item">
+          <a key={page.uuid} href={`/${page.url}`} className="post-item">
             {imgUrl && <img src={imgUrl} alt="" />}
-            <div className="featured-title">{page.title}</div>
+            <div className="post-title">{page.title}</div>
             {page.subtitle && (
-              <div className="featured-subtitle">{page.subtitle}</div>
+              <div className="post-subtitle">{page.subtitle}</div>
             )}
 
             <div className="date">{formatDate(page.date)}</div>
@@ -32,7 +31,9 @@ function Featured({ pages }) {
 }
 
 export default function Index() {
-  let { sketches, featured } = useLoaderData();
+  let { pages } = useLoaderData();
+  const latestPages = pages.slice(0, 6);
+
   return (
     <Layout name="home">
       <div className="bleed">
@@ -60,10 +61,10 @@ export default function Index() {
         </div>
       </div>
 
-      {featured.length > 0 && <Featured pages={featured} />}
+      {latestPages.length > 0 && <PageGrid pages={latestPages} />}
       <div className="reading-list">
         <h3>All posts</h3>
-        <PageList pages={sketches} />
+        <PageList pages={pages} />
       </div>
       <script type="module" src="/index-demo.js" />
     </Layout>
