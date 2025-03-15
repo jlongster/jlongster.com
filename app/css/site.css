@@ -45,11 +45,12 @@
 
   scroll-padding-top: 25px;
 
-  --bg-base: #efedf5;
+  --bg-base: #f4efe7;
   --text-primary: #111111;
   --accent-glitch: #ff2066;
   --accent-digital: #00f0ff;
-  --grid-lines: rgba(0, 0, 0, 0.07);
+  --grid-lines: rgba(0, 0, 0, 0.04);
+  --noise-opacity: 0.4;
 }
 
 @media (max-width: 1150px) {
@@ -85,12 +86,13 @@ body {
    */
   -webkit-text-size-adjust: 100%;
 
-  /* Add diagonal grid pattern */
+  /* Update background with stronger noise + existing grid */
   background-image: 
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.4' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.25'/%3E%3C/svg%3E"),
     linear-gradient(45deg, var(--grid-lines) 1px, transparent 1px),
     linear-gradient(-45deg, var(--grid-lines) 1px, transparent 1px);
-  background-size: 50px 50px;
-  background-position: center;
+  background-size: 100px 100px, 40px 40px, 40px 40px;
+  background-position: 0 0, center, center;
 }
 
 a:link {
@@ -112,7 +114,25 @@ h1 {
   line-height: .95em;
   margin-top: 1em;
   margin-bottom: .5em;
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 0.9;
+  transform: skew(-5deg);
+  margin: 2rem -1rem;
+  padding: 30px;
+  border: 3px solid black;
+  position: relative;
+  background: transparent;
+  clip-path: polygon(
+    0 0, 
+    100% 0, 
+    98% 95%, 
+    95% 100%, 
+    0 98%
+  );
 }
+
+
 h2 {
   letter-spacing: 0;
   line-height: 1em;
@@ -175,6 +195,8 @@ pre, pre code {
   grid-template-rows: repeat(2, auto);
   gap: 40px;
   margin-top: 100px;
+  margin-left: -100px;
+  margin-right: -100px;
 }
 
 .post-item {
@@ -188,9 +210,9 @@ pre, pre code {
 .post-item img {
   object-fit: cover;
   border-radius: 6px;
-  border: 1px solid #f0f0f0;
-  height: 220px;
+  height: 200px;
   width: 100%;
+  border: 1px solid #e4dfd7;
 }
 
 a.post-item {
@@ -968,19 +990,3 @@ inspect-code:hover .inspect-code-actions .open-external {
   animation-direction: alternate;
 }
 
-h1 {
-  font-size: 5rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  line-height: 0.9;
-  letter-spacing: -0.02em;
-  margin: 2rem 0;
-  transform: skew(-5deg);
-  position: relative;
-  padding: 2rem;
-  background: white;
-  border: 3px solid var(--text-primary);
-  box-shadow: 
-    8px 8px 0 var(--accent-glitch),
-    -8px -8px 0 var(--accent-digital);
-}
