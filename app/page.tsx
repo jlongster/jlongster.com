@@ -16,6 +16,37 @@ export function PageList({ pages }) {
   );
 }
 
+export function EnhancedPageList({ pages }) {
+  return (
+    <div className="enhanced-page-list">
+      {pages.map(page => {
+        const imgUrl = page['featured-image'];
+
+        return (
+          <a
+            key={page.uuid}
+            href={`/${page.url}`}
+            className="enhanced-list-item"
+          >
+            <div className="enhanced-list-content">
+              <div className="enhanced-list-title">{page.title}</div>
+              {page.subtitle && (
+                <div className="enhanced-list-subtitle">{page.subtitle}</div>
+              )}
+              <div className="enhanced-list-date">{formatDate(page.date)}</div>
+            </div>
+            {imgUrl && (
+              <div className="enhanced-list-image">
+                <img src={imgUrl} alt="" />
+              </div>
+            )}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 export function formatDate(date) {
   return dfnsFormat(
     // Adding 12 hours is a quick fix for timezone issues; we want to

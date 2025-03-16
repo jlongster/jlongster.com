@@ -1,11 +1,16 @@
+import React from 'react';
 import { useLoaderData } from '@remix-run/react';
 import { getPages } from '../db/queries';
-import { PageList, formatDate } from '../page';
+import * as db from '../db';
+import { getBlocks } from '../db/queries';
+import { EnhancedPageList, formatDate } from '../page';
+import { Blocks } from '../blocks';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
   let pages = getPages();
-  return { pages };
+  let conn = db.load('studying');
+  return { pages, studyingBlocks: getBlocks(conn) };
 }
 
 function PageGrid({ pages }) {
@@ -31,7 +36,7 @@ function PageGrid({ pages }) {
 }
 
 export default function Index() {
-  let { pages } = useLoaderData();
+  let { pages, studyingBlocks } = useLoaderData();
   const latestPages = pages.slice(0, 6);
 
   return (
@@ -42,11 +47,11 @@ export default function Index() {
         </div>
       </div>
 
-      <h1>This is my sketchbook.</h1>
-
       <div className="hero">
+        <h1>This is my sketchbook.</h1>
+
         <div className="description">
-          <p class="bio">
+          <p className="bio">
             Building at the intersection of code and creativity. Exploring
             compilers, graphics, and interactive experiences. Staff Engineer at
             Stripe, creator of <a href="https://prettier.io">Prettier</a>, made
@@ -62,9 +67,20 @@ export default function Index() {
       </div>
 
       {latestPages.length > 0 && <PageGrid pages={latestPages} />}
-      <div className="reading-list">
-        <h3>All posts</h3>
-        <PageList pages={pages} />
+      <div className="two-column">
+        <div className="reading-list">
+          <h3>More to read</h3>
+          <EnhancedPageList pages={pages} />
+          
+          <a className="view-all" href="/links">View all posts</a>
+        </div>
+
+        <div className="studying">
+          <h3>Things I'm studying</h3>
+          <div class="raw-list">
+            <Blocks blocks={studyingBlocks} />
+          </div>
+        </div>
       </div>
       <script type="module" src="/index-demo.js" />
     </Layout>
