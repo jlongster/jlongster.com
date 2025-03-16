@@ -116,7 +116,6 @@ h1 {
   margin-bottom: .5em;
   font-size: 4rem;
   font-weight: 900;
-  line-height: 0.9;
   transform: skew(-5deg);
   margin: 2rem -1rem;
   padding: 30px;
@@ -303,10 +302,11 @@ a.post-item:hover .post-title {
 
 .home h1 {
   margin-top: 60px;
-  background-color: white;
+  background: linear-gradient(160deg, rgba(255, 255, 240, .8), transparent);
   padding: 20px;
   width: fit-content;
   margin-left: -20px;
+  padding-top: 25px;
 }
 
 .home h1 a,
