@@ -583,7 +583,7 @@ inspect-code,
 }
 
 .runnable-code {
-  border: 3px solid #eaedfc;
+  border: 1px solid #e4dfd7;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -641,7 +641,7 @@ inspect-code,
 }
 
 .runnable-code .editor-actions button {
-  border: 3px solid #eaedfc;
+  border: 1px solid #e4dfd7;
   background-color: white;
   padding: 5px 9px;
   margin-left: 5px;
@@ -650,11 +650,11 @@ inspect-code,
 }
 
 .runnable-code .editor-actions button:hover {
-  background-color: #eaedfc;
+  box-shadow: 0 2px 5px #cfc9c0;
 }
 
 .runnable-code .editor-actions button:active {
-  background-color: #dadddc;
+  background-color: #e4dfd7;
 }
 
 .runnable-code .cm-editor {
@@ -677,7 +677,7 @@ inspect-code,
   right: 0;
   border: none;
   background-color: white;
-  border: 3px solid #eaedfc;
+  border: 1px solid #e4dfd7;
   margin: 0;
   color: #606060;
   font-size: 15px;
@@ -688,7 +688,7 @@ inspect-code,
 }
 
 .runnable-code .edit:hover {
-  box-shadow: 0 2px 5px var(--blue-5);
+  box-shadow: 0 2px 5px #cfc9c0;
   border-radius: 6px;
 }
 
@@ -703,8 +703,8 @@ inspect-code,
 
 .runnable-code inspect-code, .runnable-code .placeholder {
   padding: 20px;
-  background-color: #eaedfc;
-  border-radius: 0;
+  background-color: rgba(207, 201, 192, .4);
+  border-radius: 0 0 10px 10px;
   margin: 0;
 }
 
@@ -723,7 +723,7 @@ inspect-code,
 }
 
 .runnable-code-output {
-  background-color: #eaedfc;
+  background-color: rgba(207, 201, 192, .4);
 }
 
 .runnable-code.focused {
@@ -757,7 +757,7 @@ inspect-code {
   display: block;
   position: relative;
   padding: 20px;
-  background-color: #eaedfc;
+  background-color: rgba(207, 201, 192, .4);
   border-radius: 10px;
 }
 
@@ -768,7 +768,7 @@ inspect-code pre {
 inspect-code .view-source {
   border: none;
   background-color: white;
-  border: 1px solid #eaedfc;
+  border: 1px solid #e4dfd7;
   margin: 0;
   color: #606060;
   font-size: 15px;
@@ -779,12 +779,12 @@ inspect-code .view-source {
 }
 
 inspect-code .view-source:hover {
-  box-shadow: 0 2px 5px var(--blue-5);
+  box-shadow: 0 2px 5px #cfc9c0;
   border-radius: 6px;
 }
 
 inspect-code .view-source:active {
-  background-color: #eaedfc;
+  background-color: rgba(207, 201, 192, .4);
 }
 
 inspect-code:hover .inspect-code-actions .open-external {
