@@ -27,9 +27,9 @@ export function links() {
 }
 
 export const meta: MetaFunction = () => [
-  { viewport: 'width=device-width,initial-scale=1' },
   { charset: 'utf-8' },
   { title: settings.title },
+  { name: 'viewport', content: 'width=device-width, initial-scale=1' },
 ];
 
 export default function App() {
