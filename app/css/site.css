@@ -344,8 +344,8 @@ a.post-item:hover .post-title {
     margin: 0;
   }
 
-  .home .hero h1 {
-    margin-left: 30px;
+  .home .hero h1, .title h1  {
+    margin-left: 10px;
     margin-right: 30px;
     font-size: 50px;
   }
