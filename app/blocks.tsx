@@ -23,24 +23,20 @@ function stripOuterComponent(html) {
 }
 
 export function TableOfContents({ pageid, toc }) {
-  return (
-    <div className="toc" id="toc">
-      {toc.map(h => {
-        const id = slug(h.string);
-        return (
-          <div
-            key={id}
-            style={{ marginLeft: (h.meta.depth - 2) * 10, marginBottom: 5 }}
-          >
-            {/* TOC may be rendered while the content is filtered, so
+  return toc.map(h => {
+    const id = slug(h.string);
+    return (
+      <div
+        key={id}
+        style={{ marginLeft: (h.meta.depth - 2) * 10, marginBottom: 10 }}
+      >
+        {/* TOC may be rendered while the content is filtered, so
                 we must render a full link to ensure it navigates if
                 necessary */}
-            <a href={`/${pageid}#${id}`}>{h.string}</a>
-          </div>
-        );
-      })}
-    </div>
-  );
+        <a href={`/${pageid}#${id}`}>{h.string}</a>
+      </div>
+    );
+  });
 }
 
 export function Blocks({ blocks, pageid, sectionName }) {

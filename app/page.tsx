@@ -20,8 +20,6 @@ export function EnhancedPageList({ pages }) {
   return (
     <div className="enhanced-page-list">
       {pages.map(page => {
-        const imgUrl = page['featured-image'];
-
         return (
           <a
             key={page.uuid}
@@ -35,11 +33,6 @@ export function EnhancedPageList({ pages }) {
               )}
               <div className="enhanced-list-date">{formatDate(page.date)}</div>
             </div>
-            {imgUrl && (
-              <div className="enhanced-list-image">
-                <img src={imgUrl} alt="" />
-              </div>
-            )}
           </a>
         );
       })}

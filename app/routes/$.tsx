@@ -1,12 +1,25 @@
 import { useLoaderData } from '@remix-run/react';
 import * as db from '../db';
-import { getPage, getBlocks, getTableOfContents } from '../db/queries';
+import {
+  getPage,
+  getPages,
+  getBlocks,
+  getTableOfContents,
+} from '../db/queries';
 import { formatDate } from '../page';
 import { Blocks, TableOfContents } from '../blocks';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
-  let pageUrl = params['*'];
+  let pages = getPages();
+  let pageUrl = params['*'] || 'index';
+
+  const contentPages = pages.filter(
+    page => page.tags && page.tags.includes('content'),
+  );
+  const posts = pages.filter(
+    page => !page.tags || !page.tags.includes('content'),
+  );
 
   let [name, sectionName] = pageUrl.includes('/')
     ? pageUrl.split('/')
@@ -24,6 +37,8 @@ export async function loader({ params }) {
   }
 
   return {
+    contentPages,
+    posts,
     page,
     sectionName,
     blocks: getBlocks(conn),
@@ -52,12 +67,27 @@ export function meta({ matches, data }) {
   return [
     ...parentMeta,
     { title: page.title },
-    { 'twitter:card': imgUrl ? 'summary_large_image' : 'summary' },
-    imgUrl ? { 'og:image': imgUrl } : null,
-    { 'og:title': page.title },
     {
-      'og:description':
-        contentIndex < blocks.length ? blocks[contentIndex].string : '',
+      name: 'twitter:card',
+      content: imgUrl ? 'summary_large_image' : 'summary',
+    },
+    ...(imgUrl
+      ? [
+          { name: 'twitter:image', content: imgUrl },
+          { name: 'twitter:image:type', content: '' },
+        ]
+      : []),
+    { name: 'twitter:title', content: page.title },
+    {
+      name: 'twitter:description',
+      content: contentIndex < blocks.length ? blocks[contentIndex].string : '',
+    },
+
+    imgUrl ? { property: 'og:image', content: imgUrl } : null,
+    { property: 'og:title', content: page.title },
+    {
+      property: 'og:description',
+      content: contentIndex < blocks.length ? blocks[contentIndex].string : '',
     },
   ];
 }
@@ -121,45 +151,84 @@ function FilteredSectionNotification({ title, url, sectionName, position }) {
   );
 }
 
+function PageList({ pages, className, showDate = true }) {
+  return (
+    <div className={'page-list ' + className}>
+      {pages.map(page => (
+        <a href={'/' + page.url} className="page-list-item">
+          <div>{page.title}</div>
+          {showDate && (
+            <div style={{ fontSize: 13, color: '#a0a0a0' }}>
+              {formatDate(page.date)}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function SectionTitle({ children }) {
+  return <div className="page-list-section">{children}</div>;
+}
+
 export default function RenderPage(props) {
-  let { page, sectionName, blocks, toc } = useLoaderData();
+  let { contentPages, posts, page, sectionName, blocks, toc } = useLoaderData();
 
   return (
-    <Layout
-      name="page"
-      sidebar={toc ? <TableOfContents toc={toc} pageid={page.url} /> : null}
-    >
-      <main className="page-content">
-        <div className="title">
-          <h1>{page.title}</h1>
-          {page.subtitle && <h2>{page.subtitle}</h2>}
-        </div>
-        <PageProps page={page} />
+    <div className="site-content">
+      <div className="site-content-left">
+        <PageList className="content" pages={contentPages} showDate={false} />
 
-        {sectionName && (
-          <FilteredSectionNotification
-            title={page.title}
-            sectionName={sectionName}
-            url={page.url}
-            position="top"
-          />
+        {toc ? (
+          <div >
+            <div class="toc">
+              <SectionTitle>Table of contents</SectionTitle>
+              <TableOfContents toc={toc} pageid={page.url} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <SectionTitle>Recent posts</SectionTitle>
+            <PageList pages={posts} />
+          </>
         )}
+      </div>
 
-        <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
+      <div className="site-content-main">
+        <main className="page-content">
+          <div className="title">
+            <h1>{page.title}</h1>
+            {page.subtitle && <h2>{page.subtitle}</h2>}
+          </div>
+          <PageProps page={page} />
 
-        {sectionName && (
-          <FilteredSectionNotification
-            title={page.title}
-            sectionName={sectionName}
-            url={page.url}
-            position="bottom"
-          />
-        )}
-      </main>
+          {sectionName && (
+            <FilteredSectionNotification
+              title={page.title}
+              sectionName={sectionName}
+              url={page.url}
+              position="top"
+            />
+          )}
+
+          <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
+
+          {sectionName && (
+            <FilteredSectionNotification
+              title={page.title}
+              sectionName={sectionName}
+              url={page.url}
+              position="bottom"
+            />
+          )}
+        </main>
+      </div>
+
       <script src="/code-look.js" />
       <script src="/enhance-links.js" />
       <script src="/toc.js" />
       <script src="/tweet.js" />
-    </Layout>
+    </div>
   );
 }

@@ -1,0 +1,358 @@
+/* code */
+
+.code-blocks {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.runnable-code {
+  border: 1px solid #e4dfd7;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.page .runnable-code {
+  margin-left: 0;
+  margin-right: 0;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+@media (min-width: 801px) {
+  .runnable-code {
+    flex-direction: row;
+  }
+}
+
+.runnable-code > * {
+  min-width: 0;
+  flex: 1;
+}
+
+.runnable-code .runnable-code-source,
+.runnable-code .editor {
+  flex: 1.25;
+}
+
+.runnable-code .runnable-code-source,
+.runnable-code .editor,
+.runnable-code .editor-instance {
+  display: flex;
+}
+
+.runnable-code .runnable-code-source {
+  overflow: auto;
+}
+
+.runnable-code .editor {
+  flex-direction: column;
+}
+
+.runnable-code .editor-instance {
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  padding: 10px;
+  padding-bottom: 0;
+}
+
+.runnable-code .editor-actions {
+  flex: 0;
+  padding: 8px;
+}
+
+.runnable-code .editor-actions button {
+  border: 1px solid #e4dfd7;
+  background-color: white;
+  padding: 5px 9px;
+  margin-left: 5px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.runnable-code .editor-actions button:hover {
+  box-shadow: 0 2px 5px #cfc9c0;
+}
+
+.runnable-code .editor-actions button:active {
+  background-color: #e4dfd7;
+}
+
+.runnable-code .cm-editor {
+  margin: 0;
+  width: 100%;
+}
+
+.runnable-code .runnable-code-source pre {
+  margin: 0;
+  padding: 20px;
+  width: 100%;
+}
+
+.runnable-code .edit {
+  display: block;
+  line-height: 1em;
+  text-decoration: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: none;
+  background-color: white;
+  border: 1px solid #e4dfd7;
+  margin: 0;
+  color: #606060;
+  font-size: 15px;
+  border-radius: 0 6px 0 6px;
+  padding: 8px 10px;
+  transition: box-shadow .2s, border-radius .2s;
+  transform: translate(3px, -3px);
+}
+
+.runnable-code .edit:hover {
+  box-shadow: 0 2px 5px #cfc9c0;
+  border-radius: 6px;
+}
+
+.runnable-code .edit:active {
+  background-color: #eaedfc;
+}
+
+.runnable-code .edit span {
+  display: block;
+  transform: translateY(1px);
+}
+
+.runnable-code inspect-code, .runnable-code .placeholder {
+  padding: 20px;
+  background-color: rgba(207, 201, 192, .4);
+  border-radius: 0 0 10px 10px;
+  margin: 0;
+}
+
+.runnable-code .placeholder {
+  font-style: italic;
+}
+
+.runnable-code inspect-code > *,
+.runnable-code .runnable-code-output > * {
+  margin-top: 20px;
+}
+
+.runnable-code inspect-code > *:first-child,
+.runnable-code .runnable-code-output > *:first-child {
+  margin-top: 0;
+}
+
+.runnable-code-output {
+  background-color: rgba(207, 201, 192, .4);
+}
+
+.runnable-code.focused {
+  max-height: calc(100vh - 120px);
+}
+
+.runnable-code.focused .runnable-code-output {
+  overflow: auto;
+}
+
+@media (max-width: 800px) {
+  .runnable-code.focused {
+    max-height: inherit;
+  }
+}
+
+.runnable-code .runnable-code-output-content {
+  position: sticky;
+  top: 0;
+  padding: 20px;
+}
+
+.runnable-code-output pre {
+  margin: 0;
+  overflow: visible;
+}
+
+/* inspector */
+
+inspect-code {
+  display: block;
+  position: relative;
+  padding: 20px;
+  background-color: rgba(207, 201, 192, .4);
+  border-radius: 10px;
+}
+
+inspect-code pre {
+  margin: 0;
+}
+
+inspect-code .view-source {
+  border: none;
+  background-color: white;
+  border: 1px solid #e4dfd7;
+  margin: 0;
+  color: #606060;
+  font-size: 15px;
+  border-radius: 0 6px 0 6px;
+  padding: 8px 10px;
+  transition: box-shadow .2s, border-radius .2s;
+  margin-top: 1em;
+}
+
+inspect-code .view-source:hover {
+  box-shadow: 0 2px 5px #cfc9c0;
+  border-radius: 6px;
+}
+
+inspect-code .view-source:active {
+  background-color: rgba(207, 201, 192, .4);
+}
+
+inspect-code:hover .inspect-code-actions .open-external {
+  display: block;
+}
+
+@media (max-width: 800px) {
+  inspect-code .view-source {
+    width: 100%;
+  }
+}
+
+@media (min-width: 801px) {
+  inspect-code .view-source {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin-top: 0;
+  }
+}
+
+/* dialog-container */
+
+.dialog-outer-container {
+  zIndex: 10000;
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  transition: .15s background-color;
+
+  inset: 0;
+}
+
+.dialog-outer-container.animated {
+  background-color: rgba(30, 30, 30, .2);
+}
+
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  background-color: white;
+  max-height: 80vh;
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 801px) {
+  .dialog-content {
+    flex-direction: row;
+  }
+}
+
+.dialog-container .header {
+  display: flex;
+  padding: 5px 10px;
+}
+
+.dialog-container .title {
+  flex: 1;
+  font-weight: 700;
+}
+
+.dialog-container .header button {
+  border: 3px solid #eaedfc;
+  background-color: white;
+  padding: 5px 9px;
+  margin-left: 5px;
+  border-radius: 6px;
+}
+
+.dialog-container .header button:hover {
+  background-color: #eaedfc;
+}
+
+.dialog-container .title.untitled {
+  font-style: italic;
+}
+
+.dialog-container .code-block {
+  margin-bottom: 10px;
+}
+
+.dialog-container summary {
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.dialog-container .right {
+  width: 45vw;
+  padding: 10px;
+  overflow: auto;
+}
+
+.dialog-container .right-content {
+  width: fit-content;
+  padding-right: 10px;
+}
+
+.dialog-container .left {
+  max-width: 40vw;
+  overflow: hidden;
+  padding: 15px;
+}
+
+.dialog-container .left canvas {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto !important;
+  height: auto !important;
+}
+
+.dialog-container .left svg {
+  height: auto;
+  max-height: 100%;
+}
+
+.dialog-content pre {
+  font-size: 15px;
+  line-height: 24px;
+}
+
+@media (max-width: 800px) {
+  .dialog-container {
+    max-height: 95dvh;
+  }
+
+  .dialog-container .right,
+  .dialog-container .left {
+    max-width: initial;
+    width: 90vw;
+  }
+
+  .dialog-container .left {
+    height: calc((100vh - 80px) * .15);
+  }
+
+  .dialog-container .right {
+    height: calc((100vh - 80px) * .85);
+  }
+}
