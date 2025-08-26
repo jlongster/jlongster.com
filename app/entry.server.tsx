@@ -37,7 +37,16 @@ export default function handleRequest(
     pathname === '/future-sql-web' ||
     pathname === '/future-sql-web/'
   ) {
-    return fetch('https://jlongster-static.pages.dev/future-sql-web/');
+    return fetch('https://jlongster-static.pages.dev/future-sql-web/', {
+      headers: { 'Accept-Encoding': request.headers['Accept-Encoding'] },
+    });
+  } else if(
+    pathname === '/actual-open-source' ||
+    pathname === '/actual-open-source/'
+  ) {
+    return fetch('https://rainbow-kulfi-d49552.netlify.app/', {
+      headers: { 'Accept-Encoding': request.headers['Accept-Encoding'] },
+    });
   }
 
   let markup = renderToString(

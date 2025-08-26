@@ -7,17 +7,14 @@ import {
   getTableOfContents,
 } from '../db/queries';
 import { formatDate } from '../page';
-import { Blocks, TableOfContents } from '../blocks';
+import { Blocks } from '../blocks';
 import { Layout } from '../layout';
 
 export async function loader({ params }) {
   let pages = getPages();
   let pageUrl = params['*'] || 'index';
 
-  const contentPages = pages.filter(
-    page => page.tags && page.tags.includes('content'),
-  );
-  const posts = pages.filter(
+  const recentPosts = pages.filter(
     page => !page.tags || !page.tags.includes('content'),
   );
 
@@ -37,8 +34,7 @@ export async function loader({ params }) {
   }
 
   return {
-    contentPages,
-    posts,
+    recentPosts,
     page,
     sectionName,
     blocks: getBlocks(conn),
@@ -92,35 +88,6 @@ export function meta({ matches, data }) {
   ];
 }
 
-function PageProps({ page }) {
-  return (
-    <div className="properties">
-      <div>
-        {page.tags && page.tags.length > 0 ? (
-          <>
-            <strong>tags::</strong>{' '}
-            {page.tags.map((v, i) => {
-              let els = [
-                <a key={v} href={`/links/${v}`}>
-                  {v}
-                </a>,
-              ];
-              if (i !== page.tags.length - 1) {
-                els.push(', ');
-              }
-              return els;
-            })}
-          </>
-        ) : null}
-      </div>
-
-      <div>
-        <strong>date::</strong> {formatDate(page.date)}
-      </div>
-    </div>
-  );
-}
-
 function FilteredSectionNotification({ title, url, sectionName, position }) {
   return (
     <>
@@ -151,84 +118,73 @@ function FilteredSectionNotification({ title, url, sectionName, position }) {
   );
 }
 
-function PageList({ pages, className, showDate = true }) {
+function getIcon(name) {
+  switch (name.toLowerCase()) {
+    case 'x':
+      return <XIcon />;
+    case 'home':
+      return <HomeIcon />;
+    case 'posts':
+      return <PostsIcon />;
+  }
+
+  throw new Error('Unknown icon: ' + name);
+}
+
+function FloatingMenuAction() {
   return (
-    <div className={'page-list ' + className}>
-      {pages.map(page => (
-        <a href={'/' + page.url} className="page-list-item">
-          <div>{page.title}</div>
-          {showDate && (
-            <div style={{ fontSize: 13, color: '#a0a0a0' }}>
-              {formatDate(page.date)}
-            </div>
-          )}
-        </a>
-      ))}
+    <div className="floating-menu-action">
+      <img src="/logo.svg" />
     </div>
   );
 }
 
-function SectionTitle({ children }) {
-  return <div className="page-list-section">{children}</div>;
-}
-
 export default function RenderPage(props) {
-  let { contentPages, posts, page, sectionName, blocks, toc } = useLoaderData();
+  let {
+    contentPages,
+    recentPosts,
+    page,
+    sectionName,
+    blocks,
+    toc,
+  } = useLoaderData();
 
   return (
-    <div className="site-content">
-      <div className="site-content-left">
-        <PageList className="content" pages={contentPages} showDate={false} />
-
-        {toc ? (
-          <div >
-            <div class="toc">
-              <SectionTitle>Table of contents</SectionTitle>
-              <TableOfContents toc={toc} pageid={page.url} />
-            </div>
-          </div>
-        ) : (
-          <>
-            <SectionTitle>Recent posts</SectionTitle>
-            <PageList pages={posts} />
-          </>
-        )}
-      </div>
-
-      <div className="site-content-main">
-        <main className="page-content">
+    <Layout name="post" toc={toc} page={page} recentPosts={recentPosts}>
+      {!page.minimal ? (
+        <>
           <div className="title">
             <h1>{page.title}</h1>
             {page.subtitle && <h2>{page.subtitle}</h2>}
           </div>
-          <PageProps page={page} />
+          <div className="date">{formatDate(page.date)}</div>
+        </>
+      ) : null}
 
-          {sectionName && (
-            <FilteredSectionNotification
-              title={page.title}
-              sectionName={sectionName}
-              url={page.url}
-              position="top"
-            />
-          )}
+      {sectionName && (
+        <FilteredSectionNotification
+          title={page.title}
+          sectionName={sectionName}
+          url={page.url}
+          position="top"
+        />
+      )}
 
-          <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
+      <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
 
-          {sectionName && (
-            <FilteredSectionNotification
-              title={page.title}
-              sectionName={sectionName}
-              url={page.url}
-              position="bottom"
-            />
-          )}
-        </main>
-      </div>
+      {sectionName && (
+        <FilteredSectionNotification
+          title={page.title}
+          sectionName={sectionName}
+          url={page.url}
+          position="bottom"
+        />
+      )}
 
       <script src="/code-look.js" />
       <script src="/enhance-links.js" />
       <script src="/toc.js" />
       <script src="/tweet.js" />
-    </div>
+    </Layout>
   );
 }

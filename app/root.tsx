@@ -11,6 +11,7 @@ import {
 import settings from './settings';
 
 import siteStyles from '~/css/site.css?url';
+import codeStyles from '~/css/code.css?url';
 import nightOwlStyles from '~/css/night-owl.css?url';
 import box3d from '~/css/box3d.css?url';
 
@@ -18,6 +19,7 @@ export function links() {
   return [
     { rel: 'stylesheet', href: nightOwlStyles },
     { rel: 'stylesheet', href: siteStyles },
+    { rel: 'stylesheet', href: codeStyles },
     { rel: 'stylesheet', href: box3d },
     {
       rel: 'stylesheet',

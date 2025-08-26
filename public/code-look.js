@@ -5,7 +5,6 @@ function getPageId() {
   if (m == null) {
     throw new Error('Invalid location: ' + window.location.pathname);
   }
-  console.log(m);
   return m[1];
 }
 
@@ -217,16 +216,3 @@ class InspectCode extends HTMLElement {
 
 customElements.define('inspector-dialog', InspectorDialog);
 customElements.define('inspect-code', InspectCode);
-
-document.addEventListener('mousemove', e => {
-  const cursor = document.querySelector('.cursor');
-  const follower = document.querySelector('.cursor-follower');
-
-  cursor.style.left = e.clientX + 'px';
-  cursor.style.top = e.clientY + 'px';
-
-  setTimeout(() => {
-    follower.style.left = e.clientX + 'px';
-    follower.style.top = e.clientY + 'px';
-  }, 50);
-});

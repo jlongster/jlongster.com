@@ -62,8 +62,9 @@ export function Blocks({ blocks, pageid, sectionName }) {
         return null;
       }
 
-      if (block.type === 'code' && block.meta.run) {
+      if (block.type === 'code' && (block.meta.run || block.meta.embed)) {
         let shouldRenderCode = block.meta.show && shouldShowBlock;
+        let shouldRenderInspector = !shouldRenderCode && !block.meta.embed;
 
         switch (block.meta.lang) {
           case 'css':
@@ -94,7 +95,10 @@ export function Blocks({ blocks, pageid, sectionName }) {
             // examples
             const code = `
               let __inspector = document.createElement('inspect-code');
-              __inspector.disabled = ${!!shouldRenderCode};
+              __inspector.setAttribute('disabled', ${
+                shouldRenderInspector ? '"true"' : '"false"'
+              });
+              __inspector.disabled = ${!shouldRenderInspector};
               __inspector.dataset['blockId'] = "${block.uuid}";
 
               let __placeholder = document.getElementById('${id}-placeholder');
@@ -167,9 +171,10 @@ export function Blocks({ blocks, pageid, sectionName }) {
           case 'html': {
             live = (
               <inspect-code
-                disabled={!!shouldRenderCode}
+                disabled={!shouldRenderInspector}
                 data-block-id={block.uuid}
                 dangerouslySetInnerHTML={{ __html: block.string }}
+                disabled={shouldRenderInspector ? 'false' : 'true'}
               />
             );
             break;

@@ -1,7 +1,7 @@
 /* coloring table of contents for the active URL */
 
 function showActiveLinkInTOC() {
-  for (let link of document.querySelectorAll('.toc a')) {
+  for (let link of document.querySelectorAll('.toc-wrapper a')) {
     if (
       link.href === window.location.href ||
       link.href.replace('#', '/') === window.location.href
@@ -21,7 +21,7 @@ window.addEventListener('hashchange', () => {
 
 /* make it scrollable when it transitions to stick */
 
-const toc = document.querySelector('.toc');
+// const toc = document.querySelector('.toc-wrapper');
 
 // if (toc) {
 //   const observer = new IntersectionObserver(

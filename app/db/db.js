@@ -20,13 +20,15 @@ export function write(url, attrs, blocks) {
     ':db/id': -1,
     ':post/url': url,
     ':post/uuid': id,
-    ':post/title': attrs.title || '',
+    ':post/title': attrs['pretty-title'] || attrs.title || '',
     ':post/subtitle': attrs.subtitle || '',
     ':post/public': !!attrs.public,
     ':post/toc': !!attrs.toc,
     ':post/tags': attrs.tags || [],
     ':post/date': attrs.date || new Date(),
     ':post/featured-image': attrs['featured-image'] || '',
+    ':post/minimal': attrs['minimal'] || false,
+    ...(attrs['icon'] ? { ':post/icon': attrs['icon'] } : null),
   };
 
   ds.transact(conn, [

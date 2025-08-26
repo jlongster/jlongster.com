@@ -106,6 +106,7 @@ export async function action({ request }) {
     return errorResponse('url must only be 1 level deep');
   }
 
+  console.log('attrs', attrs)
   write(url, { ...attrs, title: parsed.title }, blocks);
 
   // Tell everybody to reload the db
