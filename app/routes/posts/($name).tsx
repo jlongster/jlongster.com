@@ -8,6 +8,8 @@ export async function loader({ params }) {
   let name = params['name'];
   let pages = name ? queries.getPagesWithTag(name) : queries.getPages();
 
+  pages = pages.filter(page => !page.tags || !page.tags.includes('content'));
+
   let recentPosts = queries
     .getPages()
     .filter(page => !page.tags || !page.tags.includes('content'));

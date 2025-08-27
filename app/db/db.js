@@ -61,10 +61,11 @@ export function load(url) {
   // We cache based on url to avoid having to do a lookup in the index
   // every time. This should be fine; worst case some renamed urls
   // will leave around some old dbs that won't get used
-  const cached = CONN_CACHE.get(url);
-  if (cached) {
-    console.log(`[cached] loading ${url}`);
-    return cached;
+  if (CONN_CACHE.has(url)) {
+    console.log(`Cache HIT for ${url}`);
+    return CONN_CACHE.get(url);
+  } else {
+    console.log(`Cache MISS for ${url}`);
   }
 
   const pages = ds.q(
