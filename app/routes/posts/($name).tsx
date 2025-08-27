@@ -29,6 +29,11 @@ export default function Links(props) {
         )}
       </h1>
       <PageList pages={pages} />
+
+      <section style={{ marginTop: 50, fontSize: 13, color: '#818a92' }}>
+        If you are looking for my old posts,{' '}
+        <a href="https://archive.jlongster.com/">view the archived site</a>.
+      </section>
     </Layout>
   );
 }

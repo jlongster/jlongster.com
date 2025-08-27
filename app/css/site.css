@@ -292,6 +292,6 @@ footer {
 
 /* posts page */
 
-.page-content.posts a:link, .page-content.posts a:visited {
+.page-content.posts .page-list a:link, .page-content.posts .page-list a:visited {
   color: inherit;
 }
