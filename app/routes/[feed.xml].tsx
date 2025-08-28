@@ -1,5 +1,4 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import html from 'html';
 import { addHours, toDate } from 'date-fns';
 import * as db from '../db';
 import { renderBlock } from '../md/render';
@@ -10,9 +9,23 @@ function siteUrl(siteUrl, url) {
   return siteUrl + url;
 }
 
+function start() {
+  let latest = Date.now();
+
+  return function record(str) {
+    let now = Date.now();
+    console.log('[PERF]', str, now - latest);
+    latest = now;
+    return null;
+  };
+}
+
 export function loader({ request }) {
+  const record = start();
   let url = settings.currentSite;
   let posts = getPages().slice(0, 50);
+
+  record('loaded all pages');
 
   let feed = (
     <feed xmlns="http://www.w3.org/2005/Atom" xmlLang="en-us">
@@ -29,11 +42,12 @@ export function loader({ request }) {
       </author>
       <rights>© 2022 James Long</rights>
       <generator uri={url.href}>jimmy</generator>
+      {record('generated some XML')}
       {posts.map(post => {
         let pageUrl = siteUrl(url, `/${post.url}`);
         // Add 12 hours because the date is always midnight, but we
         // want the post to appear as the same day in all timezones
-        let date = toDate(addHours(post.date, 12)).toISOString()
+        let date = toDate(addHours(post.date, 12)).toISOString();
 
         const blocks = getBlocks(db.load(post.url));
 
@@ -69,14 +83,15 @@ export function loader({ request }) {
           </entry>
         );
       })}
+      {record('mapped over all the pages')}
     </feed>
   );
 
   let headers = new Headers();
   headers.set('Content-Type', 'application/xml');
+
   return new Response(
-    '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      html.prettyPrint(renderToStaticMarkup(feed), { indent_size: 2 }),
+    '<?xml version="1.0" encoding="UTF-8"?>\n' + renderToStaticMarkup(feed),
     { status: 200, headers },
   );
 }
