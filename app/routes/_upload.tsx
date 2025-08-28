@@ -56,7 +56,6 @@ function errorResponse(msg, code = 400) {
 }
 
 export async function action({ request }) {
-  console.log('jwl', request.method);
   if (request.method === 'OPTIONS') {
     let headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
@@ -67,7 +66,6 @@ export async function action({ request }) {
 
   // Get the data and verify it
   let data = await request.text();
-  console.log('jwl', JSON.stringify(data));
   let signature = request.headers.get('X-JLONGSTER-SIGN');
 
   if (data === '' || !verify(data, signature, publicKey)) {
@@ -106,7 +104,6 @@ export async function action({ request }) {
     return errorResponse('url must only be 1 level deep');
   }
 
-  console.log('attrs', attrs)
   write(url, { ...attrs, title: parsed.title }, blocks);
 
   // Tell everybody to reload the db
