@@ -28,6 +28,7 @@ export function write(url, attrs, blocks) {
     ':post/date': attrs.date || new Date(),
     ':post/featured-image': attrs['featured-image'] || '',
     ':post/minimal': attrs['minimal'] || false,
+    ':post/pinned': attrs['pinned'] || false,
     ...(attrs['icon'] ? { ':post/icon': attrs['icon'] } : null),
   };
 

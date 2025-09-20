@@ -1,20 +1,15 @@
 import { useLoaderData } from '@remix-run/react';
-import { EnhancedPageList } from '../../page';
 import * as queries from '../../db/queries';
-import { Layout } from '../../layout';
+import { Layout, loadLayoutData } from '../../layout';
 import { PageList } from '../../page';
 
 export async function loader({ params }) {
   let name = params['name'];
   let pages = name ? queries.getPagesWithTag(name) : queries.getPages();
 
-  pages = pages.filter(page => !page.tags || !page.tags.includes('content'));
+  pages = pages.filter(page => !(page.tags || []).includes('content'));
 
-  let recentPosts = queries
-    .getPages()
-    .filter(page => !page.tags || !page.tags.includes('content'));
-
-  return { name, pages, recentPosts };
+  return { name, pages, ...loadLayoutData() };
 }
 
 export default function Links(props) {

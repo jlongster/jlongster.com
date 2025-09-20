@@ -8,15 +8,10 @@ import {
 } from '../db/queries';
 import { formatDate } from '../page';
 import { Blocks } from '../blocks';
-import { Layout } from '../layout';
+import { Layout, loadLayoutData } from '../layout';
 
 export async function loader({ params }) {
-  let pages = getPages();
   let pageUrl = params['*'] || 'index';
-
-  const recentPosts = pages.filter(
-    page => !page.tags || !page.tags.includes('content'),
-  );
 
   let [name, sectionName] = pageUrl.includes('/')
     ? pageUrl.split('/')
@@ -34,11 +29,11 @@ export async function loader({ params }) {
   }
 
   return {
-    recentPosts,
     page,
     sectionName,
     blocks: getBlocks(conn),
     toc,
+    ...loadLayoutData(),
   };
 }
 
@@ -118,19 +113,6 @@ function FilteredSectionNotification({ title, url, sectionName, position }) {
   );
 }
 
-function getIcon(name) {
-  switch (name.toLowerCase()) {
-    case 'x':
-      return <XIcon />;
-    case 'home':
-      return <HomeIcon />;
-    case 'posts':
-      return <PostsIcon />;
-  }
-
-  throw new Error('Unknown icon: ' + name);
-}
-
 function FloatingMenuAction() {
   return (
     <div className="floating-menu-action">
@@ -140,18 +122,14 @@ function FloatingMenuAction() {
 }
 
 export default function RenderPage(props) {
-  let {
-    contentPages,
-    recentPosts,
-    page,
-    sectionName,
-    blocks,
-    toc,
-  } = useLoaderData();
+  let { contentPages, recentPosts, page, sectionName, blocks, toc } =
+    useLoaderData();
+
+  const minimal = page.minimal || (page.tags || []).includes('experiment');
 
   return (
     <Layout name="post" toc={toc} page={page} recentPosts={recentPosts}>
-      {!page.minimal ? (
+      {minimal ? null : (
         <>
           <div className="title">
             <h1>{page.title}</h1>
@@ -159,7 +137,7 @@ export default function RenderPage(props) {
           </div>
           <div className="date">{formatDate(page.date)}</div>
         </>
-      ) : null}
+      )}
 
       {sectionName && (
         <FilteredSectionNotification

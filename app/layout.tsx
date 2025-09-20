@@ -1,11 +1,25 @@
+import * as queries from './db/queries';
 import { formatDate, PageList } from './page';
 import { TableOfContents } from './blocks';
 import { XIcon } from './icons/x';
 import { HomeIcon } from './icons/home';
 import { PostsIcon } from './icons/posts';
+import { SineIcon } from './icons/sine';
 
 function SectionTitle({ children }) {
   return <div className="page-list-section">{children}</div>;
+}
+
+export function loadLayoutData() {
+  const posts = queries.getPages().filter(page => {
+    const tags = page.tags || [];
+
+    // These are tags that we shouldn't show in the recent posts
+    return !tags.includes('content');
+  });
+  return {
+    recentPosts: posts,
+  };
 }
 
 export function Layout({ name, children, toc, page, recentPosts }) {
@@ -21,6 +35,11 @@ export function Layout({ name, children, toc, page, recentPosts }) {
           <a href="/posts" className="page-list-item">
             <div className="title">
               <PostsIcon /> Posts
+            </div>
+          </a>
+          <a href="/experiments" className="page-list-item">
+            <div className="title">
+              <SineIcon /> Experiments
             </div>
           </a>
           <a href="https://x.com/jlongster" className="page-list-item">

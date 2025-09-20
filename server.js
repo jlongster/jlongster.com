@@ -34,13 +34,10 @@ async function startServer() {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // Serve static files from build/client in production
-  if (process.env.NODE_ENV === 'production') {
-    app.use(
-      '/assets',
-      express.static('build/client', { immutable: true, maxAge: '1y' }),
-    );
-  }
+  app.use(
+    '/assets',
+    express.static('build/client/assets', { immutable: true, maxAge: '1y' }),
+  );
 
   // Timing middleware for all requests
   app.use((req, res, next) => {
