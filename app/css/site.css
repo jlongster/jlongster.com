@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 * {
   box-sizing: border-box;
 }
@@ -252,6 +254,11 @@ footer .aligned-list {
   width: var(--site-width);
   max-width: calc(100vw - 300px);
   text-wrap: pretty;
+}
+
+.page-content.post .title h1 {
+  font-size: 36px;
+  font-weight: 700;
 }
 
 .page-content.post .date {
