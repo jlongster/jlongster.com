@@ -8,7 +8,10 @@ import {
 } from '../db/queries';
 import { formatDate } from '../page';
 import { Blocks } from '../blocks';
-import { Layout, loadLayoutData } from '../layout';
+import { Layout } from '../layout';
+import {AlignedList} from '../AlignedList'
+import { XIcon } from '../icons/x';
+
 
 export async function loader({ params }) {
   let pageUrl = params['*'] || 'index';
@@ -28,12 +31,21 @@ export async function loader({ params }) {
     toc = getTableOfContents(conn);
   }
 
+  const recentPosts = getPages()
+    .slice(0, 3)
+    .filter(page => {
+      const tags = page.tags || [];
+
+      // These are tags that we shouldn't show in the recent posts
+      return !tags.includes('content');
+    });
+
   return {
     page,
     sectionName,
     blocks: getBlocks(conn),
     toc,
-    ...loadLayoutData(),
+    recentPosts,
   };
 }
 
@@ -128,7 +140,27 @@ export default function RenderPage(props) {
   const minimal = page.minimal || (page.tags || []).includes('experiment');
 
   return (
-    <Layout name="post" toc={toc} page={page} recentPosts={recentPosts}>
+    <Layout
+      name="post"
+      toc={toc}
+      page={page}
+      footerContent={
+        minimal ? null : (
+          <>
+            <div className="ding">◇◇</div>
+
+            <div className="footer-title">Read more</div>
+            <AlignedList
+              items={recentPosts.map(post => ({
+                url: post.url,
+                title: post.title,
+                description: formatDate(post.date),
+              }))}
+            />
+          </>
+        )
+      }
+    >
       {minimal ? null : (
         <>
           <div className="title">
