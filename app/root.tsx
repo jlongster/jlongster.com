@@ -10,7 +10,7 @@ import {
 } from '@remix-run/react';
 import settings from './settings';
 
-import siteStyles from '~/css/site.css?url';
+import baseStyles from '~/css/base.css?url';
 import codeStyles from '~/css/code.css?url';
 import nightOwlStyles from '~/css/night-owl.css?url';
 import box3d from '~/css/box3d.css?url';
@@ -18,7 +18,7 @@ import box3d from '~/css/box3d.css?url';
 export function links() {
   return [
     { rel: 'stylesheet', href: nightOwlStyles },
-    { rel: 'stylesheet', href: siteStyles },
+    { rel: 'stylesheet', href: baseStyles },
     { rel: 'stylesheet', href: codeStyles },
     { rel: 'stylesheet', href: box3d },
     {
@@ -38,6 +38,11 @@ export default function App() {
   const location = useLocation();
   const matches = useMatches();
 
+  const childData = matches.find(match => match.data?.theme)?.data;
+  const theme = childData?.theme;
+  const bodyClassName =
+    theme === 'dark' ? 'dark-mode' : theme === 'light' ? 'light-mode' : '';
+
   return (
     <html lang="en">
       <head>
@@ -51,7 +56,7 @@ export default function App() {
           href="https://jlongster.com/feed.xml"
         />
       </head>
-      <body>
+      <body className="dark-mode">
         <Outlet />
         {location.pathname.startsWith('/interactive') && <Scripts />}
 

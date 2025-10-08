@@ -1,53 +1,12 @@
-# Welcome to Remix!
+ffmpeg command to generate gifs from a demo video:
 
-- [Remix Docs](https://remix.run/docs)
 
-## Development
-
-From your terminal:
-
-```sh
-npm run dev
 ```
+# Adjust -ss to clip the movie to a range
+# Adjust setpts to change how much it's slowed down
 
-This starts your app in development mode, rebuilding assets on file changes.
-
-## Deployment
-
-First, build your app for production:
-
-```sh
-npm run build
-```
-
-Then run the app in production mode:
-
-```sh
-npm start
-```
-
-Now you'll need to pick a host to deploy it to.
-
-### DIY
-
-If you're familiar with deploying node applications, the built-in Remix app server is production-ready.
-
-Make sure to deploy the output of `remix build`
-
-- `build/`
-- `public/build/`
-
-### Using a Template
-
-When you ran `npx create-remix@latest` there were a few choices for hosting. You can run that again to create a new project, then copy over your `app/` folder to the new project that's pre-configured for your target server.
-
-```sh
-cd ..
-# create a new project, and pick a pre-configured host
-npx create-remix@latest
-cd my-new-remix-app
-# remove the new project's app (not the old one!)
-rm -rf app
-# copy your app over
-cp -R ../my-old-remix-app/app app
+ffmpeg -i input.mov   \
+-ss 15 -to 23 \
+-vf "setpts=6*PTS,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
+-loop 0 output.gif
 ```

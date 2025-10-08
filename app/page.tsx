@@ -28,16 +28,16 @@ function PinIcon() {
 
 export function PageList({ pages, className }) {
   return (
-    <div className={'page-list ' + className}>
+    <div className={'text-base leading-[1.4em] ' + className}>
       {pages.map(page => {
         const experiment = (page.tags || []).includes('experiment');
 
         return (
-          <a href={'/' + page.url} className="page-list-item">
+          <a href={'/' + page.url} className="block py-3 [&_.title]:flex [&_.title]:items-center [&_svg]:w-[18px] [&_svg]:mr-3 hover:no-underline [&_.title]:hover:underline">
             <div className="title">
               {experiment ? '[Experiment]' : ''} {page.title}
             </div>
-            <div className="date">{formatDate(page.date)}</div>
+            <div className="text-[length:13px] text-[#818a92]">{formatDate(page.date)}</div>
           </a>
         );
       })}

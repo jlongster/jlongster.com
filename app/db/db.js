@@ -29,6 +29,9 @@ export function write(url, attrs, blocks) {
     ':post/featured-image': attrs['featured-image'] || '',
     ':post/minimal': attrs['minimal'] || false,
     ':post/pinned': attrs['pinned'] || false,
+    ':post/theme': attrs['theme'] || '',
+    ':post/gif': attrs['gif'] || '',
+    ':post/notes': attrs['notes'] || '',
     ...(attrs['icon'] ? { ':post/icon': attrs['icon'] } : null),
   };
 

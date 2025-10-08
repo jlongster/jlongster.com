@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+
+/*
+ * define:
+ *
+ * - background color (light and dark)
+ * - accent color (light and dark)
+ * - primary color (light and dark)
+ * - subdued color (light and dark)
+ * - link color (light and dark)
+ */ 
+
+@theme {
+  --color-primary: #313131;
+  --color-subdued: #818a92;
+  --color-link: #317AE7;
+  --color-accent: #F98D2F;
+  --color-bg: white;
+}
+
+
+@supports (color: color(display-p3 1 1 1)) {
+  @theme {
+    --color-accent: color(display-p3 1 0.569 0.048);
+  }
+}
+
+.dark-mode {
+  --color-primary: #e8e8ff;
+  --color-subdued: #a0a0d0;
+  --color-link: #5b9bff;
+  --color-accent: #F98D2F;
+  --color-bg: #202020;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --site-width: 750px;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 27px;
+  letter-spacing: 0.006em;
+  margin: 0;
+  color: var(--color-primary);
+  background-color: var(--color-bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+a:link {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+a:visited {
+  color: var(--color-link);
+}
+
+a:hover,
+a:active {
+  text-decoration: underline;
+}
+
+a.uncolored-link:link, a.uncolored-link:visited {
+  color: inherit;
+}
+
+.uncolored-links a:link, .uncolored-links a:visited {
+  color: inherit;
+}
+
+a.nounderline:hover, a.nounderline:active {
+  text-decoration: none;
+}
+
+h1 a:link,
+h1 a:visited,
+h1 a:hover,
+h1 a:active,
+h2 a:link,
+h2 a:visited,
+h2 a:hover,
+h3 a:active,
+h3 a:link,
+h3 a:visited,
+h3 a:hover,
+h3 a:active,
+h4 a:link,
+h4 a:visited,
+h4 a:hover,
+h4 a:active {
+  color: inherit;
+}
+
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  line-height: 1.2em;
+}
+
+header {
+  margin-bottom: 10px;
+  padding-top: 20px;
+}
+
+header .context {
+  font-style: italic;
+}
+
+code {
+  font-size: 16px;
+}
+
+pre, pre code {
+  font-size: 14px;
+  line-height: 1.6em;
+  max-width: calc(100vw - 40px);
+}
+
+pre {
+  overflow: auto;
+  margin: 2em 0;
+  @apply object-contain;
+}
+
+/* demos */
+
+.demo-full-screen {
+  @apply flex h-screen justify-center items-center flex-col bg-center bg-cover;
+}

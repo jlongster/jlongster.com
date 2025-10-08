@@ -14,18 +14,18 @@ export async function loader({ params }) {
 
 function Experiment({ page }) {
   return (
-    <div
+    <a
+      href={page.url}
+      className="block shadow-sm hover:shadow-lg hover:-translate-y-[3px] transition-all ease-in-out"
       style={{
         height: '300px',
         overflow: 'hidden',
-        border: '1px solid #ccc',
         borderRadius: 6,
-        padding: 20,
       }}
     >
       {page.gif ? (
         <img
-          src={page.gif || page.image}
+          src={page.gif}
           alt={page.title}
           style={{
             width: '100%',
@@ -35,17 +35,18 @@ function Experiment({ page }) {
           }}
         />
       ) : (
-        page.title
+        `James, you need to add a gif here for "${page.title}"`
       )}
-    </div>
+    </a>
   );
 }
 
 export default function Links(props) {
   let { name, pages } = useLoaderData();
   return (
-    <Layout name="experiments">
+    <Layout name="experiments" minimal>
       <div
+        className="mt-[130px] mx-[100px]"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',

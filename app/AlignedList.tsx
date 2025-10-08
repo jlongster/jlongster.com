@@ -1,12 +1,12 @@
 export function AlignedList({ items, className }) {
   return (
-    <div className={'aligned-list ' + className}>
+    <div className={`flex flex-col gap-[length:.4em] ${className}`}>
       {items.map(item => {
         return (
-          <a href={'/' + item.url}>
-            <div className="title">{item.title}</div>
-            <div className="line"></div>
-            <div className="description">{item.description}</div>
+          <a href={'/' + item.url} className="nounderline group flex flex-row items-center gap-[30px] text-inherit">
+            <div className="title group-hover:underline">{item.title}</div>
+            <div className="flex-1 h-px bg-[length:8px_1px] bg-repeat-x bg-[position:0_0] [background-image:linear-gradient(to_right,#303030_1px,transparent_1px)]"></div>
+            <div className="text-[0.9em] text-[#a0a0a0]">{item.description}</div>
           </a>
         );
       })}

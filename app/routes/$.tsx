@@ -6,12 +6,12 @@ import {
   getBlocks,
   getTableOfContents,
 } from '../db/queries';
+import { renderString } from '../md/render';
 import { formatDate } from '../page';
 import { Blocks } from '../blocks';
-import { Layout } from '../layout';
-import {AlignedList} from '../AlignedList'
+import { Layout, Footer, BareFooter } from '../layout';
+import { AlignedList } from '../AlignedList';
 import { XIcon } from '../icons/x';
-
 
 export async function loader({ params }) {
   let pageUrl = params['*'] || 'index';
@@ -32,13 +32,13 @@ export async function loader({ params }) {
   }
 
   const recentPosts = getPages()
-    .slice(0, 3)
     .filter(page => {
       const tags = page.tags || [];
 
       // These are tags that we shouldn't show in the recent posts
-      return !tags.includes('content');
-    });
+      return !(tags.includes('content') || tags.includes('experiment'));
+    })
+    .slice(0, 3);
 
   return {
     page,
@@ -46,6 +46,7 @@ export async function loader({ params }) {
     blocks: getBlocks(conn),
     toc,
     recentPosts,
+    theme: page.theme,
   };
 }
 
@@ -142,33 +143,60 @@ export default function RenderPage(props) {
   return (
     <Layout
       name="post"
+      minimal={minimal}
       toc={toc}
       page={page}
-      footerContent={
-        minimal ? null : (
-          <>
-            <div className="ding">◇◇</div>
-
-            <div className="footer-title">Read more</div>
-            <AlignedList
-              items={recentPosts.map(post => ({
-                url: post.url,
-                title: post.title,
-                description: formatDate(post.date),
-              }))}
+      footer={
+        page.notes ? (
+          <BareFooter className="mt-[200px] mb-[150px] max-w-[900px] mx-auto flex justify-between">
+            <div
+              className="max-w-[500px] text-sm text-subdued [&_p:first-of-type]:my-0 [&_p:last-of-type]:mb-0 [&_p]:my-3"
+              dangerouslySetInnerHTML={{
+                __html: renderString(`**${page.title}**\n\n${page.notes}`),
+              }}
             />
-          </>
+
+            <a
+              className="block uncolored-link"
+              href="https://twitter.com/jlongster"
+            >
+              <XIcon />
+            </a>
+          </BareFooter>
+        ) : (
+          <Footer>
+            {minimal ? null : (
+              <>
+                <div className="text-[length:12px] w-fit mx-auto my-[140px] text-[#909090]">
+                  ◇◇
+                </div>
+
+                <div className="mb-4 text-[#818a90] font-semibold">
+                  Read more
+                </div>
+                <AlignedList
+                  items={recentPosts.map(post => ({
+                    url: post.url,
+                    title: post.title,
+                    description: formatDate(post.date),
+                  }))}
+                />
+              </>
+            )}
+          </Footer>
         )
       }
     >
       {minimal ? null : (
-        <>
-          <div className="title">
+        <div className="post-header">
+          <div className="[&_img]:max-w-full">
             <h1>{page.title}</h1>
             {page.subtitle && <h2>{page.subtitle}</h2>}
           </div>
-          <div className="date">{formatDate(page.date)}</div>
-        </>
+          <div className="text-[#818a92] text-[length:15px] mb-[25px]">
+            {formatDate(page.date)}
+          </div>
+        </div>
       )}
 
       {sectionName && (
@@ -180,7 +208,9 @@ export default function RenderPage(props) {
         />
       )}
 
-      <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
+      <div className="[&_p:first-of-type]:my-0 [&_p:last-of-type]:mb-0 [&_p]:my-6">
+        <Blocks blocks={blocks} pageid={page.url} sectionName={sectionName} />
+      </div>
 
       {sectionName && (
         <FilteredSectionNotification

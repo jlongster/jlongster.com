@@ -8,7 +8,12 @@ export async function loader({ params }) {
   let name = params['name'];
   let pages = name ? queries.getPagesWithTag(name) : queries.getPages();
 
-  pages = pages.filter(page => !(page.tags || []).includes('content'));
+  pages = pages.filter(page => {
+    const tags = page.tags || [];
+
+    // These are tags that we shouldn't show in the recent posts
+    return !(tags.includes('content') || tags.includes('experiment'));
+  });
 
   return { name, pages };
 }
@@ -22,17 +27,19 @@ export default function Links(props) {
           <>
             Pages linked to <strong>{name}</strong>
           </>
-        ) : (
-          'All posts'
-        )}
+        ) : null}
       </h1>
-      <AlignedList
-        items={pages.map(post => ({
-          url: post.url,
-          title: post.title,
-          description: formatDate(post.date),
-        }))}
-      />
+      {pages.length > 0 ? (
+        <AlignedList
+          items={pages.map(post => ({
+            url: post.url,
+            title: post.title,
+            description: formatDate(post.date),
+          }))}
+        />
+      ) : (
+        <div className="italic">None</div>
+      )}
     </Layout>
   );
 }
