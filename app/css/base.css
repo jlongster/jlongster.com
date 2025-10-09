@@ -19,13 +19,6 @@
   --color-bg: white;
 }
 
-
-@supports (color: color(display-p3 1 1 1)) {
-  @theme {
-    --color-accent: color(display-p3 1 0.569 0.048);
-  }
-}
-
 .dark-mode {
   --color-primary: #e8e8ff;
   --color-subdued: #a0a0d0;

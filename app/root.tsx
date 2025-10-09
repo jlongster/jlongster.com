@@ -40,8 +40,7 @@ export default function App() {
 
   const childData = matches.find(match => match.data?.theme)?.data;
   const theme = childData?.theme;
-  const bodyClassName =
-    theme === 'dark' ? 'dark-mode' : theme === 'light' ? 'light-mode' : '';
+  const bodyClassName = theme === 'dark' ? 'dark-mode' : 'light-mode';
 
   return (
     <html lang="en">
@@ -56,7 +55,7 @@ export default function App() {
           href="https://jlongster.com/feed.xml"
         />
       </head>
-      <body className="dark-mode">
+      <body className={bodyClassName}>
         <Outlet />
         {location.pathname.startsWith('/interactive') && <Scripts />}
 
@@ -80,7 +79,8 @@ gtag('config', 'G-8B9TD7JBEJ');
           </>
         )}
 
-        {/*<script src="/color-picker.js" type="module" />*/}
+        {/*<script src="/color-tool.js"></script>
+        <script src="/noise-tool.js"></script>*/}
       </body>
     </html>
   );
