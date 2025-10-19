@@ -8,7 +8,7 @@ import {
 } from '../db/queries';
 import { renderString } from '../md/render';
 import { formatDate } from '../page';
-import { Blocks } from '../blocks';
+import { Blocks, TableOfContents } from '../blocks';
 import { Layout, Footer, BareFooter } from '../layout';
 import { AlignedList } from '../AlignedList';
 import { XIcon } from '../icons/x';
@@ -146,9 +146,21 @@ export default function RenderPage(props) {
       minimal={minimal}
       toc={toc}
       page={page}
+      contentClassName={minimal ? '' : '!mt-[200px]'}
+      sidebar={
+        toc ? (
+          <div className="toc mr-8 mt-[200px] py-4 top-0 min-[951px]:sticky min-[951px]:overflow-auto min-[951px]:h-[100dvh] min-[951px]:w-[250px] min-[951px]:flex min-[951px]:flex-col [&_a]:text-inherit">
+            <div className="max-[950px]:hidden">
+              <div className="uncolored-links text-subdued leading-[1.35em] text-[length:13px]">
+                <TableOfContents toc={toc} pageid={page.url} />
+              </div>
+            </div>
+          </div>
+        ) : null
+      }
       footer={
         page.notes ? (
-          <BareFooter className="mt-[200px] mb-[150px] max-w-[900px] mx-auto flex justify-between">
+          <BareFooter className="mt-[0px] mb-[150px] max-w-[900px] mx-auto flex justify-between">
             <div
               className="max-w-[500px] text-sm text-subdued [&_p:first-of-type]:my-0 [&_p:last-of-type]:mb-0 [&_p]:my-3"
               dangerouslySetInnerHTML={{
@@ -188,12 +200,12 @@ export default function RenderPage(props) {
       }
     >
       {minimal ? null : (
-        <div className="post-header">
+        <div className="post-header mb-[70px]">
           <div className="[&_img]:max-w-full">
             <h1>{page.title}</h1>
             {page.subtitle && <h2>{page.subtitle}</h2>}
           </div>
-          <div className="text-[#818a92] text-[length:15px] mb-[25px]">
+          <div className="text-[#818a92] text-[length:15px]">
             {formatDate(page.date)}
           </div>
         </div>

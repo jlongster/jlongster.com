@@ -43,7 +43,7 @@ class InspectorDialog extends HTMLElement {
     header.appendChild(text);
 
     const edit = document.createElement('button');
-    edit.className = 'edit';
+    edit.className = 'edit action';
     edit.innerHTML = 'edit';
     edit.addEventListener('click', () => {
       const pageid = getPageId();
@@ -186,10 +186,12 @@ class InspectCode extends HTMLElement {
       return;
     }
 
-    const viewSource = document.createElement('button');
-    viewSource.className = 'view-source adornment';
-    viewSource.innerHTML = 'view source';
+    const viewSource = document.createElement('a');
+    viewSource.className = 'view-source action';
+    viewSource.textContent = 'view source';
+    viewSource.href = '#';
     viewSource.addEventListener('click', async e => {
+      e.preventDefault();
       const uuid = this.dataset['blockId'];
 
       let codeBlocks = codeBlockCache.get(uuid);

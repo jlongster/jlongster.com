@@ -80,7 +80,9 @@ gtag('config', 'G-8B9TD7JBEJ');
         )}
 
         {/*<script src="/color-tool.js"></script>
-        <script src="/noise-tool.js"></script>*/}
+        <script src="/noise-tool.js"></script>
+          */}
+        <script src="/element-mover.js"></script>
       </body>
     </html>
   );

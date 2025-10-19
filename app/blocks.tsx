@@ -66,6 +66,8 @@ export function Blocks({ blocks, pageid, sectionName }) {
         let shouldRenderCode = block.meta.show && shouldShowBlock;
         let shouldRenderInspector = !shouldRenderCode && !block.meta.embed;
 
+        console.log({ shouldRenderCode, shouldRenderInspector });
+
         switch (block.meta.lang) {
           case 'css':
             live = (
@@ -96,7 +98,7 @@ export function Blocks({ blocks, pageid, sectionName }) {
             const code = `
               let __inspector = document.createElement('inspect-code');
               __inspector.setAttribute('disabled', ${
-                shouldRenderInspector ? '"true"' : '"false"'
+                !shouldRenderInspector ? '"true"' : '"false"'
               });
               __inspector.disabled = ${!shouldRenderInspector};
               __inspector.dataset['blockId'] = "${block.uuid}";
@@ -198,17 +200,17 @@ export function Blocks({ blocks, pageid, sectionName }) {
                       __html: strippedHtml,
                     }}
                   />
+
+                  <a
+                    href={`/code-look/html/${pageid}/${block.uuid}`}
+                    target="_blank"
+                    className="edit action"
+                  >
+                    <span>edit</span>
+                  </a>
                 </div>
 
                 {live}
-
-                <a
-                  href={`/code-look/html/${pageid}/${block.uuid}`}
-                  target="_blank"
-                  className="edit"
-                >
-                  <span>edit</span>
-                </a>
               </div>
             </>
           );

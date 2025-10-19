@@ -1,6 +1,5 @@
 import * as queries from './db/queries';
 import { formatDate, PageList } from './page';
-import { TableOfContents } from './blocks';
 import { XIcon } from './icons/x';
 import { HomeIcon } from './icons/home';
 import { PostsIcon } from './icons/posts';
@@ -23,6 +22,7 @@ export function Layout({
   toc,
   page,
   minimal,
+  sidebar,
   footer,
 }) {
   const location = useLocation();
@@ -72,14 +72,16 @@ export function Layout({
       <div className="flex">
         <div
           className={
-            'flex-1 flex justify-center ' +
+            'flex-1 ' +
+              (!toc ? 'flex justify-center ' : 'ml-[80px] ') +
             (minimal
               ? ''
-              : 'justify-center max-[950px]:mt-5 max-[950px]:ml-0 max-[950px]:flex-col max-[950px]:px-[30px]')
+              : ' max-[950px]:mt-5 max-[950px]:flex-col max-[950px]:px-[30px] ')
           }
         >
           <main
             className={
+              'page-content ' +
               (minimal
                 ? ''
                 : 'mt-[130px] overflow-hidden w-[750px] max-[950px]:pl-0 max-[950px]:pr-0 max-[950px]:w-auto max-[950px]:max-w-full') +
@@ -91,16 +93,7 @@ export function Layout({
           </main>
         </div>
 
-        {toc ? (
-          <div className="min-[951px]:fixed min-[951px]:overflow-auto min-[951px]:max-h-[calc(100dvh-40px)] min-[951px]:w-[300px] min-[951px]:p-5 min-[951px]:flex-basis-auto min-[951px]:flex min-[951px]:flex-col min-[951px]:m-5 max-[950px]:fixed max-[950px]:flex-row max-[950px]:w-full max-[950px]:px-5 max-[950px]:gap-5 max-[950px]:border-b max-[950px]:border-[#e8e9ea] max-[950px]:bg-white [&_a]:text-inherit">
-            <div className="max-[950px]:hidden">
-              <SectionTitle>Table of contents</SectionTitle>
-              <div className="mt-3 leading-[1.35em] text-[length:15px]">
-                <TableOfContents toc={toc} pageid={page.url} />
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {sidebar}
       </div>
 
       {footer || <Footer />}
