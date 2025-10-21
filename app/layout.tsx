@@ -59,7 +59,7 @@ export function Layout({
               </div>
             </a>
           </div>
-          <div className="item">
+          <div className="item hidden sm:block">
             <a href="https://x.com/jlongster">
               <div className="title">
                 <XIcon className="!mr-[6px]" /> @jlongster
@@ -104,7 +104,7 @@ export function Layout({
 export function Footer({ children, className }) {
   return (
     <footer
-      className={`mx-auto mb-[170px] w-[600px] text-[15px] text-subdued ${className}`}
+      className={`mx-auto px-[20px] mb-[170px] max-w-[600px] text-[15px] text-subdued ${className}`}
     >
       {children}
 

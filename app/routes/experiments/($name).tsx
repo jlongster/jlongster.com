@@ -46,13 +46,7 @@ export default function Links(props) {
   return (
     <Layout name="experiments" minimal>
       <div
-        className="mt-[130px] mx-[100px]"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '20px',
-          gridAutoFlow: 'dense',
-        }}
+        className="mt-[130px] mx-[100px] grid grid-cols-1 md:grid-cols-3 gap-5 grid-flow-dense"
       >
         {pages.map(page => (
           <Experiment key={page.id} page={page} />
