@@ -106,6 +106,22 @@ h2 {
   line-height: 1.2em;
 }
 
+h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  margin-top: 35px;
+  line-height: 1.2em;
+}
+
+h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  margin-top: 30px;
+  line-height: 1.2em;
+}
+
 header {
   margin-bottom: 10px;
   padding-top: 20px;
@@ -129,6 +145,29 @@ pre {
   overflow: auto;
   margin: 2em 0;
   @apply object-contain;
+}
+
+.page-content figure {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.page-content figure img {
+  display: inline;
+}
+
+@media (min-width: 801px) {
+  .page-content figure img {
+    max-width: 65%;
+  }
+}
+
+.page-content figcaption {
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.5em;
+  width: 75%;
+  margin: 0 auto;
 }
 
 /* demos */
