@@ -8,5 +8,6 @@ node_modules
 .env
 data/site
 /.cloudflare.env
+/.sheets.env
 
 private-key.key

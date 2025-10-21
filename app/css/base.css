@@ -175,3 +175,11 @@ pre {
 .demo-full-screen {
   @apply flex h-screen justify-center items-center flex-col bg-center bg-cover;
 }
+
+.newsletter p {
+  margin: 1.5em 0;
+}
+
+.newsletter main {
+  overflow: visible
+}
