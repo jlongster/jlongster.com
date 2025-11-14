@@ -66,8 +66,6 @@ export function Blocks({ blocks, pageid, sectionName }) {
         let shouldRenderCode = block.meta.show && shouldShowBlock;
         let shouldRenderInspector = !shouldRenderCode && !block.meta.embed;
 
-        console.log({ shouldRenderCode, shouldRenderInspector });
-
         switch (block.meta.lang) {
           case 'css':
             live = (

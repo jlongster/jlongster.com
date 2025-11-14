@@ -11,12 +11,12 @@ async function startServer() {
   const app = express();
   const port = process.env.PORT || 3000;
 
-  // Create a histogram to track request duration
-  const httpRequestDuration = new Histogram({
-    name: 'http_request_duration_seconds',
-    help: 'Duration of HTTP requests in seconds',
+  // Create a histogram to track response size
+  const httpResponseSize = new Histogram({
+    name: 'http_response_size_bytes',
+    help: 'Size of HTTP responses in bytes',
     labelNames: ['method', 'route', 'status_code'],
-    buckets: [0.1, 0.5, 1, 2, 5, 10],
+    buckets: [100, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   });
 
   // Metrics endpoint for Prometheus
@@ -39,17 +39,15 @@ async function startServer() {
     express.static('build/client/assets', { immutable: true, maxAge: '1y' }),
   );
 
-  // Timing middleware for all requests
+  // Response size tracking middleware for all requests
   app.use((req, res, next) => {
-    const start = Date.now();
-
     res.on('finish', () => {
-      const duration = (Date.now() - start) / 1000;
       const route = req.path || 'unknown';
+      const size = res.get('Content-Length') || 0;
 
-      httpRequestDuration
+      httpResponseSize
         .labels(req.method, route, res.statusCode.toString())
-        .observe(duration);
+        .observe(Number(size));
     });
 
     next();
