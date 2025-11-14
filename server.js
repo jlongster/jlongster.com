@@ -55,6 +55,9 @@ async function startServer() {
     express.static('build/client/assets', { immutable: true, maxAge: '1y' }),
   );
 
+  // Serve public files (non-assets)
+  app.use(express.static('build/client', { maxAge: '1h' }));
+
   // Response size tracking middleware for all requests
   app.use((req, res, next) => {
     let responseSize = 0;
