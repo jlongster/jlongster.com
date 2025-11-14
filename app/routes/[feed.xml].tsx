@@ -14,7 +14,7 @@ function start() {
 
   return function record(str) {
     let now = Date.now();
-    console.log('[PERF]', str, now - latest);
+    // console.log('[PERF]', str, now - latest);
     latest = now;
     return null;
   };
@@ -89,6 +89,10 @@ export function loader({ request }) {
 
   let headers = new Headers();
   headers.set('Content-Type', 'application/xml');
+  headers.set(
+    'CDN-Cache-Control',
+    'max-age=3600, stale-while-revalidate=3, stale-if-error=86400',
+  );
 
   return new Response(
     '<?xml version="1.0" encoding="UTF-8"?>\n' + renderToStaticMarkup(feed),

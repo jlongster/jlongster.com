@@ -40,7 +40,7 @@ export default function handleRequest(
     return fetch('https://jlongster-static.pages.dev/future-sql-web/', {
       headers: { 'Accept-Encoding': request.headers['Accept-Encoding'] },
     });
-  } else if(
+  } else if (
     pathname === '/actual-open-source' ||
     pathname === '/actual-open-source/'
   ) {
@@ -55,7 +55,7 @@ export default function handleRequest(
 
   responseHeaders.set('Content-Type', 'text/html');
 
-  if (url.pathname.startsWith('/code-look/')) {
+  if (url.pathname.startsWith('/code-look/') || url.pathname === '/metrics') {
     // Never cache the live coding pages
     responseHeaders.set('CDN-Cache-Control', 'max-age=0, no-store');
   } else if (process.env.NODE_ENV !== 'production') {

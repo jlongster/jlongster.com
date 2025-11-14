@@ -19,6 +19,21 @@ async function startServer() {
     buckets: [100, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   });
 
+  // Track the current day and reset metrics at midnight
+  let currentDay = new Date().toDateString();
+
+  const checkAndResetDaily = () => {
+    const today = new Date().toDateString();
+    if (today !== currentDay) {
+      console.log('New day detected, resetting metrics');
+      currentDay = today;
+      httpResponseSize.reset();
+    }
+  };
+
+  // Check for day change every minute
+  setInterval(checkAndResetDaily, 60000);
+
   // Metrics endpoint for Prometheus
   app.get('/metrics', async (req, res) => {
     try {
@@ -41,13 +56,36 @@ async function startServer() {
 
   // Response size tracking middleware for all requests
   app.use((req, res, next) => {
+    let responseSize = 0;
+
+    // Intercept write method
+    const originalWrite = res.write;
+    const originalEnd = res.end;
+
+    res.write = function (chunk, ...args) {
+      if (chunk) {
+        responseSize += Buffer.byteLength(chunk);
+      }
+      return originalWrite.apply(res, [chunk, ...args]);
+    };
+
+    res.end = function (chunk, ...args) {
+      if (chunk) {
+        responseSize += Buffer.byteLength(chunk);
+      }
+      return originalEnd.apply(res, [chunk, ...args]);
+    };
+
     res.on('finish', () => {
+      checkAndResetDaily();
+
       const route = req.path || 'unknown';
-      const size = res.get('Content-Length') || 0;
+
+      console.log('size', route, responseSize);
 
       httpResponseSize
         .labels(req.method, route, res.statusCode.toString())
-        .observe(Number(size));
+        .observe(responseSize);
     });
 
     next();
