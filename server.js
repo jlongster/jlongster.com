@@ -38,6 +38,7 @@ async function startServer() {
   app.get('/metrics', async (req, res) => {
     try {
       res.set('Content-Type', register.contentType);
+      res.set('CDN-Cache-Control', 'max-age=0, no-store');
       res.end(await register.metrics());
     } catch (ex) {
       res.status(500).end(ex);

@@ -131,6 +131,25 @@ header .context {
   font-style: italic;
 }
 
+ul li {
+  list-style: disc;
+}
+
+ol li {
+  list-style: decimal;
+}
+
+ul li, ol li {
+  margin-left: 25px;
+}
+
+blockquote {
+  border-left: 2px solid var(--color-accent);
+  padding-left: 25px;
+  font-size: 16px;
+  line-height: 1.7em;
+}
+
 code {
   font-size: 16px;
 }

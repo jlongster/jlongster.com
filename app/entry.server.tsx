@@ -55,7 +55,7 @@ export default function handleRequest(
 
   responseHeaders.set('Content-Type', 'text/html');
 
-  if (url.pathname.startsWith('/code-look/') || url.pathname === '/metrics') {
+  if (url.pathname.startsWith('/code-look/')) {
     // Never cache the live coding pages
     responseHeaders.set('CDN-Cache-Control', 'max-age=0, no-store');
   } else if (process.env.NODE_ENV !== 'production') {
