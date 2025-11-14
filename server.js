@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequestHandler } from '@remix-run/express';
 import { installGlobals } from '@remix-run/node';
 import express from 'express';
-import { register, Histogram } from 'prom-client';
+import { register, Histogram, Counter } from 'prom-client';
 
 installGlobals();
 
@@ -19,6 +19,13 @@ async function startServer() {
     buckets: [100, 1000, 5000, 10000, 50000, 100000, 500000, 1000000],
   });
 
+  // Create a counter to track request count
+  const httpRequestCount = new Counter({
+    name: 'http_request_count_total',
+    help: 'Total count of HTTP requests',
+    labelNames: ['method', 'route', 'status_code'],
+  });
+
   // Track the current day and reset metrics at midnight
   let currentDay = new Date().toDateString();
 
@@ -28,6 +35,7 @@ async function startServer() {
       console.log('New day detected, resetting metrics');
       currentDay = today;
       httpResponseSize.reset();
+      httpRequestCount.reset();
     }
   };
 
@@ -87,9 +95,16 @@ async function startServer() {
 
       console.log('size', route, responseSize);
 
-      httpResponseSize
-        .labels(req.method, route, res.statusCode.toString())
-        .observe(responseSize);
+      // Ignore 404 responses
+      if (res.statusCode !== 404) {
+        httpResponseSize
+          .labels(req.method, route, res.statusCode.toString())
+          .observe(responseSize);
+
+        httpRequestCount
+          .labels(req.method, route, res.statusCode.toString())
+          .inc(1);
+      }
     });
 
     next();
