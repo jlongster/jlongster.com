@@ -250,6 +250,27 @@ export function Blocks({ blocks, pageid, sectionName }) {
         );
       }
 
+      // Wrap markdown images in anchor tags
+      if (block.md.startsWith('![')) {
+        // Extract the src from the img tag
+        const srcMatch = strippedHtml.match(/src="([^"]+)"/);
+        if (srcMatch) {
+          const imgSrc = srcMatch[1];
+          const wrappedHtml = strippedHtml.replace(
+            /<img([^>]*)>/,
+            `<a href="${imgSrc}" target="_blank"><img$1></a>`
+          );
+          return (
+            <Component
+              key={idx}
+              dangerouslySetInnerHTML={{
+                __html: wrappedHtml,
+              }}
+            />
+          );
+        }
+      }
+
       return (
         <Component
           key={idx}

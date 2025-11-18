@@ -13,6 +13,11 @@ import * as indexer from './indexer';
 const CONN_CACHE = new LRUCache({ max: 51 });
 
 export function write(url, attrs, blocks) {
+  // Skip writing if development flag is set and not in development mode
+  if (attrs.development && process.env.NODE_ENV !== 'development') {
+    return;
+  }
+
   let id = attrs.id;
   const conn = ds.create_conn(schema);
 
@@ -32,6 +37,7 @@ export function write(url, attrs, blocks) {
     ':post/theme': attrs['theme'] || '',
     ':post/gif': attrs['gif'] || '',
     ':post/notes': attrs['notes'] || '',
+    ':post/development': !!attrs.development,
     ...(attrs['icon'] ? { ':post/icon': attrs['icon'] } : null),
   };
 

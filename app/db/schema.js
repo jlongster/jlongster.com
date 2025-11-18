@@ -7,6 +7,7 @@ export const pageSchema = {
   ':post/tags': { ':db/cardinality': ':db.cardinality/many' },
   ':post/date': {},
   ':post/featured-img': {},
+  ':post/development': {},
 };
 
 export const schema = {
