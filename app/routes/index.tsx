@@ -18,8 +18,10 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-[#fcfbf9] p-8 overflow-hidden">
+      <script src="/paper-bend.js" />
+      <script src="/paper-position-tool.js" />
       <div className="max-w-6xl mx-auto relative min-h-[800px] flex flex-wrap justify-center content-start gap-8 py-20">
-        {posts.map((post: any, index: number) => {
+        {posts.slice(0, 1).map((post: any, index: number) => {
           // Deterministic pseudo-random rotation based on index
           const rotation = ((index * 137.5) % 30) - 15;
 

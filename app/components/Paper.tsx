@@ -26,11 +26,12 @@ export function Paper({
   return (
     <a
       href={url}
-      className={`uncolored-link block relative text-black no-underline transition-transform hover:scale-105 hover:z-10 ${className}`}
+      className={`uncolored-link paper-element block relative text-black no-underline ${className}`}
       style={{
         width: '200px',
         height: '200px',
         transform: `rotate(${rotation}deg)`,
+        transformStyle: 'preserve-3d',
       }}
     >
       {/* Paper with torn edge as visible path */}
@@ -93,7 +94,7 @@ export function Paper({
           padding: '20px',
         }}
       >
-        <div className="font-bold text-lg mb-4 leading-tight">{title}</div>
+        <div className="font-bold text-lg mb-4 leading-tight">Whoa</div>
 
         {/* Tiny illegible handwriting effect */}
         <svg
