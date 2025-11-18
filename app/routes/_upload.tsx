@@ -17,8 +17,6 @@ const publicKey = fs.readFileSync(join(rootPath(), 'public-key.key'), 'utf8');
 // curl > remix
 
 export function loader({ request }) {
-  console.log('Loader called with method:', request.method);
-
   return new Response('', {
     status: 200,
     headers: {
