@@ -23,17 +23,9 @@ export function Paper({
     return (x - Math.floor(x)) * range;
   };
 
-  return (
-    <a
-      href={url}
-      className={`uncolored-link paper-element block relative text-black no-underline ${className}`}
-      style={{
-        width: '200px',
-        height: '200px',
-        transform: `rotate(${rotation}deg)`,
-        transformStyle: 'preserve-3d',
-      }}
-    >
+  // Create the paper content to be reused across all slices
+  const paperContent = (
+    <>
       {/* Paper with torn edge as visible path */}
       <svg
         width="200"
@@ -78,7 +70,7 @@ export function Paper({
                         L 2.4,16
                         C 3,10 1.6,6 3,4.4
                         Z`}
-          fill="#fdfbf7"
+          fill="white"
           stroke="#1a1a1a"
           strokeWidth="3"
           opacity="1"
@@ -93,6 +85,7 @@ export function Paper({
           height: '100%',
           padding: '20px',
         }}
+        className="bg-transparent"
       >
         <div className="font-bold text-lg mb-4 leading-tight">Whoa</div>
 
@@ -175,6 +168,47 @@ export function Paper({
           })}
         </svg>
       </div>
+    </>
+  );
+
+  const numSlices = 10;
+  const slices = Array.from({ length: numSlices }, (_, i) => i);
+
+  return (
+    <a
+      href="#"
+      className={`uncolored-link paper-element block relative text-black no-underline ${className}`}
+      style={{
+        width: '200px',
+        height: '200px',
+        transform: `rotate(${rotation}deg)`,
+        transformStyle: 'preserve-3d',
+        zIndex: 10,
+      }}
+    >
+      {slices.map(i => {
+        const sliceHeight = 200 / numSlices;
+        const startY = i * sliceHeight;
+        const endY = (i + 1) * sliceHeight;
+
+        return (
+          <div
+            key={i}
+            className={`paper-slice paper-slice-${i}`}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '200px',
+              height: '200px',
+              clipPath: `polygon(0 ${startY}px, 200px ${startY}px, 200px ${endY}px, 0 ${endY}px)`,
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {paperContent}
+          </div>
+        );
+      })}
     </a>
   );
 }
