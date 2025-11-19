@@ -72,6 +72,9 @@
 
       // Fade-in configuration (in milliseconds, default to 500ms)
       this.fadeInDuration = animationData.fadeInDuration !== undefined ? animationData.fadeInDuration : 500;
+
+      // Transform state
+      this.scale = 1;
     }
 
     start() {
@@ -191,22 +194,13 @@
       // Calculate slice points from bezier curves
       this.calculateSlicePoints(leftCurvePoints, rightCurvePoints);
 
-      // Interpolate scale and apply flip
-      let scale = 1;
-      let flip = false;
+      // Interpolate scale
+      this.scale = 1;
       if (lowerKf.scale !== undefined && upperKf.scale !== undefined) {
-        scale = this.lerp(lowerKf.scale, upperKf.scale, t);
-      }
-      if (lowerKf.flip !== undefined) {
-        flip = lowerKf.flip;
+        this.scale = this.lerp(lowerKf.scale, upperKf.scale, t);
       }
 
-      // Apply flip and scale transform to paper element
-      const rotation = flip ? 180 : 0;
-      this.paperElement.style.transformOrigin = 'center center';
-      this.paperElement.style.transform = `rotate(${rotation}deg) scale(${scale})`;
-
-      // Apply transforms to all slices
+      // Apply transforms to all slices (scale is handled in updateSliceTransform)
       this.updateAllTransforms();
     }
 
@@ -265,7 +259,19 @@
       );
       if (!sliceElement) return;
 
-      const corners = this.getSliceCorners(sliceIndex);
+      let corners = this.getSliceCorners(sliceIndex);
+
+      // Apply scale to destination points around Paper's local center
+      if (this.scale !== 1) {
+        const centerX = 125; // Center of 250px paper width (local coordinates)
+        const centerY = 150; // Center of 300px paper height (local coordinates)
+        corners = {
+          tl: this.scalePoint(corners.tl, centerX, centerY, this.scale),
+          tr: this.scalePoint(corners.tr, centerX, centerY, this.scale),
+          bl: this.scalePoint(corners.bl, centerX, centerY, this.scale),
+          br: this.scalePoint(corners.br, centerX, centerY, this.scale),
+        };
+      }
 
       const sliceHeight = 300 / numSlices;
       const startY = sliceIndex * sliceHeight;
@@ -282,6 +288,14 @@
 
       sliceElement.style.transform = `matrix3d(${matrix.join(',')})`;
       sliceElement.style.transformOrigin = '0 0';
+    }
+
+    // Scale a point around a center point
+    scalePoint(point, cx, cy, scale) {
+      return {
+        x: cx + (point.x - cx) * scale,
+        y: cy + (point.y - cy) * scale,
+      };
     }
 
     getSliceCorners(sliceIndex) {

@@ -15,7 +15,6 @@
   let updateScheduled = false;
   let overlayOffsetX = 0;     // Track overlay position offset from element
   let overlayOffsetY = 0;
-  let flip = false;           // Flip (rotate 180deg)
   let scale = 1;              // Scale factor
 
   // Animation state
@@ -317,26 +316,6 @@
       }
     });
 
-    // Flip checkbox
-    const flipLabel = document.createElement('label');
-    flipLabel.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 14px;
-      color: #374151;
-    `;
-    flipLabel.innerHTML = `
-      <input type="checkbox" id="flip-checkbox" ${flip ? 'checked' : ''}
-        style="cursor: pointer;">
-      Flip
-    `;
-    const flipCheckbox = flipLabel.querySelector('#flip-checkbox');
-    flipCheckbox.addEventListener('change', (e) => {
-      flip = e.target.checked;
-      applyTransform();
-    });
-
     // Scale input
     const scaleLabel = document.createElement('label');
     scaleLabel.style.cssText = `
@@ -386,7 +365,6 @@
     controls.appendChild(playerModeBtn);
     controls.appendChild(timePerKeyframeLabel);
     controls.appendChild(playbackFPSLabel);
-    controls.appendChild(flipLabel);
     controls.appendChild(scaleLabel);
     controls.appendChild(timeDisplay);
     controls.appendChild(frameDisplay);
@@ -495,7 +473,6 @@
       rightCurve: rightCurvePoints.map(p => ({ x: p.x, y: p.y })),
       overlayOffsetX: overlayOffsetX,
       overlayOffsetY: overlayOffsetY,
-      flip: flip,
       scale: scale,
     };
 
@@ -549,12 +526,7 @@
       overlay.style.top = (rect.top + overlayOffsetY) + 'px';
     }
 
-    // Restore flip and scale
-    if (kf.flip !== undefined) {
-      flip = kf.flip;
-      const flipCheckbox = document.getElementById('flip-checkbox');
-      if (flipCheckbox) flipCheckbox.checked = flip;
-    }
+    // Restore scale
     if (kf.scale !== undefined) {
       scale = kf.scale;
       const scaleInput = document.getElementById('scale-input');
@@ -568,13 +540,11 @@
     applyTransform();
   }
 
-  // Apply flip and scale transform to paper element
+  // Apply flip and scale (now handled by rotating/scaling destination points)
   function applyTransform() {
-    if (!paperElement) return;
-
-    const rotation = flip ? 180 : 0;
-    paperElement.style.transformOrigin = 'center center';
-    paperElement.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+    // Transforms are now applied by modifying the destination points in updateSliceTransform
+    // Just trigger a redraw
+    updateAllTransforms();
   }
 
   // Linear interpolation helper
@@ -654,12 +624,9 @@
       overlay.style.top = (rect.top + overlayOffsetY) + 'px';
     }
 
-    // Interpolate scale and apply flip
+    // Interpolate scale
     if (lowerKf.scale !== undefined && upperKf.scale !== undefined) {
       scale = lerp(lowerKf.scale, upperKf.scale, t);
-    }
-    if (lowerKf.flip !== undefined) {
-      flip = lowerKf.flip; // Use lower keyframe's flip value (no interpolation for boolean)
     }
 
     // Update visuals
@@ -991,7 +958,19 @@
     const sliceElement = document.querySelector(`.paper-slice-${sliceIndex}`);
     if (!sliceElement) return;
 
-    const corners = getSliceCorners(sliceIndex);
+    let corners = getSliceCorners(sliceIndex);
+
+    // Apply scale to destination points around Paper's local center
+    if (scale !== 1) {
+      const centerX = 125; // Center of 250px paper width (local coordinates)
+      const centerY = 150; // Center of 300px paper height (local coordinates)
+      corners = {
+        tl: scalePoint(corners.tl, centerX, centerY, scale),
+        tr: scalePoint(corners.tr, centerX, centerY, scale),
+        bl: scalePoint(corners.bl, centerX, centerY, scale),
+        br: scalePoint(corners.br, centerX, centerY, scale),
+      };
+    }
 
     const sliceHeight = 300 / numSlices;
     const startY = sliceIndex * sliceHeight;
@@ -1008,6 +987,14 @@
 
     sliceElement.style.transform = `matrix3d(${matrix.join(',')})`;
     sliceElement.style.transformOrigin = '0 0';
+  }
+
+  // Scale a point around a center point
+  function scalePoint(point, cx, cy, scale) {
+    return {
+      x: cx + (point.x - cx) * scale,
+      y: cy + (point.y - cy) * scale,
+    };
   }
 
   function getPerspectiveTransform(src, dst) {
