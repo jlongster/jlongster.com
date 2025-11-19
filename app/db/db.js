@@ -38,6 +38,7 @@ export function write(url, attrs, blocks) {
     ':post/gif': attrs['gif'] || '',
     ':post/notes': attrs['notes'] || '',
     ':post/development': !!attrs.development,
+    ':post/abstract': attrs['abstract'] || '',
     ...(attrs['icon'] ? { ':post/icon': attrs['icon'] } : null),
   };
 

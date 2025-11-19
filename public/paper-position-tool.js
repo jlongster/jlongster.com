@@ -3,7 +3,8 @@
   const numSlices = 10;
   const numLines = numSlices + 1; // 11 horizontal lines
   const totalKeyframes = 60;
-  const fps = 10; // 10 frames per second
+  let timePerKeyframe = 0.1; // Time in seconds that each keyframe represents (e.g., 0.1s = each keyframe is 0.1 seconds apart)
+  let playbackFPS = 30; // Actual playback framerate (frames per second)
 
   let paperElement = null;
   let overlay = null;
@@ -12,12 +13,18 @@
   let slicePoints = [];       // Calculated points for each slice edge
   let dragging = null;
   let updateScheduled = false;
+  let overlayOffsetX = 0;     // Track overlay position offset from element
+  let overlayOffsetY = 0;
+  let flip = false;           // Flip (rotate 180deg)
+  let scale = 1;              // Scale factor
 
   // Animation state
   let keyframes = Array(totalKeyframes).fill(null);
   let currentKeyframe = 0;
+  let currentPlaybackFrame = 0; // Current frame in playback (can be fractional for interpolation)
   let isPlaying = false;
   let animationInterval = null;
+  let playerMode = false; // Toggle to hide controls and show only animation
 
   // UI elements
   let timelineContainer = null;
@@ -26,16 +33,16 @@
   // Initialize bezier control points
   leftCurvePoints = [
     { x: 0, y: 0, element: null },
-    { x: 0, y: 66.67, element: null },
-    { x: 0, y: 133.33, element: null },
+    { x: 0, y: 100, element: null },
     { x: 0, y: 200, element: null },
+    { x: 0, y: 300, element: null },
   ];
 
   rightCurvePoints = [
-    { x: 200, y: 0, element: null },
-    { x: 200, y: 66.67, element: null },
-    { x: 200, y: 133.33, element: null },
-    { x: 200, y: 200, element: null },
+    { x: 250, y: 0, element: null },
+    { x: 250, y: 100, element: null },
+    { x: 250, y: 200, element: null },
+    { x: 250, y: 300, element: null },
   ];
 
   function init() {
@@ -45,10 +52,29 @@
       return;
     }
 
+    // Ensure all slices are visible (disable any fade-in effects)
+    const slices = paperElement.querySelectorAll('.paper-slice');
+    slices.forEach(slice => {
+      slice.style.opacity = '1';
+    });
+
     createOverlay();
     createTimelineUI();
     calculateSlicePoints();
-    updateAllTransforms();
+    // Don't apply transforms on init - let paper render normally
+    // updateAllTransforms();
+    attachSliceDragListeners();
+  }
+
+  function attachSliceDragListeners() {
+    // Make all paper slices draggable
+    for (let i = 0; i < numSlices; i++) {
+      const slice = document.querySelector(`.paper-slice-${i}`);
+      if (slice) {
+        slice.style.cursor = 'move';
+        slice.addEventListener('mousedown', startWholeDrag);
+      }
+    }
   }
 
   function createOverlay() {
@@ -56,8 +82,8 @@
     overlay = document.createElement('div');
     overlay.style.cssText = `
       position: absolute;
-      width: 200px;
-      height: 200px;
+      width: 250px;
+      height: 300px;
       pointer-events: none;
       z-index: 1000;
       overflow: visible;
@@ -66,6 +92,8 @@
     const rect = paperElement.getBoundingClientRect();
     overlay.style.top = rect.top + 'px';
     overlay.style.left = rect.left + 'px';
+    overlayOffsetX = 0;
+    overlayOffsetY = 0;
 
     // Create SVG for curves and outlines
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -171,6 +199,41 @@
     `;
     clearButton.onclick = clearCurrentKeyframe;
 
+    // Export button
+    const exportButton = document.createElement('button');
+    exportButton.textContent = 'Export';
+    exportButton.style.cssText = `
+      padding: 8px 16px;
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    `;
+    exportButton.onclick = exportAnimation;
+
+    // Import button
+    const importButton = document.createElement('button');
+    importButton.textContent = 'Import';
+    importButton.style.cssText = `
+      padding: 8px 16px;
+      background: #06b6d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    `;
+    importButton.onclick = () => importFileInput.click();
+
+    // Hidden file input for import
+    const importFileInput = document.createElement('input');
+    importFileInput.type = 'file';
+    importFileInput.accept = '.json';
+    importFileInput.style.display = 'none';
+    importFileInput.onchange = importAnimation;
+
     // Transparency toggle button
     let isTransparent = false;
     const transparencyBtn = document.createElement('button');
@@ -191,20 +254,141 @@
       transparencyBtn.style.background = isTransparent ? '#ef4444' : '#6b7280';
     };
 
+    // Player mode toggle button
+    const playerModeBtn = document.createElement('button');
+    playerModeBtn.textContent = 'Editor Mode';
+    playerModeBtn.style.cssText = `
+      padding: 8px 16px;
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    `;
+    playerModeBtn.onclick = () => {
+      playerMode = !playerMode;
+      togglePlayerMode();
+      playerModeBtn.textContent = playerMode ? 'Player Mode' : 'Editor Mode';
+      playerModeBtn.style.background = playerMode ? '#10b981' : '#8b5cf6';
+    };
+
+    // Time per keyframe input
+    const timePerKeyframeLabel = document.createElement('label');
+    timePerKeyframeLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: #374151;
+    `;
+    timePerKeyframeLabel.innerHTML = `
+      Time/Keyframe (s):
+      <input type="number" id="time-per-keyframe" value="${timePerKeyframe}" min="0.01" max="10" step="0.1"
+        style="width: 60px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;">
+    `;
+    const timePerKeyframeInput = timePerKeyframeLabel.querySelector('#time-per-keyframe');
+    timePerKeyframeInput.addEventListener('change', (e) => {
+      timePerKeyframe = parseFloat(e.target.value);
+      updateTimelineUI(); // Update time display when time changes
+    });
+
+    // Playback FPS input
+    const playbackFPSLabel = document.createElement('label');
+    playbackFPSLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: #374151;
+    `;
+    playbackFPSLabel.innerHTML = `
+      Playback FPS:
+      <input type="number" id="playback-fps" value="${playbackFPS}" min="0.01" max="120" step="0.1"
+        style="width: 60px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;">
+    `;
+    const playbackFPSInput = playbackFPSLabel.querySelector('#playback-fps');
+    playbackFPSInput.addEventListener('change', (e) => {
+      playbackFPS = parseFloat(e.target.value);
+      // Restart animation with new FPS if playing
+      if (isPlaying) {
+        stopAnimation();
+        startAnimation();
+      }
+    });
+
+    // Flip checkbox
+    const flipLabel = document.createElement('label');
+    flipLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: #374151;
+    `;
+    flipLabel.innerHTML = `
+      <input type="checkbox" id="flip-checkbox" ${flip ? 'checked' : ''}
+        style="cursor: pointer;">
+      Flip
+    `;
+    const flipCheckbox = flipLabel.querySelector('#flip-checkbox');
+    flipCheckbox.addEventListener('change', (e) => {
+      flip = e.target.checked;
+      applyTransform();
+    });
+
+    // Scale input
+    const scaleLabel = document.createElement('label');
+    scaleLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: #374151;
+    `;
+    scaleLabel.innerHTML = `
+      Scale:
+      <input type="number" id="scale-input" value="${scale}" min="0.1" max="5" step="0.1"
+        style="width: 60px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;">
+    `;
+    const scaleInput = scaleLabel.querySelector('#scale-input');
+    scaleInput.addEventListener('change', (e) => {
+      scale = parseFloat(e.target.value);
+      applyTransform();
+    });
+
+    // Time display
+    const timeDisplay = document.createElement('span');
+    timeDisplay.id = 'time-display';
+    timeDisplay.style.cssText = `
+      margin-left: auto;
+      font-weight: 500;
+      color: #374151;
+      font-family: monospace;
+    `;
+    timeDisplay.textContent = `Time: 0.00s / 0.00s`;
+
     // Current frame display
     const frameDisplay = document.createElement('span');
     frameDisplay.id = 'frame-display';
     frameDisplay.style.cssText = `
-      margin-left: auto;
       font-weight: 500;
       color: #374151;
     `;
-    frameDisplay.textContent = `Frame: ${currentKeyframe + 1}/${totalKeyframes}`;
+    frameDisplay.textContent = `Keyframe: ${currentKeyframe + 1} of ${totalKeyframes}`;
 
     controls.appendChild(playButton);
     controls.appendChild(saveButton);
     controls.appendChild(clearButton);
+    controls.appendChild(exportButton);
+    controls.appendChild(importButton);
     controls.appendChild(transparencyBtn);
+    controls.appendChild(playerModeBtn);
+    controls.appendChild(timePerKeyframeLabel);
+    controls.appendChild(playbackFPSLabel);
+    controls.appendChild(flipLabel);
+    controls.appendChild(scaleLabel);
+    controls.appendChild(timeDisplay);
     controls.appendChild(frameDisplay);
 
     // Timeline track
@@ -260,7 +444,35 @@
 
     const frameDisplay = document.getElementById('frame-display');
     if (frameDisplay) {
-      frameDisplay.textContent = `Frame: ${currentKeyframe + 1}/${totalKeyframes}`;
+      frameDisplay.textContent = `Keyframe: ${currentKeyframe + 1} of ${totalKeyframes}`;
+    }
+
+    // Update time display
+    const timeDisplay = document.getElementById('time-display');
+    if (timeDisplay) {
+      // Find last keyframe with data
+      let lastKeyframeIndex = -1;
+      for (let i = totalKeyframes - 1; i >= 0; i--) {
+        if (keyframes[i]) {
+          lastKeyframeIndex = i;
+          break;
+        }
+      }
+
+      // Calculate total time based on last keyframe
+      const totalTime = lastKeyframeIndex >= 0 ? (lastKeyframeIndex + 1) * timePerKeyframe : 0;
+
+      // Calculate current time
+      let currentTime;
+      if (isPlaying) {
+        // When playing, use playback frame position
+        currentTime = (currentPlaybackFrame / playbackFPS);
+      } else {
+        // When not playing, use current keyframe
+        currentTime = currentKeyframe * timePerKeyframe;
+      }
+
+      timeDisplay.textContent = `Time: ${currentTime.toFixed(2)}s / ${totalTime.toFixed(2)}s`;
     }
   }
 
@@ -281,12 +493,36 @@
     keyframes[currentKeyframe] = {
       leftCurve: leftCurvePoints.map(p => ({ x: p.x, y: p.y })),
       rightCurve: rightCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      overlayOffsetX: overlayOffsetX,
+      overlayOffsetY: overlayOffsetY,
+      flip: flip,
+      scale: scale,
     };
+
+    // Automatically advance to next keyframe slot
+    currentKeyframe = (currentKeyframe + 1) % totalKeyframes;
+
+    // Load the next keyframe if it exists, otherwise keep current state
+    if (keyframes[currentKeyframe]) {
+      loadKeyframe(currentKeyframe);
+    }
+
     updateTimelineUI();
   }
 
   function clearCurrentKeyframe() {
-    keyframes[currentKeyframe] = null;
+    // Shift all keyframes after the current one down by one slot
+    for (let i = currentKeyframe; i < totalKeyframes - 1; i++) {
+      keyframes[i] = keyframes[i + 1];
+    }
+    // Clear the last slot
+    keyframes[totalKeyframes - 1] = null;
+
+    // Load the keyframe at the current position (which is now the one that was after it)
+    if (keyframes[currentKeyframe]) {
+      loadKeyframe(currentKeyframe);
+    }
+
     updateTimelineUI();
   }
 
@@ -304,10 +540,134 @@
       p.y = kf.rightCurve[i].y;
     });
 
+    // Restore overlay offset
+    if (kf.overlayOffsetX !== undefined && kf.overlayOffsetY !== undefined) {
+      overlayOffsetX = kf.overlayOffsetX;
+      overlayOffsetY = kf.overlayOffsetY;
+      const rect = paperElement.getBoundingClientRect();
+      overlay.style.left = (rect.left + overlayOffsetX) + 'px';
+      overlay.style.top = (rect.top + overlayOffsetY) + 'px';
+    }
+
+    // Restore flip and scale
+    if (kf.flip !== undefined) {
+      flip = kf.flip;
+      const flipCheckbox = document.getElementById('flip-checkbox');
+      if (flipCheckbox) flipCheckbox.checked = flip;
+    }
+    if (kf.scale !== undefined) {
+      scale = kf.scale;
+      const scaleInput = document.getElementById('scale-input');
+      if (scaleInput) scaleInput.value = scale;
+    }
+
     updateControlPointPositions();
     calculateSlicePoints();
     drawCurves();
     updateAllTransforms();
+    applyTransform();
+  }
+
+  // Apply flip and scale transform to paper element
+  function applyTransform() {
+    if (!paperElement) return;
+
+    const rotation = flip ? 180 : 0;
+    paperElement.style.transformOrigin = 'center center';
+    paperElement.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+  }
+
+  // Linear interpolation helper
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  // Find the next non-null keyframe after the given index
+  function findNextKeyframe(startIndex) {
+    for (let i = startIndex; i < totalKeyframes; i++) {
+      if (keyframes[i]) return i;
+    }
+    // If no keyframe found, wrap to beginning
+    for (let i = 0; i < startIndex; i++) {
+      if (keyframes[i]) return i;
+    }
+    return null; // No keyframes at all
+  }
+
+  // Find the previous non-null keyframe before the given index
+  function findPreviousKeyframe(startIndex) {
+    for (let i = startIndex; i >= 0; i--) {
+      if (keyframes[i]) return i;
+    }
+    // If no keyframe found, wrap to end
+    for (let i = totalKeyframes - 1; i > startIndex; i--) {
+      if (keyframes[i]) return i;
+    }
+    return null; // No keyframes at all
+  }
+
+  // Interpolate and apply a frame at a given keyframe position (can be fractional)
+  function applyInterpolatedFrame(keyframePosition) {
+    // Find the keyframes to interpolate between
+    const lowerIndex = Math.floor(keyframePosition);
+    const upperIndex = Math.ceil(keyframePosition);
+
+    // Find actual keyframes (skip nulls)
+    let lowerKeyframeIndex = findPreviousKeyframe(lowerIndex);
+    let upperKeyframeIndex = findNextKeyframe(upperIndex);
+
+    if (lowerKeyframeIndex === null || upperKeyframeIndex === null) {
+      return; // No keyframes to interpolate
+    }
+
+    const lowerKf = keyframes[lowerKeyframeIndex];
+    const upperKf = keyframes[upperKeyframeIndex];
+
+    // Calculate interpolation factor
+    let t;
+    if (lowerKeyframeIndex === upperKeyframeIndex) {
+      // Same keyframe, no interpolation needed
+      t = 0;
+    } else {
+      // Calculate t based on position between the two keyframes
+      t = (keyframePosition - lowerKeyframeIndex) / (upperKeyframeIndex - lowerKeyframeIndex);
+      t = Math.max(0, Math.min(1, t)); // Clamp between 0 and 1
+    }
+
+    // Interpolate control points
+    leftCurvePoints.forEach((p, i) => {
+      p.x = lerp(lowerKf.leftCurve[i].x, upperKf.leftCurve[i].x, t);
+      p.y = lerp(lowerKf.leftCurve[i].y, upperKf.leftCurve[i].y, t);
+    });
+
+    rightCurvePoints.forEach((p, i) => {
+      p.x = lerp(lowerKf.rightCurve[i].x, upperKf.rightCurve[i].x, t);
+      p.y = lerp(lowerKf.rightCurve[i].y, upperKf.rightCurve[i].y, t);
+    });
+
+    // Interpolate overlay offset if available
+    if (lowerKf.overlayOffsetX !== undefined && upperKf.overlayOffsetX !== undefined) {
+      overlayOffsetX = lerp(lowerKf.overlayOffsetX, upperKf.overlayOffsetX, t);
+      overlayOffsetY = lerp(lowerKf.overlayOffsetY, upperKf.overlayOffsetY, t);
+      const rect = paperElement.getBoundingClientRect();
+      overlay.style.left = (rect.left + overlayOffsetX) + 'px';
+      overlay.style.top = (rect.top + overlayOffsetY) + 'px';
+    }
+
+    // Interpolate scale and apply flip
+    if (lowerKf.scale !== undefined && upperKf.scale !== undefined) {
+      scale = lerp(lowerKf.scale, upperKf.scale, t);
+    }
+    if (lowerKf.flip !== undefined) {
+      flip = lowerKf.flip; // Use lower keyframe's flip value (no interpolation for boolean)
+    }
+
+    // Update visuals
+    updateControlPointPositions();
+    calculateSlicePoints();
+    drawCurves();
+    updateAllTransforms();
+    applyTransform();
   }
 
   function togglePlay() {
@@ -322,17 +682,41 @@
     isPlaying = true;
     playButton.textContent = '⏸ Pause';
     playButton.style.background = '#ef4444';
+    currentPlaybackFrame = 0;
 
-    const frameTime = 1000 / fps; // 100ms per frame at 10fps
+    const frameTime = 1000 / playbackFPS; // Time per playback frame
 
     animationInterval = setInterval(() => {
-      currentKeyframe = (currentKeyframe + 1) % totalKeyframes;
+      // Calculate current time in the animation (in seconds)
+      const currentTime = currentPlaybackFrame / playbackFPS;
 
-      // Load keyframe if it exists
-      if (keyframes[currentKeyframe]) {
-        loadKeyframe(currentKeyframe);
+      // Calculate which keyframe position we're at (can be fractional)
+      const keyframePosition = currentTime / timePerKeyframe;
+
+      // Find the last keyframe with data to determine when to loop
+      let lastKeyframeIndex = -1;
+      for (let i = totalKeyframes - 1; i >= 0; i--) {
+        if (keyframes[i]) {
+          lastKeyframeIndex = i;
+          break;
+        }
       }
 
+      // Calculate total animation time
+      const totalAnimationTime = lastKeyframeIndex >= 0 ? (lastKeyframeIndex + 1) * timePerKeyframe : 0;
+
+      // If we've passed the end of the animation, loop back to start
+      if (totalAnimationTime > 0 && currentTime >= totalAnimationTime) {
+        currentPlaybackFrame = 0;
+        applyInterpolatedFrame(0);
+      } else {
+        // Apply interpolated frame
+        applyInterpolatedFrame(keyframePosition);
+        currentPlaybackFrame++;
+      }
+
+      // Update current keyframe for UI display (rounded to nearest)
+      currentKeyframe = Math.round(keyframePosition) % totalKeyframes;
       updateTimelineUI();
     }, frameTime);
   }
@@ -520,35 +904,76 @@
   }
 
   function startDrag(e) {
+    if (isPlaying || playerMode) return; // Don't allow dragging while playing or in player mode
     e.preventDefault();
-    if (isPlaying) return; // Don't allow dragging while playing
 
     dragging = {
+      type: 'controlPoint',
       side: e.target.dataset.side,
       index: parseInt(e.target.dataset.index),
+    };
+  }
+
+  function startWholeDrag(e) {
+    if (isPlaying || playerMode) return; // Don't allow dragging while playing or in player mode
+    e.preventDefault();
+
+    dragging = {
+      type: 'wholeElement',
+      startX: e.clientX,
+      startY: e.clientY,
+      initialLeftPoints: leftCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      initialRightPoints: rightCurvePoints.map(p => ({ x: p.x, y: p.y })),
     };
   }
 
   function onDrag(e) {
     if (!dragging) return;
 
-    const rect = overlay.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    if (dragging.type === 'controlPoint') {
+      const rect = overlay.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-    const points = dragging.side === 'left' ? leftCurvePoints : rightCurvePoints;
-    points[dragging.index].x = x;
-    points[dragging.index].y = y;
+      const points = dragging.side === 'left' ? leftCurvePoints : rightCurvePoints;
+      points[dragging.index].x = x;
+      points[dragging.index].y = y;
 
-    if (!updateScheduled) {
-      updateScheduled = true;
-      requestAnimationFrame(() => {
-        updateControlPointPositions();
-        calculateSlicePoints();
-        drawCurves();
-        updateAllTransforms();
-        updateScheduled = false;
+      if (!updateScheduled) {
+        updateScheduled = true;
+        requestAnimationFrame(() => {
+          updateControlPointPositions();
+          calculateSlicePoints();
+          drawCurves();
+          updateAllTransforms();
+          updateScheduled = false;
+        });
+      }
+    } else if (dragging.type === 'wholeElement') {
+      const deltaX = e.clientX - dragging.startX;
+      const deltaY = e.clientY - dragging.startY;
+
+      // Update all control points - overlay stays in same position
+      leftCurvePoints.forEach((p, i) => {
+        p.x = dragging.initialLeftPoints[i].x + deltaX;
+        p.y = dragging.initialLeftPoints[i].y + deltaY;
       });
+
+      rightCurvePoints.forEach((p, i) => {
+        p.x = dragging.initialRightPoints[i].x + deltaX;
+        p.y = dragging.initialRightPoints[i].y + deltaY;
+      });
+
+      if (!updateScheduled) {
+        updateScheduled = true;
+        requestAnimationFrame(() => {
+          updateControlPointPositions();
+          calculateSlicePoints();
+          drawCurves();
+          updateAllTransforms();
+          updateScheduled = false;
+        });
+      }
     }
   }
 
@@ -568,13 +993,13 @@
 
     const corners = getSliceCorners(sliceIndex);
 
-    const sliceHeight = 200 / numSlices;
+    const sliceHeight = 300 / numSlices;
     const startY = sliceIndex * sliceHeight;
     const src = [
       { x: 0, y: startY },
-      { x: 200, y: startY },
+      { x: 250, y: startY },
       { x: 0, y: startY + sliceHeight },
-      { x: 200, y: startY + sliceHeight },
+      { x: 250, y: startY + sliceHeight },
     ];
 
     const dst = [corners.tl, corners.tr, corners.bl, corners.br];
@@ -659,6 +1084,102 @@
         path.setAttribute('opacity', '1');
       }
     });
+  }
+
+  function exportAnimation() {
+    const data = {
+      version: 1,
+      timePerKeyframe: timePerKeyframe,
+      playbackFPS: playbackFPS,
+      keyframes: keyframes,
+    };
+
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `paper-animation-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importAnimation(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      // try {
+        const data = JSON.parse(event.target.result);
+
+        // Restore settings
+        if (data.timePerKeyframe !== undefined) {
+          timePerKeyframe = data.timePerKeyframe;
+          const input = document.getElementById('time-per-keyframe');
+          if (input) input.value = timePerKeyframe;
+        }
+
+        if (data.playbackFPS !== undefined) {
+          playbackFPS = data.playbackFPS;
+          const input = document.getElementById('playback-fps');
+          if (input) input.value = playbackFPS;
+        }
+
+        // Restore keyframes
+        if (data.keyframes) {
+          keyframes = data.keyframes;
+        }
+
+        // Reset to first keyframe and update display
+        currentKeyframe = 0;
+        if (keyframes[0] && overlay) {
+          loadKeyframe(0);
+        }
+        if (timelineContainer) {
+          updateTimelineUI();
+        }
+
+        // Clear file input so the same file can be imported again
+        if (e.target) {
+          e.target.value = '';
+        }
+      // } catch (error) {
+      //   alert('Error importing animation: ' + error.message);
+      // }
+    };
+    reader.readAsText(file);
+  }
+
+  function togglePlayerMode() {
+    if (playerMode) {
+      // Hide overlay (control points and bezier curves)
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+      // Change cursor on slices
+      for (let i = 0; i < numSlices; i++) {
+        const slice = document.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.cursor = 'default';
+        }
+      }
+    } else {
+      // Show overlay (control points and bezier curves)
+      if (overlay) {
+        overlay.style.display = 'block';
+      }
+      // Re-enable move cursor on slices
+      for (let i = 0; i < numSlices; i++) {
+        const slice = document.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.cursor = 'move';
+        }
+      }
+    }
   }
 
   if (document.readyState === 'loading') {

@@ -17,18 +17,20 @@ export default function Index() {
   const { posts } = useLoaderData() as { posts: any[] };
 
   return (
-    <div className="min-h-screen bg-[#fcfbf9] p-8 overflow-hidden">
-      <script src="/paper-position-tool.js" />
-      <script src="/video-player.js" />
-      <div className="max-w-6xl mx-auto relative min-h-[800px] flex flex-wrap justify-center content-start gap-8 py-20">
-        {posts.slice(0, 1).map((post: any, index: number) => {
+    <div className="min-h-screen bg-[#fcfbf9] p-8 overflow-visible">
+      <script src="/paper-animator.js" />
+      <div className="max-w-6xl mx-auto relative min-h-[800px] py-20">
+        {posts.map((post: any, index: number) => {
           return (
-            <Paper
-              key={post.url}
-              title={post.title}
-              url={post.url}
-              rotation={0}
-            />
+            <div key={post.url} className="absolute top-0 left-1/2 -translate-x-1/2">
+              <Paper
+                title={post.title}
+                url={post.url}
+                rotation={0}
+              >
+                {post.abstract}
+              </Paper>
+            </div>
           );
         })}
       </div>

@@ -11,6 +11,7 @@ export function Paper({
   title,
   url,
   rotation = 0,
+  children,
   className = '',
 }: PaperProps) {
   // Generate a unique ID for this paper instance to avoid clip-path conflicts
@@ -28,47 +29,47 @@ export function Paper({
     <>
       {/* Paper with torn edge as visible path */}
       <svg
-        width="200"
-        height="200"
-        viewBox="0 0 200 200"
+        width="250"
+        height="300"
+        viewBox="0 0 250 300"
         style={{ position: 'absolute', top: 0, left: 0 }}
       >
         {/* Torn paper shape */}
         <path
-          d={`M 6,3
-                        C 7,5 10,2 13,4
-                        L 18,1.6
-                        C 22,1 25,3.6 29,2.4
-                        L 38,1.6
-                        C 42,0.6 46,2.4 50,1.2
-                        L 74,0.8
-                        C 88,0.4 102,1.6 116,1
-                        L 152,1.8
-                        C 164,3 176,1.2 182,3.6
-                        L 191,6
-                        C 193,7.6 196,10 197,13
-                        L 198.4,22
-                        C 199.2,26 198,30 198.8,34
-                        L 199.6,60
-                        C 200,76 198.8,92 199.2,108
-                        L 198.4,152
-                        C 197.2,168 198.6,176 197.6,184
-                        L 196,194
-                        C 195,196.4 197,198.4 194,199
-                        L 182,199.6
-                        C 176,200 170,198.6 164,199.2
-                        L 140,199.6
-                        C 124,199.8 108,199 92,199.4
-                        L 50,198.8
-                        C 30,198.2 16,199.2 6,197
-                        L 3,194
-                        C 2,191 3.6,187 2.4,184
-                        L 1.6,170
-                        C 0.8,162 2.4,154 1.2,146
-                        L 0.8,104
-                        C 0.4,84 1.6,64 1,44
-                        L 2.4,16
-                        C 3,10 1.6,6 3,4.4
+          d={`M 7.5,4.5
+                        C 8.75,7.5 12.5,3 16.25,6
+                        L 22.5,2.4
+                        C 27.5,1.5 31.25,5.4 36.25,3.6
+                        L 47.5,2.4
+                        C 52.5,0.9 57.5,3.6 62.5,1.8
+                        L 92.5,1.2
+                        C 110,0.6 127.5,2.4 145,1.5
+                        L 190,2.7
+                        C 205,4.5 220,1.8 227.5,5.4
+                        L 238.75,9
+                        C 241.25,11.4 245,15 246.25,19.5
+                        L 248,33
+                        C 249,39 247.5,45 248.5,51
+                        L 249.5,90
+                        C 250,114 248.5,138 249,162
+                        L 248,228
+                        C 246.5,252 247.25,264 246,276
+                        L 245,291
+                        C 243.75,294.6 246.25,297.6 242.5,298.5
+                        L 227.5,299.4
+                        C 220,300 212.5,297.9 205,298.8
+                        L 175,299.4
+                        C 155,299.7 135,298.5 115,299.1
+                        L 62.5,298.2
+                        C 37.5,297.3 20,298.8 7.5,295.5
+                        L 3.75,291
+                        C 2.5,286.5 4.5,280.5 3,276
+                        L 2,255
+                        C 1,243 3,231 1.5,219
+                        L 1,156
+                        C 0.5,126 2,96 1.25,66
+                        L 3,24
+                        C 3.75,15 2,9 3.75,6.6
                         Z`}
           fill="white"
           stroke="#1a1a1a"
@@ -84,13 +85,16 @@ export function Paper({
           width: '100%',
           height: '100%',
           padding: '20px',
+          fontFamily: 'LoveLexie, sans-serif',
         }}
         className="bg-transparent"
       >
-        <div className="font-bold text-lg mb-4 leading-tight">Whoa</div>
+        <a href={url} className="font-bold text-2xl mb-4 leading-tight">
+          {title}
+        </a>
 
         {/* Tiny illegible handwriting effect */}
-        <svg
+        {/*<svg
           className="mt-2"
           width="160"
           height="100"
@@ -166,7 +170,8 @@ export function Paper({
 
             return marks;
           })}
-        </svg>
+          </svg>*/}
+        <div style={{ lineHeight: '1.5em' }}>{children}</div>
       </div>
     </>
   );
@@ -175,19 +180,18 @@ export function Paper({
   const slices = Array.from({ length: numSlices }, (_, i) => i);
 
   return (
-    <a
-      href="#"
-      className={`uncolored-link paper-element block relative text-black no-underline ${className}`}
+    <div
+      className={`uncolored-links paper-element block relative text-black no-underline ${className}`}
       style={{
-        width: '200px',
-        height: '200px',
+        width: '250px',
+        height: '300px',
         transform: `rotate(${rotation}deg)`,
         transformStyle: 'preserve-3d',
         zIndex: 10,
       }}
     >
       {slices.map(i => {
-        const sliceHeight = 200 / numSlices;
+        const sliceHeight = 300 / numSlices;
         const startY = i * sliceHeight;
         const endY = (i + 1) * sliceHeight;
 
@@ -196,12 +200,13 @@ export function Paper({
             key={i}
             className={`paper-slice paper-slice-${i}`}
             style={{
+              opacity: 0,
               position: 'absolute',
               top: 0,
               left: 0,
-              width: '200px',
-              height: '200px',
-              clipPath: `polygon(0 ${startY}px, 200px ${startY}px, 200px ${endY}px, 0 ${endY}px)`,
+              width: '250px',
+              height: '300px',
+              clipPath: `polygon(0 ${startY}px, 250px ${startY}px, 250px ${endY}px, 0 ${endY}px)`,
               transformStyle: 'preserve-3d',
             }}
           >
@@ -209,6 +214,6 @@ export function Paper({
           </div>
         );
       })}
-    </a>
+    </div>
   );
 }
