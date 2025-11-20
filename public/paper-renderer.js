@@ -192,13 +192,12 @@
   }
 
   function setupIntersectionObserver() {
-    console.log('[PaperRenderer] Setting up IntersectionObserver');
     observer = new IntersectionObserver(
       entries => {
         entries.forEach(entry => {
           const blockId = parseInt(entry.target.getAttribute('data-block-id'));
 
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          if (entry.isIntersecting) {
             const block = entry.target;
             const isSentinel = block.classList.contains('sentinel-block');
 
@@ -211,7 +210,7 @@
       },
       {
         rootMargin: '0px',
-        threshold: 1.0,
+        threshold: 0.5,
       },
     );
   }
@@ -271,7 +270,6 @@
   }
 
   function createSentinelBlock(blockId) {
-    console.log('[PaperRenderer] Creating sentinel block:', blockId);
     const container = document.getElementById('scroll-container');
     if (!container) {
       console.warn('[PaperRenderer] Container not found for sentinel block');
@@ -279,8 +277,8 @@
     }
 
     const block = document.createElement('div');
-    block.className =
-      'min-h-[100vh] max-h-[800px] p-8 overflow-visible grid sentinel-block';
+    block.className = 'p-8 overflow-visible grid sentinel-block';
+    block.style.height = 'min(100vh, 800px)';
     block.setAttribute('data-block-id', blockId);
     block.innerHTML = ''; // Empty sentinel
 

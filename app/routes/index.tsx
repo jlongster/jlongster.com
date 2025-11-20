@@ -2,19 +2,21 @@ import { useLoaderData } from '@remix-run/react';
 import { getPages } from '~/db/queries';
 
 export async function loader() {
+  const posts = getPages();
+
+  const index = posts.find(post => post.url === 'index');
+
   // Load all posts at once
-  const allPosts = getPages().filter((page: any) => {
+  const allPosts = posts.filter((page: any) => {
     const tags = page.tags || [];
     return !tags.includes('content');
   });
 
-  console.log(getPages().slice(0, 10));
-
-  return { allPosts };
+  return { allPosts, index };
 }
 
 export default function Index() {
-  const { allPosts } = useLoaderData<typeof loader>();
+  const { allPosts, index } = useLoaderData<typeof loader>();
 
   return (
     <>
@@ -27,7 +29,7 @@ export default function Index() {
         {/* Semantic list of all posts - will be scraped by JS
             NEVER apply display: none here, it should always be an inline script tag below*/}
         <ul id="all-posts" className="list-none">
-          {allPosts.map((post: any) => (
+          {(index ? [index, ...allPosts] : allPosts).map((post: any) => (
             <li
               key={post.url}
               className="post-item"
@@ -85,7 +87,7 @@ export default function Index() {
         <div
           className="p-8 overflow-visible grid"
           data-block-id="0"
-          style={{ height: 'min(100vh, 800px)', border: '3px solid red' }}
+          style={{ height: 'min(100vh, 800px)' }}
         ></div>
       </div>
     </>

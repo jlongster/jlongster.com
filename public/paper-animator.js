@@ -54,43 +54,43 @@
   // Second set: config for all subsequent blocks (paper-5 onwards, repeating)
   const repeatingConfigs = [
     {
-      offsetX: 0,
-      offsetY: 0,
-      rotation: 0,
+      offsetX: 159,
+      offsetY: 45,
+      rotation: -51,
       startDelay: 0,
-      startKeyframe: 0,
+      startKeyframe: 16,
       endKeyframe: 59,
     },
     {
-      offsetX: 0,
-      offsetY: 0,
+      offsetX: 427,
+      offsetY: 93,
       rotation: 0,
       startDelay: 500,
-      startKeyframe: 0,
+      startKeyframe: 10,
       endKeyframe: 59,
     },
     {
-      offsetX: 0,
-      offsetY: 0,
+      offsetX: 830,
+      offsetY: 269,
       rotation: 0,
       startDelay: 1000,
-      startKeyframe: 0,
+      startKeyframe: 22,
       endKeyframe: 59,
     },
     {
-      offsetX: 0,
-      offsetY: 0,
+      offsetX: 357,
+      offsetY: 485,
       rotation: 0,
       startDelay: 1500,
-      startKeyframe: 0,
+      startKeyframe: 25,
       endKeyframe: 59,
     },
     {
-      offsetX: 0,
-      offsetY: 0,
+      offsetX: 676,
+      offsetY: 7,
       rotation: 0,
       startDelay: 2000,
-      startKeyframe: 0,
+      startKeyframe: 25,
       endKeyframe: 59,
     },
   ];
@@ -123,7 +123,7 @@
       // Return only the first block configs (for devtools display/export)
       return firstBlockConfigs;
     },
-    getConfig: function(paperId) {
+    getConfig: function (paperId) {
       // Check if there's an override first
       if (configOverrides.has(paperId)) {
         return configOverrides.get(paperId);
@@ -141,7 +141,7 @@
         return repeatingConfigs[configIndex];
       }
     },
-    setConfig: function(paperId, config) {
+    setConfig: function (paperId, config) {
       configOverrides.set(paperId, config);
 
       // Apply to animator if it exists
@@ -151,7 +151,7 @@
         if (config.offsetX !== undefined || config.offsetY !== undefined) {
           animator.updateOffsets(
             config.offsetX !== undefined ? config.offsetX : animator.offsetX,
-            config.offsetY !== undefined ? config.offsetY : animator.offsetY
+            config.offsetY !== undefined ? config.offsetY : animator.offsetY,
           );
         }
         if (config.rotation !== undefined) {
@@ -168,14 +168,14 @@
         }
       }
     },
-    getConfigOverrides: function() {
+    getConfigOverrides: function () {
       // Return overrides for export
       const result = {};
       configOverrides.forEach((config, id) => {
         result[id] = config;
       });
       return result;
-    }
+    },
   };
 
   async function init() {
