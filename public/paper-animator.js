@@ -176,6 +176,7 @@
       this.paperElement = paperElement;
       this.animationData = animationData;
       this.currentFrame = 60;
+      this.currentKeyframePosition = 0;
       this.animationInterval = null;
       this.slicePoints = [];
 
@@ -188,25 +189,17 @@
       // Transform state
       this.offsetX = animationData.offsetX || 0;
       this.offsetY = animationData.offsetY || 0;
+      this.rotation = animationData.rotation || 0; // Rotation in degrees
 
-      // Timing configuration
+      // Timing configuration - now in keyframe indices
       this.startDelay = animationData.startDelay || 0;
-      this.startFrame = animationData.startFrame || 0;
-      this.endFrame = animationData.endFrame || null;
 
       // Initialize scale from first scale keyframe if available
       const firstScaleKeyframe = this.scaleKeyframes.find(s => s !== null && s !== undefined);
       this.scale = firstScaleKeyframe !== undefined ? firstScaleKeyframe : 1;
 
-      // Generate random variations for this instance
-      // Rotation between -20 and 20 degrees
-      this.rotationVariation = (Math.random() - 0.5) * 40; // Range: -20 to 20
-      // Small translation variations (up to ±10 pixels)
-      this.translateX = (Math.random() - 0.5) * 20; // Range: -10 to 10
-      this.translateY = (Math.random() - 0.5) * 20; // Range: -10 to 10
-
-      // Apply variations to keyframes
-      this.keyframes = this.applyVariationsToKeyframes(
+      // Apply rotation to keyframes
+      this.keyframes = this.applyRotationToKeyframes(
         animationData.keyframes || [],
       );
 
@@ -216,11 +209,24 @@
         this.scaleKeyframes.length,
       );
 
+      // Set start/end keyframes (defaults: 0 to last keyframe with data)
+      this.startKeyframe = animationData.startKeyframe !== undefined ? animationData.startKeyframe : 0;
+
+      // Find the last keyframe with data for default end
+      let lastKeyframeIndex = -1;
+      for (let i = this.keyframes.length - 1; i >= 0; i--) {
+        if (this.keyframes[i]) {
+          lastKeyframeIndex = i;
+          break;
+        }
+      }
+      this.endKeyframe = animationData.endKeyframe !== undefined ? animationData.endKeyframe : lastKeyframeIndex;
+
       // Render the initial frame immediately to prevent flash
       this.renderInitialFrame();
     }
 
-    applyVariationsToKeyframes(keyframes) {
+    applyRotationToKeyframes(keyframes) {
       // Find the center point from the first keyframe
       const firstKeyframe = keyframes.find(kf => kf);
       if (!firstKeyframe) return keyframes;
@@ -235,9 +241,9 @@
       const centerY =
         allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
 
-      const rotationRad = (this.rotationVariation * Math.PI) / 180;
+      const rotationRad = (this.rotation * Math.PI) / 180;
 
-      // Apply the same rotation and translation to all keyframes
+      // Apply rotation to all keyframes
       return keyframes.map(keyframe => {
         if (!keyframe) return keyframe;
 
@@ -266,63 +272,44 @@
         translatedX * Math.sin(rotationRad) +
         translatedY * Math.cos(rotationRad);
 
-      // Translate back and apply small translation variation
+      // Translate back
       return {
-        x: rotatedX + centerX + this.translateX,
-        y: rotatedY + centerY + this.translateY,
+        x: rotatedX + centerX,
+        y: rotatedY + centerY,
       };
     }
 
     renderInitialFrame() {
-      // Render the start frame immediately so there's no flash
-      this.currentFrame = this.startFrame;
-      const initialKeyframePosition = (this.currentFrame / this.playbackFPS) / this.timePerKeyframe;
-      this.applyInterpolatedFrame(initialKeyframePosition);
+      // Render the start keyframe immediately so there's no flash
+      this.applyInterpolatedFrame(this.startKeyframe);
     }
 
     start() {
-      // Set current frame to start frame
-      this.currentFrame = this.startFrame;
+      // Start at the start keyframe
+      this.currentKeyframePosition = this.startKeyframe;
 
       // Apply fade-in effect if configured
       if (this.fadeInDuration > 0) {
         this.applyFadeIn();
       }
 
-      // Render the initial frame immediately with correct scale
-      const initialKeyframePosition = (this.currentFrame / this.playbackFPS) / this.timePerKeyframe;
-      this.applyInterpolatedFrame(initialKeyframePosition);
+      // Render the initial keyframe immediately
+      this.applyInterpolatedFrame(this.currentKeyframePosition);
 
+      // Calculate frame time and increment per frame
       const frameTime = 1000 / this.playbackFPS;
+      const keyframeIncrement = 1 / (this.timePerKeyframe * this.playbackFPS);
 
       this.animationInterval = setInterval(() => {
-        const currentTime = this.currentFrame / this.playbackFPS;
-        const keyframePosition = currentTime / this.timePerKeyframe;
+        this.currentKeyframePosition += keyframeIncrement;
 
-        // Determine end point
-        let endFrame;
-        if (this.endFrame !== null) {
-          endFrame = this.endFrame;
-        } else {
-          // Find the last keyframe with data
-          let lastKeyframeIndex = -1;
-          for (let i = this.keyframes.length - 1; i >= 0; i--) {
-            if (this.keyframes[i]) {
-              lastKeyframeIndex = i;
-              break;
-            }
-          }
-          endFrame = lastKeyframeIndex >= 0
-            ? (lastKeyframeIndex + 1) * this.timePerKeyframe * this.playbackFPS
-            : 0;
-        }
-
-        // Stop animation when it reaches the end
-        if (this.currentFrame >= endFrame) {
+        // Stop animation when it reaches the end keyframe
+        if (this.currentKeyframePosition >= this.endKeyframe) {
+          // Render final keyframe
+          this.applyInterpolatedFrame(this.endKeyframe);
           this.stop();
         } else {
-          this.applyInterpolatedFrame(keyframePosition);
-          this.currentFrame++;
+          this.applyInterpolatedFrame(this.currentKeyframePosition);
         }
       }, frameTime);
     }
@@ -352,6 +339,16 @@
       this.offsetY = offsetY;
       // Immediately update all transforms with new offsets
       this.updateAllTransforms();
+    }
+
+    updateRotation(rotation) {
+      this.rotation = rotation;
+      // Recalculate keyframes with new rotation
+      this.keyframes = this.applyRotationToKeyframes(
+        this.animationData.keyframes || [],
+      );
+      // Re-render current keyframe position
+      this.applyInterpolatedFrame(this.currentKeyframePosition);
     }
 
     applyFadeIn() {

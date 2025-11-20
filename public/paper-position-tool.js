@@ -725,12 +725,11 @@
   }
 
   function clearCurrentScaleKeyframe() {
-    // Shift all scale keyframes after the current one down by one slot
-    for (let i = currentScaleKeyframe; i < totalKeyframes - 1; i++) {
-      scaleKeyframes[i] = scaleKeyframes[i + 1];
-    }
-    // Clear the last slot
-    scaleKeyframes[totalKeyframes - 1] = null;
+    // Simply set the current scale keyframe to null (allow blank/interpolated keyframes)
+    scaleKeyframes[currentScaleKeyframe] = null;
+
+    // Advance to next scale keyframe
+    currentScaleKeyframe = (currentScaleKeyframe + 1) % totalKeyframes;
 
     updateScaleTimelineUI();
   }
@@ -755,14 +754,13 @@
   }
 
   function clearCurrentKeyframe() {
-    // Shift all keyframes after the current one down by one slot
-    for (let i = currentKeyframe; i < totalKeyframes - 1; i++) {
-      keyframes[i] = keyframes[i + 1];
-    }
-    // Clear the last slot
-    keyframes[totalKeyframes - 1] = null;
+    // Simply set the current keyframe to null (allow blank/interpolated keyframes)
+    keyframes[currentKeyframe] = null;
 
-    // Load the keyframe at the current position (which is now the one that was after it)
+    // Advance to next keyframe
+    currentKeyframe = (currentKeyframe + 1) % totalKeyframes;
+
+    // Load the next keyframe if it exists
     if (keyframes[currentKeyframe]) {
       loadKeyframe(currentKeyframe);
     }

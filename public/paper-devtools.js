@@ -8,6 +8,7 @@
   let dragStartY = 0;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
+  let isCollapsed = false;
 
   console.log('[PaperDevTools] Script loaded');
 
@@ -44,7 +45,21 @@
     console.log('[PaperDevTools] Initializing...');
     createDevToolsUI();
     setupDragListeners();
+    setupKeyboardShortcuts();
     console.log('[PaperDevTools] Initialization complete');
+  }
+
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+Shift+R to restart all animations
+      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        console.log('[PaperDevTools] Restarting all animations via keyboard shortcut');
+        if (window.PaperRenderer) {
+          window.PaperRenderer.restartAll();
+        }
+      }
+    });
   }
 
   function createDevToolsUI() {
@@ -64,6 +79,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 13px;
       box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
     `;
 
     // Header
@@ -75,14 +91,31 @@
       position: sticky;
       top: 0;
       z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     `;
     header.innerHTML = `
-      <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: #f9fafb;">
-        Paper DevTools
-      </h2>
-      <p style="margin: 4px 0 0 0; font-size: 11px; color: #9ca3af;">
-        Drag papers to adjust position
-      </p>
+      <div>
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: #f9fafb;">
+          Paper DevTools
+        </h2>
+        <p style="margin: 4px 0 0 0; font-size: 11px; color: #9ca3af;">
+          Drag papers to adjust position
+        </p>
+      </div>
+      <button id="collapse-btn" style="
+        padding: 4px 8px;
+        background: #374151;
+        color: #f3f4f6;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+      ">
+        →
+      </button>
     `;
     sidebar.appendChild(header);
 
@@ -104,9 +137,39 @@
         cursor: pointer;
         font-size: 12px;
         font-weight: 500;
+        margin-bottom: 8px;
       ">
         ↻ Restart All Animations
       </button>
+      <div style="display: flex; gap: 6px;">
+        <button id="export-config-btn" style="
+          flex: 1;
+          padding: 6px;
+          background: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 11px;
+          font-weight: 500;
+        ">
+          Export Config
+        </button>
+        <button id="import-config-btn" style="
+          flex: 1;
+          padding: 6px;
+          background: #8b5cf6;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 11px;
+          font-weight: 500;
+        ">
+          Import Config
+        </button>
+      </div>
+      <input type="file" id="import-file-input" accept=".json" style="display: none;">
     `;
     sidebar.appendChild(globalControls);
 
@@ -120,6 +183,30 @@
 
     document.body.appendChild(sidebar);
 
+    // Create collapse tab (visible when collapsed)
+    const collapseTab = document.createElement('div');
+    collapseTab.id = 'devtools-tab';
+    collapseTab.style.cssText = `
+      position: fixed;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 12px 8px;
+      cursor: pointer;
+      z-index: 9999;
+      border-radius: 4px 0 0 4px;
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+      font-size: 14px;
+      font-weight: 600;
+      writing-mode: vertical-rl;
+      display: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    `;
+    collapseTab.textContent = 'DevTools';
+    document.body.appendChild(collapseTab);
+
     // Event listeners
     document.getElementById('restart-all-btn').addEventListener('click', () => {
       // Trigger full restart from paper-renderer
@@ -127,6 +214,98 @@
         window.PaperRenderer.restartAll();
       }
     });
+
+    document.getElementById('export-config-btn').addEventListener('click', () => {
+      exportConfiguration();
+    });
+
+    document.getElementById('import-config-btn').addEventListener('click', () => {
+      document.getElementById('import-file-input').click();
+    });
+
+    document.getElementById('import-file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        importConfiguration(file);
+        e.target.value = ''; // Reset input
+      }
+    });
+
+    document.getElementById('collapse-btn').addEventListener('click', () => {
+      toggleCollapse();
+    });
+
+    collapseTab.addEventListener('click', () => {
+      toggleCollapse();
+    });
+  }
+
+  function exportConfiguration() {
+    // Convert savedConfigs Map to plain object
+    const configObject = {};
+    savedConfigs.forEach((config, id) => {
+      configObject[id] = config;
+    });
+
+    const configJson = JSON.stringify(configObject, null, 2);
+
+    // Create a blob and download
+    const blob = new Blob([configJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `paper-animations-config-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('[PaperDevTools] Configuration exported');
+  }
+
+  function importConfiguration(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const configObject = JSON.parse(e.target.result);
+
+        // Clear existing configs
+        savedConfigs.clear();
+
+        // Load new configs
+        Object.entries(configObject).forEach(([id, config]) => {
+          savedConfigs.set(id, config);
+        });
+
+        console.log('[PaperDevTools] Configuration imported:', configObject);
+
+        // Restart all animations to apply the new configuration
+        if (window.PaperRenderer) {
+          window.PaperRenderer.restartAll();
+        }
+      } catch (error) {
+        console.error('[PaperDevTools] Failed to import configuration:', error);
+        alert('Failed to import configuration. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function toggleCollapse() {
+    isCollapsed = !isCollapsed;
+    const sidebar = document.getElementById('paper-devtools');
+    const collapseBtn = document.getElementById('collapse-btn');
+    const collapseTab = document.getElementById('devtools-tab');
+
+    if (isCollapsed) {
+      sidebar.style.transform = 'translateX(320px)';
+      collapseBtn.textContent = '←';
+      collapseTab.style.display = 'block';
+    } else {
+      sidebar.style.transform = 'translateX(0)';
+      collapseBtn.textContent = '→';
+      collapseTab.style.display = 'none';
+    }
   }
 
   function updateDevToolsUI() {
@@ -201,7 +380,7 @@
     `;
     positionSection.innerHTML = `
       <div style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; font-weight: 500;">
-        POSITION OFFSET
+        POSITION & ROTATION
       </div>
       <div style="display: flex; gap: 8px; margin-bottom: 6px;">
         <label style="flex: 1;">
@@ -217,8 +396,14 @@
             border-radius: 3px; color: #f3f4f6; font-size: 12px;">
         </label>
       </div>
+      <label style="display: block; margin-bottom: 6px;">
+        <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Rotation (degrees)</div>
+        <input type="number" class="rotation" value="${animator.rotation || 0}" step="1"
+          style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
+          border-radius: 3px; color: #f3f4f6; font-size: 12px;">
+      </label>
       <div style="font-size: 10px; color: #6b7280; font-style: italic;">
-        Click "Select" then drag the paper to adjust
+        Click "Select" then drag the paper to adjust position
       </div>
     `;
     card.appendChild(positionSection);
@@ -242,14 +427,14 @@
       </label>
       <div style="display: flex; gap: 8px;">
         <label style="flex: 1;">
-          <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Start Frame</div>
-          <input type="number" class="start-frame" value="${animator.startFrame || 0}" min="0"
+          <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Start Keyframe</div>
+          <input type="number" class="start-keyframe" value="${animator.startKeyframe || 0}" min="0" max="${animator.totalKeyframes - 1}"
             style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
             border-radius: 3px; color: #f3f4f6; font-size: 12px;">
         </label>
         <label style="flex: 1;">
-          <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">End Frame</div>
-          <input type="number" class="end-frame" value="${animator.endFrame || animator.totalKeyframes * 60}" min="0"
+          <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">End Keyframe</div>
+          <input type="number" class="end-keyframe" value="${animator.endKeyframe}" min="0" max="${animator.totalKeyframes - 1}"
             style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
             border-radius: 3px; color: #f3f4f6; font-size: 12px;">
         </label>
@@ -283,9 +468,10 @@
     // Event listeners
     const offsetXInput = card.querySelector('.offset-x');
     const offsetYInput = card.querySelector('.offset-y');
+    const rotationInput = card.querySelector('.rotation');
     const startDelayInput = card.querySelector('.start-delay');
-    const startFrameInput = card.querySelector('.start-frame');
-    const endFrameInput = card.querySelector('.end-frame');
+    const startKeyframeInput = card.querySelector('.start-keyframe');
+    const endKeyframeInput = card.querySelector('.end-keyframe');
 
     // Auto-apply offset changes
     offsetXInput.addEventListener('input', () => {
@@ -300,19 +486,26 @@
       saveConfig(id, animator);
     });
 
+    // Auto-apply rotation changes
+    rotationInput.addEventListener('input', () => {
+      const newRotation = parseFloat(rotationInput.value) || 0;
+      animator.updateRotation(newRotation);
+      saveConfig(id, animator);
+    });
+
     // Auto-apply timing changes
     startDelayInput.addEventListener('change', () => {
       animator.startDelay = parseFloat(startDelayInput.value) || 0;
       saveConfig(id, animator);
     });
 
-    startFrameInput.addEventListener('change', () => {
-      animator.startFrame = parseFloat(startFrameInput.value) || 0;
+    startKeyframeInput.addEventListener('change', () => {
+      animator.startKeyframe = parseInt(startKeyframeInput.value) || 0;
       saveConfig(id, animator);
     });
 
-    endFrameInput.addEventListener('change', () => {
-      animator.endFrame = parseFloat(endFrameInput.value) || (animator.totalKeyframes * 60);
+    endKeyframeInput.addEventListener('change', () => {
+      animator.endKeyframe = parseInt(endKeyframeInput.value) || animator.endKeyframe;
       saveConfig(id, animator);
     });
 
@@ -343,9 +536,10 @@
     const config = {
       offsetX: animator.offsetX,
       offsetY: animator.offsetY,
+      rotation: animator.rotation,
       startDelay: animator.startDelay,
-      startFrame: animator.startFrame,
-      endFrame: animator.endFrame,
+      startKeyframe: animator.startKeyframe,
+      endKeyframe: animator.endKeyframe,
     };
 
     savedConfigs.set(id, config);
@@ -373,18 +567,13 @@
       }
     });
 
-    // Highlight the paper element
+    // Remove outline from previous paper element
     if (previousId !== null) {
       const prevAnimator = animatorRegistry.get(previousId);
       if (prevAnimator) {
         prevAnimator.paperElement.style.outline = '';
+        prevAnimator.paperElement.style.outlineOffset = '';
       }
-    }
-
-    const animator = animatorRegistry.get(id);
-    if (animator) {
-      animator.paperElement.style.outline = '2px solid #3b82f6';
-      animator.paperElement.style.outlineOffset = '4px';
     }
   }
 

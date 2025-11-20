@@ -138,7 +138,7 @@
     }
 
     // Setup intersection observer for infinite scroll
-    setupIntersectionObserver();
+    // setupIntersectionObserver();
 
     // Create first sentinel if we have more posts
     if (allPosts.length > postsPerBlock) {
