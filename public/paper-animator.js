@@ -334,6 +334,9 @@
         this.keyframes.length,
         this.scaleKeyframes.length,
       );
+
+      // Render the initial frame immediately to prevent flash
+      this.renderInitialFrame();
     }
 
     applyVariationsToKeyframes(keyframes) {
@@ -387,6 +390,13 @@
         x: rotatedX + centerX + this.translateX,
         y: rotatedY + centerY + this.translateY,
       };
+    }
+
+    renderInitialFrame() {
+      // Render frame 0 immediately so there's no flash
+      this.currentFrame = 0;
+      const initialKeyframePosition = (this.currentFrame / this.playbackFPS) / this.timePerKeyframe;
+      this.applyInterpolatedFrame(initialKeyframePosition);
     }
 
     start() {
@@ -457,10 +467,13 @@
     }
 
     applyFadeIn() {
+      // Set transition first
+      this.paperElement.style.transition = `opacity ${this.fadeInDuration}ms ease-out`;
+
       // Trigger fade-in after a small delay to ensure transition is applied
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          this.paperElement.style.transform = 'none';
+          this.paperElement.style.opacity = '1';
         });
       });
     }

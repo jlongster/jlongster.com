@@ -1,38 +1,58 @@
 import { useLoaderData } from '@remix-run/react';
 import { getPages } from '~/db/queries';
-import { Paper } from '~/components/Paper';
 
 export async function loader() {
-  // Load initial 3 posts
+  // Load all posts at once
   const allPosts = getPages().filter((page: any) => {
     const tags = page.tags || [];
     return !(tags.includes('content') || tags.includes('experiment'));
   });
 
-  const initialPosts = allPosts.slice(0, 3);
-  const hasMore = allPosts.length > 3;
-
-  return { initialPosts, hasMore };
+  return { allPosts };
 }
 
 export default function Index() {
-  const { initialPosts, hasMore } = useLoaderData<typeof loader>();
+  const { allPosts } = useLoaderData<typeof loader>();
 
   return (
     <>
       <script src="/paper-html-generator.js" />
       <script src="/paper-animator.js" />
-      <script src="/infinite-scroll.js" />
-      <div id="scroll-container" className="bg-[#fcfbf9]" data-has-more={hasMore}>
-        <div className="h-[800px] p-8 overflow-visible grid place-items-center" data-block-id="0">
-          {initialPosts.map((post: any) => (
-            <div key={post.url} className="col-start-1 row-start-1">
-              <Paper title={post.title} url={post.url} rotation={0}>
-                {post.abstract}
-              </Paper>
-            </div>
+      <script src="/paper-renderer.js" />
+
+      <div id="scroll-container" className="bg-[#fcfbf9]">
+        {/* Semantic list of all posts - will be scraped by JS
+            NEVER apply display: none here, it should always be an inline script tag below*/}
+        <ul id="all-posts" className="list-none">
+          {allPosts.map((post: any) => (
+            <li
+              key={post.url}
+              className="post-item"
+              data-url={post.url}
+              data-title={post.title}
+              data-abstract={post.abstract || ''}
+            >
+              <a href={post.url} className="font-bold text-2xl">
+                {post.title}
+              </a>
+              {post.abstract && (
+                <p className="text-sm text-gray-600">{post.abstract}</p>
+              )}
+            </li>
           ))}
-        </div>
+        </ul>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'document.getElementById("all-posts").style.display = "none"',
+          }}
+        />
+
+        {/* Initial block - will be populated by JS */}
+        <div
+          className="h-[800px] p-8 overflow-visible grid place-items-center"
+          data-block-id="0"
+        ></div>
       </div>
     </>
   );
