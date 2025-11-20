@@ -17,6 +17,7 @@ export default function Index() {
   return (
     <>
       <script src="/paper-html-generator.js" />
+      <script src="/paper-devtools.js" />
       <script src="/paper-animator.js" />
       <script src="/paper-renderer.js" />
 

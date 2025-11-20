@@ -3,8 +3,33 @@
   const numSlices = 10;
   const numLines = numSlices + 1;
   let animations = [];
-  let paperAnimators = [];
+  let animatorRegistry = new Map(); // id -> animator
   let isPaused = false;
+  let nextId = 0;
+
+  // Expose API for paper-renderer
+  window.PaperAnimator = {
+    resetAll: function() {
+      console.log('[PaperAnimator] Resetting all animators');
+      // Stop all animations
+      animatorRegistry.forEach(animator => animator.stop());
+      // Clear registry
+      animatorRegistry.clear();
+      nextId = 0;
+    },
+    unregisterAnimator: function(id) {
+      console.log('[PaperAnimator] Unregistering animator:', id);
+      const animator = animatorRegistry.get(id);
+      if (animator) {
+        animator.stop();
+        animatorRegistry.delete(id);
+        // Notify DevTools
+        if (window.PaperDevTools) {
+          window.PaperDevTools.unregisterAnimator(id);
+        }
+      }
+    }
+  };
 
   async function init() {
     // Load the manifest of available animations
@@ -33,8 +58,10 @@
         }
       });
 
-      // Create offset control UI
-      createOffsetControlUI();
+      // Register with DevTools if available
+      if (window.PaperDevTools) {
+        window.PaperDevTools.registerAnimators(paperAnimators);
+      }
     } catch (error) {
       console.error('Failed to load animations:', error);
     }
@@ -43,38 +70,62 @@
   function initializePaperElements() {
     // Find all paper elements and assign animations
     const paperElements = document.querySelectorAll('.paper-element');
-    const newElements = [];
 
-    paperElements.forEach(paperElement => {
+    paperElements.forEach((paperElement, index) => {
       // Skip if already initialized
       if (paperElement.hasAttribute('data-animator-initialized')) {
         return;
       }
 
-      const animationIndex = paperAnimators.length % animations.length;
-      const randomAnimation = animations[animationIndex];
-      if (randomAnimation) {
-        const animator = new PaperAnimator(paperElement, randomAnimation);
-        paperAnimators.push(animator);
-        paperElement.setAttribute('data-animator-initialized', 'true');
-        newElements.push(animator);
+      // Generate or retrieve ID for this element
+      let paperId = paperElement.getAttribute('data-paper-id');
+      if (!paperId) {
+        paperId = `paper-${nextId++}`;
+        paperElement.setAttribute('data-paper-id', paperId);
+      }
+
+      const animationIndex = animatorRegistry.size % animations.length;
+      let animationData = animations[animationIndex];
+
+      if (animationData) {
+        // Check if DevTools has saved configuration for this ID
+        const savedConfig = window.PaperDevTools?.getSavedConfig?.(paperId);
+        if (savedConfig) {
+          // Merge saved config with animation data
+          animationData = { ...animationData, ...savedConfig };
+          console.log('[PaperAnimator] Using saved config for', paperId, savedConfig);
+        }
+
+        // Get delay from animation data or saved config
+        const delay = animationData.startDelay || 0;
+
+        // Hide the element initially
+        paperElement.style.opacity = '0';
+        paperElement.style.pointerEvents = 'none';
+
+        // Schedule mounting and initialization
+        setTimeout(() => {
+          // Show the element
+          paperElement.style.opacity = '';
+          paperElement.style.pointerEvents = '';
+
+          // Create animator and start
+          const animator = new PaperAnimator(paperElement, animationData);
+          animator.id = paperId;
+
+          // Register in our local registry
+          animatorRegistry.set(paperId, animator);
+
+          paperElement.setAttribute('data-animator-initialized', 'true');
+          animator.start();
+
+          // Register with DevTools
+          if (window.PaperDevTools) {
+            window.PaperDevTools.registerAnimator(paperId, animator);
+          }
+        }, delay);
       }
     });
-
-    // Start animations with stagger
-    newElements.forEach((animator, index) => {
-      const delay = index * 0;
-      setTimeout(() => {
-        animator.start();
-      }, delay);
-    });
-
-    // Update control UI if it exists
-    const controlUI = document.querySelector('[data-animation-controls]');
-    if (controlUI) {
-      controlUI.remove();
-      createOffsetControlUI();
-    }
   }
 
   function setupMutationObserver() {
@@ -120,181 +171,6 @@
     console.log(isPaused ? 'Animations paused' : 'Animations resumed');
   }
 
-  function createOffsetControlUI() {
-    // Create container
-    const container = document.createElement('div');
-    container.setAttribute('data-animation-controls', 'true');
-    container.style.cssText = `
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: white;
-      padding: 12px;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      z-index: 2000;
-      max-width: 300px;
-      max-height: 90vh;
-      overflow-y: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 12px;
-    `;
-
-    // Header with title and global restart button
-    const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    `;
-
-    const title = document.createElement('h3');
-    title.textContent = 'Animation Offsets';
-    title.style.cssText = `
-      margin: 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #111827;
-    `;
-
-    const globalRestartButton = document.createElement('button');
-    globalRestartButton.textContent = '↻ Restart All';
-    globalRestartButton.style.cssText = `
-      padding: 4px 8px;
-      background: #10b981;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 500;
-    `;
-    globalRestartButton.onclick = () => {
-      paperAnimators.forEach(animator => {
-        animator.stop();
-        animator.currentFrame = 0;
-        animator.start();
-      });
-    };
-
-    header.appendChild(title);
-    header.appendChild(globalRestartButton);
-    container.appendChild(header);
-
-    // Create controls for each animator
-    paperAnimators.forEach((animator, index) => {
-      const animationControl = document.createElement('div');
-      animationControl.style.cssText = `
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #e5e7eb;
-      `;
-
-      // Animation label
-      const label = document.createElement('div');
-      label.textContent = `Animation ${index + 1}`;
-      label.style.cssText = `
-        font-weight: 500;
-        margin-bottom: 6px;
-        color: #374151;
-      `;
-      animationControl.appendChild(label);
-
-      // Offset controls container
-      const offsetControls = document.createElement('div');
-      offsetControls.style.cssText = `
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      `;
-
-      // X offset control
-      const xLabel = document.createElement('label');
-      xLabel.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        color: #6b7280;
-      `;
-      xLabel.innerHTML = `
-        X: <input type="number" value="${animator.offsetX}" min="-500" max="500" step="1"
-          data-animator-index="${index}" data-offset-type="x"
-          style="width: 60px; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
-      `;
-
-      // Y offset control
-      const yLabel = document.createElement('label');
-      yLabel.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        color: #6b7280;
-      `;
-      yLabel.innerHTML = `
-        Y: <input type="number" value="${animator.offsetY}" min="-500" max="500" step="1"
-          data-animator-index="${index}" data-offset-type="y"
-          style="width: 60px; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
-      `;
-
-      offsetControls.appendChild(xLabel);
-      offsetControls.appendChild(yLabel);
-      animationControl.appendChild(offsetControls);
-
-      // Restart button
-      const restartButton = document.createElement('button');
-      restartButton.textContent = '↻ Restart';
-      restartButton.style.cssText = `
-        margin-top: 6px;
-        padding: 4px 8px;
-        background: #3b82f6;
-        color: white;
-        border: none;
-        border-radius: 3px;
-        cursor: pointer;
-        font-size: 11px;
-        font-weight: 500;
-      `;
-      restartButton.dataset.animatorIndex = index;
-      restartButton.onclick = () => {
-        animator.stop();
-        animator.currentFrame = 0;
-        animator.start();
-      };
-      animationControl.appendChild(restartButton);
-
-      container.appendChild(animationControl);
-    });
-
-    // Add event listeners to all inputs
-    container.addEventListener('change', e => {
-      const target = e.target;
-      if (
-        target.tagName === 'INPUT' &&
-        target.dataset.animatorIndex !== undefined
-      ) {
-        const index = parseInt(target.dataset.animatorIndex);
-        const animator = paperAnimators[index];
-
-        if (animator) {
-          const xInput = container.querySelector(
-            `input[data-animator-index="${index}"][data-offset-type="x"]`,
-          );
-          const yInput = container.querySelector(
-            `input[data-animator-index="${index}"][data-offset-type="y"]`,
-          );
-
-          const newOffsetX = parseFloat(xInput.value) || 0;
-          const newOffsetY = parseFloat(yInput.value) || 0;
-
-          animator.updateOffsets(newOffsetX, newOffsetY);
-        }
-      }
-    });
-
-    document.body.appendChild(container);
-  }
-
   class PaperAnimator {
     constructor(paperElement, animationData) {
       this.paperElement = paperElement;
@@ -312,6 +188,11 @@
       // Transform state
       this.offsetX = animationData.offsetX || 0;
       this.offsetY = animationData.offsetY || 0;
+
+      // Timing configuration
+      this.startDelay = animationData.startDelay || 0;
+      this.startFrame = animationData.startFrame || 0;
+      this.endFrame = animationData.endFrame || null;
 
       // Initialize scale from first scale keyframe if available
       const firstScaleKeyframe = this.scaleKeyframes.find(s => s !== null && s !== undefined);
@@ -393,13 +274,16 @@
     }
 
     renderInitialFrame() {
-      // Render frame 0 immediately so there's no flash
-      this.currentFrame = 0;
+      // Render the start frame immediately so there's no flash
+      this.currentFrame = this.startFrame;
       const initialKeyframePosition = (this.currentFrame / this.playbackFPS) / this.timePerKeyframe;
       this.applyInterpolatedFrame(initialKeyframePosition);
     }
 
     start() {
+      // Set current frame to start frame
+      this.currentFrame = this.startFrame;
+
       // Apply fade-in effect if configured
       if (this.fadeInDuration > 0) {
         this.applyFadeIn();
@@ -415,22 +299,26 @@
         const currentTime = this.currentFrame / this.playbackFPS;
         const keyframePosition = currentTime / this.timePerKeyframe;
 
-        // Find the last keyframe with data
-        let lastKeyframeIndex = -1;
-        for (let i = this.keyframes.length - 1; i >= 0; i--) {
-          if (this.keyframes[i]) {
-            lastKeyframeIndex = i;
-            break;
+        // Determine end point
+        let endFrame;
+        if (this.endFrame !== null) {
+          endFrame = this.endFrame;
+        } else {
+          // Find the last keyframe with data
+          let lastKeyframeIndex = -1;
+          for (let i = this.keyframes.length - 1; i >= 0; i--) {
+            if (this.keyframes[i]) {
+              lastKeyframeIndex = i;
+              break;
+            }
           }
+          endFrame = lastKeyframeIndex >= 0
+            ? (lastKeyframeIndex + 1) * this.timePerKeyframe * this.playbackFPS
+            : 0;
         }
 
-        const totalAnimationTime =
-          lastKeyframeIndex >= 0
-            ? (lastKeyframeIndex + 1) * this.timePerKeyframe
-            : 0;
-
         // Stop animation when it reaches the end
-        if (totalAnimationTime > 0 && currentTime >= totalAnimationTime) {
+        if (this.currentFrame >= endFrame) {
           this.stop();
         } else {
           this.applyInterpolatedFrame(keyframePosition);

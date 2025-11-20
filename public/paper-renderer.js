@@ -8,6 +8,114 @@
 
   console.log('[PaperRenderer] Script loaded');
 
+  // Expose API for devtools
+  window.PaperRenderer = {
+    restartAll: function() {
+      console.log('[PaperRenderer] Restarting all animations');
+      unmountAllPapers();
+      init();
+    },
+    restartAnimator: function(id) {
+      console.log('[PaperRenderer] Restarting animator:', id);
+
+      // Unregister the animator instance first
+      if (window.PaperAnimator) {
+        window.PaperAnimator.unregisterAnimator(id);
+      }
+
+      // Find the specific paper element with this ID
+      const paperElement = document.querySelector(`[data-paper-id="${id}"]`);
+      if (!paperElement) {
+        console.warn('[PaperRenderer] Paper element not found with id:', id);
+        return;
+      }
+
+      // Get the wrapper div
+      const wrapper = paperElement.closest('.col-start-1.row-start-1');
+      if (!wrapper) {
+        console.warn('[PaperRenderer] Wrapper not found for paper element:', id);
+        return;
+      }
+
+      // Get the parent block
+      const block = wrapper.parentElement;
+      const blockId = parseInt(block.getAttribute('data-block-id'));
+
+      // Calculate which post within the block this is
+      const wrappers = Array.from(block.querySelectorAll('.col-start-1.row-start-1'));
+      const wrapperIndex = wrappers.indexOf(wrapper);
+      const postIndex = blockId * postsPerBlock + wrapperIndex;
+
+      console.log('[PaperRenderer] Found post at index', postIndex, 'in block', blockId);
+
+      // Get the post data
+      const post = allPosts[postIndex];
+      if (!post) {
+        console.warn('[PaperRenderer] Post not found at index', postIndex);
+        return;
+      }
+
+      // Remove the old wrapper
+      wrapper.remove();
+
+      // Create new wrapper
+      const newWrapper = document.createElement('div');
+      newWrapper.className = 'col-start-1 row-start-1';
+
+      // Generate the Paper HTML directly with the same ID
+      newWrapper.innerHTML = window.generatePaperHTML({
+        title: post.title,
+        url: post.url,
+        content: post.abstract,
+        rotation: 0,
+      });
+
+      // Set the ID on the new paper element
+      const newPaperElement = newWrapper.querySelector('.paper-element');
+      if (newPaperElement) {
+        newPaperElement.setAttribute('data-paper-id', id);
+      }
+
+      // Insert at the same position
+      if (wrapperIndex === 0) {
+        block.insertBefore(newWrapper, block.firstChild);
+      } else if (wrapperIndex < wrappers.length - 1) {
+        block.insertBefore(newWrapper, wrappers[wrapperIndex + 1]);
+      } else {
+        block.appendChild(newWrapper);
+      }
+    }
+  };
+
+  function unmountAllPapers() {
+    console.log('[PaperRenderer] Unmounting all paper elements');
+
+    // Reset animators first
+    if (window.PaperAnimator) {
+      window.PaperAnimator.resetAll();
+    }
+
+    // Remove all rendered blocks except the initial one
+    const container = document.getElementById('scroll-container');
+    if (container) {
+      const blocks = container.querySelectorAll('[data-block-id]');
+      blocks.forEach(block => {
+        if (block.getAttribute('data-block-id') === '0') {
+          // Clear block 0
+          block.innerHTML = '';
+          block.classList.remove('sentinel-block');
+        } else {
+          // Remove other blocks
+          block.remove();
+        }
+      });
+    }
+
+    // Reset state
+    hasMore = true;
+    isLoading = false;
+  }
+
   function init() {
     console.log('[PaperRenderer] Initializing...');
 
