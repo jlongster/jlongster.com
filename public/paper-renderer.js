@@ -67,6 +67,7 @@
         title: post.title,
         url: post.url,
         content: post.abstract,
+        image: post.image,
         rotation: 0,
       });
 
@@ -127,6 +128,7 @@
         title: item.getAttribute('data-title') || '',
         url: item.getAttribute('data-url') || '',
         abstract: item.getAttribute('data-abstract') || '',
+        image: item.getAttribute('data-image') || '',
       }));
       console.log('[PaperRenderer] Scraped', allPosts.length, 'posts from DOM');
     }
@@ -138,7 +140,7 @@
     }
 
     // Setup intersection observer for infinite scroll
-    // setupIntersectionObserver();
+    setupIntersectionObserver();
 
     // Create first sentinel if we have more posts
     if (allPosts.length > postsPerBlock) {
@@ -171,6 +173,7 @@
         title: post.title,
         url: post.url,
         content: post.abstract,
+        image: post.image,
         rotation: 0,
       });
 

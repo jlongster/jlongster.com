@@ -5,7 +5,7 @@ export async function loader() {
   // Load all posts at once
   const allPosts = getPages().filter((page: any) => {
     const tags = page.tags || [];
-    return !(tags.includes('content') || tags.includes('experiment'));
+    return !tags.includes('content');
   });
 
   return { allPosts };
@@ -32,13 +32,15 @@ export default function Index() {
               data-url={post.url}
               data-title={post.title}
               data-abstract={post.abstract || ''}
+              data-image={post.gif || ''}
             >
               <a href={post.url} className="font-bold text-2xl">
                 {post.title}
               </a>
-              {post.abstract && (
+              {post.gif ? <img src={post.gif} /> : null}
+              {post.abstract ? (
                 <p className="text-sm text-gray-600">{post.abstract}</p>
-              )}
+              ) : null}
             </li>
           ))}
         </ul>

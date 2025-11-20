@@ -7,12 +7,24 @@ function escapeHtml(text) {
 }
 
 window.generatePaperHTML = function (data) {
-  const { title, url, content = '', rotation = 0 } = data;
+  const { title, url, content = '', image = '', rotation = 0 } = data;
   const numSlices = 10;
 
   const escapedTitle = escapeHtml(title);
   const escapedContent = escapeHtml(content);
   const escapedUrl = escapeHtml(url);
+  const escapedImage = escapeHtml(image);
+
+  // Build content with image in proper order if present
+  let contentHtml = '';
+  if (image) {
+    contentHtml = `
+      <img src="${escapedImage}" style="width: 100%; height: auto; margin: 8px 0; display: block;" />
+    `;
+  }
+  if (content) {
+    contentHtml += `<div style="line-height: 1.5em;">${escapedContent}</div>`;
+  }
 
   // Paper content that will be repeated in each slice
   const paperContent = `
@@ -28,10 +40,10 @@ window.generatePaperHTML = function (data) {
       "
       class="bg-transparent"
     >
-      <a href="${escapedUrl}" class="font-bold text-2xl mb-4 leading-tight">
+      <a href="${escapedUrl}" class="font-bold text-2xl mb-4 leading-tight block">
         ${escapedTitle}
       </a>
-      <div style="line-height: 1.5em;">${escapedContent}</div>
+      ${contentHtml}
     </div>
   `;
 
