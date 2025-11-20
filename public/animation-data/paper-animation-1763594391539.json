@@ -1,5 +1,5 @@
 {
-  "fadeInDuration": 1,
+  "fadeInDuration": 500,
   "version": 1,
   "timePerKeyframe": 0.08,
   "playbackFPS": 60,

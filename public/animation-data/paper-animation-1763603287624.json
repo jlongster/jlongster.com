@@ -1,4 +1,5 @@
 {
+  "fadeInDuration": 500,
   "version": 1,
   "timePerKeyframe": 0.08,
   "playbackFPS": 30,
@@ -1469,7 +1470,7 @@
     null
   ],
   "scaleKeyframes": [
-    1.5,
+    3,
     null,
     null,
     null,

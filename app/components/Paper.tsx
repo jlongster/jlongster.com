@@ -5,6 +5,7 @@ interface PaperProps {
   url: string;
   rotation?: number;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export function Paper({
@@ -200,6 +201,7 @@ export function Paper({
             key={i}
             className={`paper-slice paper-slice-${i}`}
             style={{
+              opacity: 0,
               position: 'absolute',
               top: 0,
               left: 0,

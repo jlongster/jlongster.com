@@ -19,18 +19,11 @@
 
       animations = await Promise.all(animationPromises);
 
-      // Find all paper elements and assign random animations
-      const paperElements = document.querySelectorAll('.paper-element');
-      paperElements.forEach((paperElement, index) => {
-        // const randomIndex = Math.floor(Math.random() * animations.length);
-        const randomIndex = index;
-        const randomAnimation = animations[randomIndex];
-        if (randomAnimation) {
-          const animator = new PaperAnimator(paperElement, randomAnimation);
-          paperAnimators.push(animator);
-          // animator.start();
-        }
-      });
+      // Initialize existing paper elements
+      initializePaperElements();
+
+      // Watch for new paper elements being added to the DOM
+      setupMutationObserver();
 
       // Add keyboard listener for pause/resume
       document.addEventListener('keydown', e => {
@@ -45,6 +38,74 @@
     } catch (error) {
       console.error('Failed to load animations:', error);
     }
+  }
+
+  function initializePaperElements() {
+    // Find all paper elements and assign animations
+    const paperElements = document.querySelectorAll('.paper-element');
+    const newElements = [];
+
+    paperElements.forEach(paperElement => {
+      // Skip if already initialized
+      if (paperElement.hasAttribute('data-animator-initialized')) {
+        return;
+      }
+
+      const animationIndex = paperAnimators.length % animations.length;
+      const randomAnimation = animations[animationIndex];
+      if (randomAnimation) {
+        const animator = new PaperAnimator(paperElement, randomAnimation);
+        paperAnimators.push(animator);
+        paperElement.setAttribute('data-animator-initialized', 'true');
+        newElements.push(animator);
+      }
+    });
+
+    // Start animations with stagger
+    newElements.forEach((animator, index) => {
+      const delay = index * 0;
+      setTimeout(() => {
+        animator.start();
+      }, delay);
+    });
+
+    // Update control UI if it exists
+    const controlUI = document.querySelector('[data-animation-controls]');
+    if (controlUI) {
+      controlUI.remove();
+      createOffsetControlUI();
+    }
+  }
+
+  function setupMutationObserver() {
+    const observer = new MutationObserver(mutations => {
+      let hasNewPaperElements = false;
+
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if the added node is a paper element or contains paper elements
+            if (node.classList && node.classList.contains('paper-element')) {
+              hasNewPaperElements = true;
+            } else if (node.querySelectorAll) {
+              const paperElements = node.querySelectorAll('.paper-element');
+              if (paperElements.length > 0) {
+                hasNewPaperElements = true;
+              }
+            }
+          }
+        });
+      });
+
+      if (hasNewPaperElements) {
+        initializePaperElements();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   function togglePause() {
@@ -62,6 +123,7 @@
   function createOffsetControlUI() {
     // Create container
     const container = document.createElement('div');
+    container.setAttribute('data-animation-controls', 'true');
     container.style.cssText = `
       position: fixed;
       top: 10px;
@@ -72,6 +134,8 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       z-index: 2000;
       max-width: 300px;
+      max-height: 90vh;
+      overflow-y: auto;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 12px;
     `;
@@ -203,15 +267,22 @@
     });
 
     // Add event listeners to all inputs
-    container.addEventListener('change', (e) => {
+    container.addEventListener('change', e => {
       const target = e.target;
-      if (target.tagName === 'INPUT' && target.dataset.animatorIndex !== undefined) {
+      if (
+        target.tagName === 'INPUT' &&
+        target.dataset.animatorIndex !== undefined
+      ) {
         const index = parseInt(target.dataset.animatorIndex);
         const animator = paperAnimators[index];
 
         if (animator) {
-          const xInput = container.querySelector(`input[data-animator-index="${index}"][data-offset-type="x"]`);
-          const yInput = container.querySelector(`input[data-animator-index="${index}"][data-offset-type="y"]`);
+          const xInput = container.querySelector(
+            `input[data-animator-index="${index}"][data-offset-type="x"]`,
+          );
+          const yInput = container.querySelector(
+            `input[data-animator-index="${index}"][data-offset-type="y"]`,
+          );
 
           const newOffsetX = parseFloat(xInput.value) || 0;
           const newOffsetY = parseFloat(yInput.value) || 0;
@@ -228,27 +299,35 @@
     constructor(paperElement, animationData) {
       this.paperElement = paperElement;
       this.animationData = animationData;
-      this.currentFrame = 0;
+      this.currentFrame = 60;
       this.animationInterval = null;
       this.slicePoints = [];
 
       this.timePerKeyframe = animationData.timePerKeyframe || 0.1;
       this.playbackFPS = animationData.playbackFPS || 30;
-      this.keyframes = animationData.keyframes || [];
       this.scaleKeyframes = animationData.scaleKeyframes || [];
 
-      console.log(animationData.fadeInDuration)
-
-      // Fade-in configuration (in milliseconds, default to 500ms)
-      this.fadeInDuration =
-        animationData.fadeInDuration !== undefined
-          ? animationData.fadeInDuration
-          : 1;
+      this.fadeInDuration = 100;
 
       // Transform state
-      this.scale = 1;
       this.offsetX = animationData.offsetX || 0;
       this.offsetY = animationData.offsetY || 0;
+
+      // Initialize scale from first scale keyframe if available
+      const firstScaleKeyframe = this.scaleKeyframes.find(s => s !== null && s !== undefined);
+      this.scale = firstScaleKeyframe !== undefined ? firstScaleKeyframe : 1;
+
+      // Generate random variations for this instance
+      // Rotation between -20 and 20 degrees
+      this.rotationVariation = (Math.random() - 0.5) * 40; // Range: -20 to 20
+      // Small translation variations (up to ±10 pixels)
+      this.translateX = (Math.random() - 0.5) * 20; // Range: -10 to 10
+      this.translateY = (Math.random() - 0.5) * 20; // Range: -10 to 10
+
+      // Apply variations to keyframes
+      this.keyframes = this.applyVariationsToKeyframes(
+        animationData.keyframes || [],
+      );
 
       // Total keyframes count
       this.totalKeyframes = Math.max(
@@ -257,11 +336,68 @@
       );
     }
 
+    applyVariationsToKeyframes(keyframes) {
+      // Find the center point from the first keyframe
+      const firstKeyframe = keyframes.find(kf => kf);
+      if (!firstKeyframe) return keyframes;
+
+      // Calculate center from first keyframe's curves
+      const allPoints = [
+        ...firstKeyframe.leftCurve,
+        ...firstKeyframe.rightCurve,
+      ];
+      const centerX =
+        allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+      const centerY =
+        allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+
+      const rotationRad = (this.rotationVariation * Math.PI) / 180;
+
+      // Apply the same rotation and translation to all keyframes
+      return keyframes.map(keyframe => {
+        if (!keyframe) return keyframe;
+
+        return {
+          ...keyframe,
+          leftCurve: keyframe.leftCurve.map(point =>
+            this.transformPoint(point, centerX, centerY, rotationRad),
+          ),
+          rightCurve: keyframe.rightCurve.map(point =>
+            this.transformPoint(point, centerX, centerY, rotationRad),
+          ),
+        };
+      });
+    }
+
+    transformPoint(point, centerX, centerY, rotationRad) {
+      // Translate to origin
+      const translatedX = point.x - centerX;
+      const translatedY = point.y - centerY;
+
+      // Rotate
+      const rotatedX =
+        translatedX * Math.cos(rotationRad) -
+        translatedY * Math.sin(rotationRad);
+      const rotatedY =
+        translatedX * Math.sin(rotationRad) +
+        translatedY * Math.cos(rotationRad);
+
+      // Translate back and apply small translation variation
+      return {
+        x: rotatedX + centerX + this.translateX,
+        y: rotatedY + centerY + this.translateY,
+      };
+    }
+
     start() {
       // Apply fade-in effect if configured
       if (this.fadeInDuration > 0) {
         this.applyFadeIn();
       }
+
+      // Render the initial frame immediately with correct scale
+      const initialKeyframePosition = (this.currentFrame / this.playbackFPS) / this.timePerKeyframe;
+      this.applyInterpolatedFrame(initialKeyframePosition);
 
       const frameTime = 1000 / this.playbackFPS;
 
