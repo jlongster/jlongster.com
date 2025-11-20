@@ -1,7 +1,7 @@
 // Paper renderer - converts posts from DOM into Paper elements
 (function () {
   let allPosts = [];
-  let postsPerBlock = 3;
+  let postsPerBlock = 5;
   let hasMore = true;
   let isLoading = false;
   let observer = null;
@@ -10,12 +10,12 @@
 
   // Expose API for devtools
   window.PaperRenderer = {
-    restartAll: function() {
+    restartAll: function () {
       console.log('[PaperRenderer] Restarting all animations');
       unmountAllPapers();
       init();
     },
-    restartAnimator: function(id) {
+    restartAnimator: function (id) {
       console.log('[PaperRenderer] Restarting animator:', id);
 
       // Unregister the animator instance first
@@ -33,7 +33,10 @@
       // Get the wrapper div
       const wrapper = paperElement.closest('.col-start-1.row-start-1');
       if (!wrapper) {
-        console.warn('[PaperRenderer] Wrapper not found for paper element:', id);
+        console.warn(
+          '[PaperRenderer] Wrapper not found for paper element:',
+          id,
+        );
         return;
       }
 
@@ -42,11 +45,18 @@
       const blockId = parseInt(block.getAttribute('data-block-id'));
 
       // Calculate which post within the block this is
-      const wrappers = Array.from(block.querySelectorAll('.col-start-1.row-start-1'));
+      const wrappers = Array.from(
+        block.querySelectorAll('.col-start-1.row-start-1'),
+      );
       const wrapperIndex = wrappers.indexOf(wrapper);
       const postIndex = blockId * postsPerBlock + wrapperIndex;
 
-      console.log('[PaperRenderer] Found post at index', postIndex, 'in block', blockId);
+      console.log(
+        '[PaperRenderer] Found post at index',
+        postIndex,
+        'in block',
+        blockId,
+      );
 
       // Get the post data
       const post = allPosts[postIndex];
@@ -85,7 +95,7 @@
       } else {
         block.appendChild(newWrapper);
       }
-    }
+    },
   };
 
   function unmountAllPapers() {
@@ -188,8 +198,7 @@
         entries.forEach(entry => {
           const blockId = parseInt(entry.target.getAttribute('data-block-id'));
 
-          // Only trigger when element is fully in view
-          if (entry.isIntersecting && entry.intersectionRatio >= 1.0) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const block = entry.target;
             const isSentinel = block.classList.contains('sentinel-block');
 
@@ -244,7 +253,10 @@
 
       // If there are more posts, create another sentinel block
       if (hasMore) {
-        console.log('[PaperRenderer] Creating next sentinel block:', blockId + 1);
+        console.log(
+          '[PaperRenderer] Creating next sentinel block:',
+          blockId + 1,
+        );
         createSentinelBlock(blockId + 1);
       } else {
         console.log('[PaperRenderer] No more posts to load');
@@ -268,7 +280,7 @@
 
     const block = document.createElement('div');
     block.className =
-      'h-[800px] p-8 overflow-visible grid place-items-center sentinel-block';
+      'min-h-[100vh] max-h-[800px] p-8 overflow-visible grid sentinel-block';
     block.setAttribute('data-block-id', blockId);
     block.innerHTML = ''; // Empty sentinel
 

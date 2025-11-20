@@ -7,9 +7,100 @@
   let isPaused = false;
   let nextId = 0;
 
-  // Expose API for paper-renderer
+  // First set: config for paper-0 through paper-4 (first block)
+  const firstBlockConfigs = [
+    {
+      offsetX: 159,
+      offsetY: 45,
+      rotation: -51,
+      startDelay: 0,
+      startKeyframe: 16,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 427,
+      offsetY: 93,
+      rotation: 0,
+      startDelay: 500,
+      startKeyframe: 10,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 830,
+      offsetY: 269,
+      rotation: 0,
+      startDelay: 1000,
+      startKeyframe: 22,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 357,
+      offsetY: 485,
+      rotation: 0,
+      startDelay: 1500,
+      startKeyframe: 25,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 676,
+      offsetY: 7,
+      rotation: 0,
+      startDelay: 2000,
+      startKeyframe: 25,
+      endKeyframe: 59,
+    },
+  ];
+
+  // Second set: config for all subsequent blocks (paper-5 onwards, repeating)
+  const repeatingConfigs = [
+    {
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      startDelay: 0,
+      startKeyframe: 0,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      startDelay: 500,
+      startKeyframe: 0,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      startDelay: 1000,
+      startKeyframe: 0,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      startDelay: 1500,
+      startKeyframe: 0,
+      endKeyframe: 59,
+    },
+    {
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      startDelay: 2000,
+      startKeyframe: 0,
+      endKeyframe: 59,
+    },
+  ];
+
+  // Map to store per-paper-id config overrides (paperId -> config)
+  const configOverrides = new Map();
+
+  // Expose API for paper-renderer and devtools
   window.PaperAnimator = {
-    resetAll: function() {
+    resetAll: function () {
       console.log('[PaperAnimator] Resetting all animators');
       // Stop all animations
       animatorRegistry.forEach(animator => animator.stop());
@@ -17,8 +108,7 @@
       animatorRegistry.clear();
       nextId = 0;
     },
-    unregisterAnimator: function(id) {
-      console.log('[PaperAnimator] Unregistering animator:', id);
+    unregisterAnimator: function (id) {
       const animator = animatorRegistry.get(id);
       if (animator) {
         animator.stop();
@@ -28,6 +118,63 @@
           window.PaperDevTools.unregisterAnimator(id);
         }
       }
+    },
+    getAnimationConfigs: function () {
+      // Return only the first block configs (for devtools display/export)
+      return firstBlockConfigs;
+    },
+    getConfig: function(paperId) {
+      // Check if there's an override first
+      if (configOverrides.has(paperId)) {
+        return configOverrides.get(paperId);
+      }
+
+      // Determine which config set to use
+      const paperNumber = parseInt(paperId.split('-')[1]) || 0;
+
+      if (paperNumber < 5) {
+        // First block (paper-0 through paper-4): use firstBlockConfigs
+        return firstBlockConfigs[paperNumber];
+      } else {
+        // All subsequent blocks: use repeatingConfigs (cycling)
+        const configIndex = (paperNumber - 5) % repeatingConfigs.length;
+        return repeatingConfigs[configIndex];
+      }
+    },
+    setConfig: function(paperId, config) {
+      configOverrides.set(paperId, config);
+
+      // Apply to animator if it exists
+      const animator = animatorRegistry.get(paperId);
+      if (animator) {
+        // Update animator properties
+        if (config.offsetX !== undefined || config.offsetY !== undefined) {
+          animator.updateOffsets(
+            config.offsetX !== undefined ? config.offsetX : animator.offsetX,
+            config.offsetY !== undefined ? config.offsetY : animator.offsetY
+          );
+        }
+        if (config.rotation !== undefined) {
+          animator.updateRotation(config.rotation);
+        }
+        if (config.startDelay !== undefined) {
+          animator.startDelay = config.startDelay;
+        }
+        if (config.startKeyframe !== undefined) {
+          animator.startKeyframe = config.startKeyframe;
+        }
+        if (config.endKeyframe !== undefined) {
+          animator.endKeyframe = config.endKeyframe;
+        }
+      }
+    },
+    getConfigOverrides: function() {
+      // Return overrides for export
+      const result = {};
+      configOverrides.forEach((config, id) => {
+        result[id] = config;
+      });
+      return result;
     }
   };
 
@@ -88,15 +235,16 @@
       let animationData = animations[animationIndex];
 
       if (animationData) {
-        // Check if DevTools has saved configuration for this ID
-        const savedConfig = window.PaperDevTools?.getSavedConfig?.(paperId);
-        if (savedConfig) {
-          // Merge saved config with animation data
-          animationData = { ...animationData, ...savedConfig };
-          console.log('[PaperAnimator] Using saved config for', paperId, savedConfig);
+        // Extract the numeric ID from paperId (e.g., "paper-7" -> 7)
+        const paperNumber = parseInt(paperId.split('-')[1]) || 0;
+
+        // Get config from centralized source
+        const config = window.PaperAnimator.getConfig(paperId);
+        if (config) {
+          animationData = { ...animationData, ...config };
         }
 
-        // Get delay from animation data or saved config
+        // Get delay from animation data or config
         const delay = animationData.startDelay || 0;
 
         // Hide the element initially
@@ -195,7 +343,9 @@
       this.startDelay = animationData.startDelay || 0;
 
       // Initialize scale from first scale keyframe if available
-      const firstScaleKeyframe = this.scaleKeyframes.find(s => s !== null && s !== undefined);
+      const firstScaleKeyframe = this.scaleKeyframes.find(
+        s => s !== null && s !== undefined,
+      );
       this.scale = firstScaleKeyframe !== undefined ? firstScaleKeyframe : 1;
 
       // Apply rotation to keyframes
@@ -210,7 +360,10 @@
       );
 
       // Set start/end keyframes (defaults: 0 to last keyframe with data)
-      this.startKeyframe = animationData.startKeyframe !== undefined ? animationData.startKeyframe : 0;
+      this.startKeyframe =
+        animationData.startKeyframe !== undefined
+          ? animationData.startKeyframe
+          : 0;
 
       // Find the last keyframe with data for default end
       let lastKeyframeIndex = -1;
@@ -220,7 +373,10 @@
           break;
         }
       }
-      this.endKeyframe = animationData.endKeyframe !== undefined ? animationData.endKeyframe : lastKeyframeIndex;
+      this.endKeyframe =
+        animationData.endKeyframe !== undefined
+          ? animationData.endKeyframe
+          : lastKeyframeIndex;
 
       // Render the initial frame immediately to prevent flash
       this.renderInitialFrame();

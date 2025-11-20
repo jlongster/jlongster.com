@@ -52,7 +52,7 @@
           );
 
           // Only trigger when element is fully in view (100% visible)
-          if (entry.isIntersecting && entry.intersectionRatio >= 1.0) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
             const block = entry.target;
             const isSentinel = block.classList.contains('sentinel-block');
 

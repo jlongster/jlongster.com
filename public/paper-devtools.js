@@ -8,7 +8,9 @@
   let dragStartY = 0;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
-  let isCollapsed = false;
+
+  // Load collapsed state from localStorage
+  let isCollapsed = localStorage.getItem('paperDevToolsCollapsed') === 'true';
 
   console.log('[PaperDevTools] Script loaded');
 
@@ -18,11 +20,13 @@
       console.log('[PaperDevTools] Registering animator:', id);
       animatorRegistry.set(id, animator);
 
-      // Apply saved config if it exists
-      const savedConfig = savedConfigs.get(id);
-      if (savedConfig) {
-        console.log('[PaperDevTools] Applying saved config:', id, savedConfig);
-        Object.assign(animator, savedConfig);
+      // Read config from PaperAnimator (source of truth)
+      if (window.PaperAnimator && window.PaperAnimator.getConfig) {
+        const config = window.PaperAnimator.getConfig(id);
+        if (config) {
+          savedConfigs.set(id, config);
+          console.log('[PaperDevTools] Loaded config from PaperAnimator:', id, config);
+        }
       }
 
       updateDevToolsUI();
@@ -44,6 +48,18 @@
   function init() {
     console.log('[PaperDevTools] Initializing...');
     createDevToolsUI();
+
+    // Apply initial collapsed state
+    if (isCollapsed) {
+      const sidebar = document.getElementById('paper-devtools');
+      const collapseBtn = document.getElementById('collapse-btn');
+      const collapseTab = document.getElementById('devtools-tab');
+
+      if (sidebar) sidebar.style.transform = 'translateX(320px)';
+      if (collapseBtn) collapseBtn.textContent = '←';
+      if (collapseTab) collapseTab.style.display = 'block';
+    }
+
     setupDragListeners();
     setupKeyboardShortcuts();
     console.log('[PaperDevTools] Initialization complete');
@@ -241,12 +257,33 @@
   }
 
   function exportConfiguration() {
-    // Convert savedConfigs Map to plain object
-    const configObject = {};
-    savedConfigs.forEach((config, id) => {
-      configObject[id] = config;
-    });
+    // Export only the first 5 configs as an array
+    const animations = [];
+    let count = 0;
 
+    // Get the first 5 animators from the registry
+    for (const [id, config] of savedConfigs) {
+      if (count < 5) {
+        animations.push(config);
+        count++;
+      } else {
+        break;
+      }
+    }
+
+    // If we have fewer than 5, fill with defaults
+    while (animations.length < 5) {
+      animations.push({
+        offsetX: 0,
+        offsetY: 0,
+        rotation: 0,
+        startDelay: animations.length * 500,
+        startKeyframe: 0,
+        endKeyframe: 59
+      });
+    }
+
+    const configObject = { animations };
     const configJson = JSON.stringify(configObject, null, 2);
 
     // Create a blob and download
@@ -254,30 +291,40 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `paper-animations-config-${Date.now()}.json`;
+    a.download = 'paper-animations-config.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    console.log('[PaperDevTools] Configuration exported');
+    console.log('[PaperDevTools] Configuration exported:', configObject);
   }
 
   function importConfiguration(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const configObject = JSON.parse(e.target.result);
+        const configData = JSON.parse(e.target.result);
 
         // Clear existing configs
         savedConfigs.clear();
 
-        // Load new configs
-        Object.entries(configObject).forEach(([id, config]) => {
-          savedConfigs.set(id, config);
-        });
-
-        console.log('[PaperDevTools] Configuration imported:', configObject);
+        // Handle new array format
+        if (configData.animations && Array.isArray(configData.animations)) {
+          // Map the array to paper IDs (paper-0, paper-1, etc.)
+          configData.animations.forEach((config, index) => {
+            const paperId = `paper-${index}`;
+            savedConfigs.set(paperId, config);
+          });
+          console.log('[PaperDevTools] Configuration imported (array format):', configData);
+        }
+        // Handle old object format for backwards compatibility
+        else {
+          Object.entries(configData).forEach(([id, config]) => {
+            savedConfigs.set(id, config);
+          });
+          console.log('[PaperDevTools] Configuration imported (object format):', configData);
+        }
 
         // Restart all animations to apply the new configuration
         if (window.PaperRenderer) {
@@ -293,6 +340,10 @@
 
   function toggleCollapse() {
     isCollapsed = !isCollapsed;
+
+    // Save state to localStorage
+    localStorage.setItem('paperDevToolsCollapsed', isCollapsed.toString());
+
     const sidebar = document.getElementById('paper-devtools');
     const collapseBtn = document.getElementById('collapse-btn');
     const collapseTab = document.getElementById('devtools-tab');
@@ -542,6 +593,12 @@
       endKeyframe: animator.endKeyframe,
     };
 
+    // Save to PaperAnimator (source of truth)
+    if (window.PaperAnimator && window.PaperAnimator.setConfig) {
+      window.PaperAnimator.setConfig(id, config);
+    }
+
+    // Also keep in local map for UI updates
     savedConfigs.set(id, config);
     console.log('[PaperDevTools] Saved config:', id, config);
   }

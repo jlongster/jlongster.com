@@ -8,6 +8,8 @@ export async function loader() {
     return !tags.includes('content');
   });
 
+  console.log(getPages().slice(0, 10));
+
   return { allPosts };
 }
 
@@ -21,7 +23,7 @@ export default function Index() {
       <script src="/paper-animator.js" />
       <script src="/paper-renderer.js" />
 
-      <div id="scroll-container" className="bg-[#fcfbf9]">
+      <div id="scroll-container" className="bg-[#fcfbf9] overflow-hidden">
         {/* Semantic list of all posts - will be scraped by JS
             NEVER apply display: none here, it should always be an inline script tag below*/}
         <ul id="all-posts" className="list-none">
@@ -51,10 +53,39 @@ export default function Index() {
           }}
         />
 
+        <div
+          style={{
+            marginLeft: 800,
+            marginTop: 50,
+            marginRight: 200,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+          className="intro"
+        >
+          <h1
+            style={{
+              color: 'var(--color-accent)',
+            }}
+          >
+            Hello, I'm James
+          </h1>
+          <section style={{ fontSize: 18 }}>
+            <p>
+              I'm a design engineer with two decades of experience building
+              products. I study everything from design to computing, and now AI.
+              I created Prettier, worked for over 5 years at Stripe, and
+              currently looking for my next thing.
+            </p>
+          </section>
+        </div>
+
         {/* Initial block - will be populated by JS */}
         <div
-          className="h-[800px] p-8 overflow-visible grid place-items-center"
+          className="p-8 overflow-visible grid"
           data-block-id="0"
+          style={{ height: 'min(100vh, 800px)', border: '3px solid red' }}
         ></div>
       </div>
     </>

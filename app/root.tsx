@@ -25,6 +25,13 @@ export function links() {
       rel: 'stylesheet',
       href: 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css',
     },
+
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap',
+    },
   ];
 }
 

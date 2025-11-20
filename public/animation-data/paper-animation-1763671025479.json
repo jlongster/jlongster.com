@@ -1,5 +1,4 @@
 {
-  "fadeInDuration": 500,
   "version": 1,
   "timePerKeyframe": 0.08,
   "playbackFPS": 30,
@@ -1324,86 +1323,8 @@
       "overlayOffsetX": 0,
       "overlayOffsetY": 0
     },
-    {
-      "leftCurve": [
-        {
-          "x": -7,
-          "y": 157
-        },
-        {
-          "x": -36,
-          "y": 206
-        },
-        {
-          "x": -52,
-          "y": 241
-        },
-        {
-          "x": -70,
-          "y": 270
-        }
-      ],
-      "rightCurve": [
-        {
-          "x": 86,
-          "y": 201
-        },
-        {
-          "x": 57,
-          "y": 244
-        },
-        {
-          "x": 39,
-          "y": 292
-        },
-        {
-          "x": 24,
-          "y": 324
-        }
-      ],
-      "overlayOffsetX": 0,
-      "overlayOffsetY": 0
-    },
-    {
-      "leftCurve": [
-        {
-          "x": -7,
-          "y": 157
-        },
-        {
-          "x": -36,
-          "y": 206
-        },
-        {
-          "x": -52,
-          "y": 241
-        },
-        {
-          "x": -70,
-          "y": 270
-        }
-      ],
-      "rightCurve": [
-        {
-          "x": 86,
-          "y": 201
-        },
-        {
-          "x": 57,
-          "y": 244
-        },
-        {
-          "x": 39,
-          "y": 292
-        },
-        {
-          "x": 24,
-          "y": 324
-        }
-      ],
-      "overlayOffsetX": 0,
-      "overlayOffsetY": 0
-    },
+    null,
+    null,
     {
       "leftCurve": [
         {
@@ -1411,8 +1332,8 @@
           "y": 146
         },
         {
-          "x": -38,
-          "y": 195
+          "x": -31.5,
+          "y": 183
         },
         {
           "x": -54,
@@ -1530,5 +1451,7 @@
     null,
     null,
     null
-  ]
+  ],
+  "offsetX": 0,
+  "offsetY": 0
 }

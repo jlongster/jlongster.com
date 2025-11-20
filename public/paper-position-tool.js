@@ -1502,9 +1502,21 @@
     }
   }
 
+  // Expose init function globally for manual initialization
+  window.PaperPositionTool = {
+    init: init
+  };
+
+  // Auto-initialize only if paper element exists
+  function autoInit() {
+    if (document.querySelector('.paper-element')) {
+      init();
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', autoInit);
   } else {
-    init();
+    autoInit();
   }
 })();
