@@ -11,7 +11,6 @@ interface PaperProps {
 export function Paper({
   title,
   url,
-  rotation = 0,
   children,
   className = '',
 }: PaperProps) {
@@ -186,7 +185,6 @@ export function Paper({
       style={{
         width: '250px',
         height: '300px',
-        transform: `rotate(${rotation}deg)`,
         transformStyle: 'preserve-3d',
         zIndex: 10,
       }}
@@ -201,7 +199,6 @@ export function Paper({
             key={i}
             className={`paper-slice paper-slice-${i}`}
             style={{
-              opacity: 0,
               position: 'absolute',
               top: 0,
               left: 0,

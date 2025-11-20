@@ -457,19 +457,10 @@
     }
 
     applyFadeIn() {
-      const slices = this.paperElement.querySelectorAll('.paper-slice');
-
-      // Set initial opacity and transition
-      slices.forEach((slice, i) => {
-        slice.style.transition = `opacity ${this.fadeInDuration}ms ease-out`;
-      });
-
       // Trigger fade-in after a small delay to ensure transition is applied
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          slices.forEach((slice, i) => {
-            slice.style.opacity = '1';
-          });
+          this.paperElement.style.transform = 'none';
         });
       });
     }
