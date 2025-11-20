@@ -18,19 +18,17 @@
       );
 
       animations = await Promise.all(animationPromises);
-      console.log(`Loaded ${animations.length} animations`);
 
       // Find all paper elements and assign random animations
       const paperElements = document.querySelectorAll('.paper-element');
-      console.log(`Found ${paperElements.length} paper elements`);
       paperElements.forEach((paperElement, index) => {
-        const randomIndex = Math.floor(Math.random() * animations.length);
+        // const randomIndex = Math.floor(Math.random() * animations.length);
+        const randomIndex = index;
         const randomAnimation = animations[randomIndex];
-        console.log(`Paper ${index}: assigned animation ${randomIndex}`);
         if (randomAnimation) {
           const animator = new PaperAnimator(paperElement, randomAnimation);
           paperAnimators.push(animator);
-          animator.start();
+          // animator.start();
         }
       });
 
@@ -41,6 +39,9 @@
           togglePause();
         }
       });
+
+      // Create offset control UI
+      createOffsetControlUI();
     } catch (error) {
       console.error('Failed to load animations:', error);
     }
@@ -58,6 +59,171 @@
     console.log(isPaused ? 'Animations paused' : 'Animations resumed');
   }
 
+  function createOffsetControlUI() {
+    // Create container
+    const container = document.createElement('div');
+    container.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      z-index: 2000;
+      max-width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+    `;
+
+    // Header with title and global restart button
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = 'Animation Offsets';
+    title.style.cssText = `
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    `;
+
+    const globalRestartButton = document.createElement('button');
+    globalRestartButton.textContent = '↻ Restart All';
+    globalRestartButton.style.cssText = `
+      padding: 4px 8px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+    `;
+    globalRestartButton.onclick = () => {
+      paperAnimators.forEach(animator => {
+        animator.stop();
+        animator.currentFrame = 0;
+        animator.start();
+      });
+    };
+
+    header.appendChild(title);
+    header.appendChild(globalRestartButton);
+    container.appendChild(header);
+
+    // Create controls for each animator
+    paperAnimators.forEach((animator, index) => {
+      const animationControl = document.createElement('div');
+      animationControl.style.cssText = `
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e5e7eb;
+      `;
+
+      // Animation label
+      const label = document.createElement('div');
+      label.textContent = `Animation ${index + 1}`;
+      label.style.cssText = `
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: #374151;
+      `;
+      animationControl.appendChild(label);
+
+      // Offset controls container
+      const offsetControls = document.createElement('div');
+      offsetControls.style.cssText = `
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      `;
+
+      // X offset control
+      const xLabel = document.createElement('label');
+      xLabel.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #6b7280;
+      `;
+      xLabel.innerHTML = `
+        X: <input type="number" value="${animator.offsetX}" min="-500" max="500" step="1"
+          data-animator-index="${index}" data-offset-type="x"
+          style="width: 60px; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
+      `;
+
+      // Y offset control
+      const yLabel = document.createElement('label');
+      yLabel.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #6b7280;
+      `;
+      yLabel.innerHTML = `
+        Y: <input type="number" value="${animator.offsetY}" min="-500" max="500" step="1"
+          data-animator-index="${index}" data-offset-type="y"
+          style="width: 60px; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
+      `;
+
+      offsetControls.appendChild(xLabel);
+      offsetControls.appendChild(yLabel);
+      animationControl.appendChild(offsetControls);
+
+      // Restart button
+      const restartButton = document.createElement('button');
+      restartButton.textContent = '↻ Restart';
+      restartButton.style.cssText = `
+        margin-top: 6px;
+        padding: 4px 8px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 500;
+      `;
+      restartButton.dataset.animatorIndex = index;
+      restartButton.onclick = () => {
+        animator.stop();
+        animator.currentFrame = 0;
+        animator.start();
+      };
+      animationControl.appendChild(restartButton);
+
+      container.appendChild(animationControl);
+    });
+
+    // Add event listeners to all inputs
+    container.addEventListener('change', (e) => {
+      const target = e.target;
+      if (target.tagName === 'INPUT' && target.dataset.animatorIndex !== undefined) {
+        const index = parseInt(target.dataset.animatorIndex);
+        const animator = paperAnimators[index];
+
+        if (animator) {
+          const xInput = container.querySelector(`input[data-animator-index="${index}"][data-offset-type="x"]`);
+          const yInput = container.querySelector(`input[data-animator-index="${index}"][data-offset-type="y"]`);
+
+          const newOffsetX = parseFloat(xInput.value) || 0;
+          const newOffsetY = parseFloat(yInput.value) || 0;
+
+          animator.updateOffsets(newOffsetX, newOffsetY);
+        }
+      }
+    });
+
+    document.body.appendChild(container);
+  }
+
   class PaperAnimator {
     constructor(paperElement, animationData) {
       this.paperElement = paperElement;
@@ -69,12 +235,26 @@
       this.timePerKeyframe = animationData.timePerKeyframe || 0.1;
       this.playbackFPS = animationData.playbackFPS || 30;
       this.keyframes = animationData.keyframes || [];
+      this.scaleKeyframes = animationData.scaleKeyframes || [];
+
+      console.log(animationData.fadeInDuration)
 
       // Fade-in configuration (in milliseconds, default to 500ms)
-      this.fadeInDuration = animationData.fadeInDuration !== undefined ? animationData.fadeInDuration : 500;
+      this.fadeInDuration =
+        animationData.fadeInDuration !== undefined
+          ? animationData.fadeInDuration
+          : 1;
 
       // Transform state
       this.scale = 1;
+      this.offsetX = animationData.offsetX || 0;
+      this.offsetY = animationData.offsetY || 0;
+
+      // Total keyframes count
+      this.totalKeyframes = Math.max(
+        this.keyframes.length,
+        this.scaleKeyframes.length,
+      );
     }
 
     start() {
@@ -131,6 +311,13 @@
       if (!this.animationInterval) {
         this.start();
       }
+    }
+
+    updateOffsets(offsetX, offsetY) {
+      this.offsetX = offsetX;
+      this.offsetY = offsetY;
+      // Immediately update all transforms with new offsets
+      this.updateAllTransforms();
     }
 
     applyFadeIn() {
@@ -194,49 +381,83 @@
       // Calculate slice points from bezier curves
       this.calculateSlicePoints(leftCurvePoints, rightCurvePoints);
 
-      // Interpolate scale
+      // Interpolate scale from scale timeline
       this.scale = 1;
-      if (lowerKf.scale !== undefined && upperKf.scale !== undefined) {
-        this.scale = this.lerp(lowerKf.scale, upperKf.scale, t);
+      let lowerScaleIndex = this.findPreviousScaleKeyframe(lowerIndex);
+      let upperScaleIndex = this.findNextScaleKeyframe(upperIndex);
+
+      if (lowerScaleIndex !== null && upperScaleIndex !== null) {
+        const lowerScale = this.scaleKeyframes[lowerScaleIndex];
+        const upperScale = this.scaleKeyframes[upperScaleIndex];
+
+        let scaleT;
+        if (lowerScaleIndex === upperScaleIndex) {
+          scaleT = 0;
+        } else {
+          scaleT =
+            (keyframePosition - lowerScaleIndex) /
+            (upperScaleIndex - lowerScaleIndex);
+          scaleT = Math.max(0, Math.min(1, scaleT));
+        }
+
+        this.scale = this.lerp(lowerScale, upperScale, scaleT);
       }
 
-      // Apply transforms to all slices (scale is handled in updateSliceTransform)
+      // Apply transforms to all slices
       this.updateAllTransforms();
     }
 
     calculateSlicePoints(leftCurvePoints, rightCurvePoints) {
       this.slicePoints = [];
 
+      // Apply scale to bezier control points before calculating slice points
+      // Calculate the actual center of all control points
+      const allPoints = [...leftCurvePoints, ...rightCurvePoints];
+      const centerX =
+        allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+      const centerY =
+        allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+
+      const scaledLeftPoints = leftCurvePoints.map(p => ({
+        x: centerX + (p.x - centerX) * this.scale,
+        y: centerY + (p.y - centerY) * this.scale,
+      }));
+
+      const scaledRightPoints = rightCurvePoints.map(p => ({
+        x: centerX + (p.x - centerX) * this.scale,
+        y: centerY + (p.y - centerY) * this.scale,
+      }));
+
       for (let i = 0; i < numLines; i++) {
         const t = i / numSlices;
 
         const leftX = this.cubicBezier(
-          leftCurvePoints[0].x,
-          leftCurvePoints[1].x,
-          leftCurvePoints[2].x,
-          leftCurvePoints[3].x,
+          scaledLeftPoints[0].x,
+          scaledLeftPoints[1].x,
+          scaledLeftPoints[2].x,
+          scaledLeftPoints[3].x,
           t,
         );
         const leftY = this.cubicBezier(
-          leftCurvePoints[0].y,
-          leftCurvePoints[1].y,
-          leftCurvePoints[2].y,
-          leftCurvePoints[3].y,
+          scaledLeftPoints[0].y,
+          scaledLeftPoints[1].y,
+          scaledLeftPoints[2].y,
+          scaledLeftPoints[3].y,
           t,
         );
 
         const rightX = this.cubicBezier(
-          rightCurvePoints[0].x,
-          rightCurvePoints[1].x,
-          rightCurvePoints[2].x,
-          rightCurvePoints[3].x,
+          scaledRightPoints[0].x,
+          scaledRightPoints[1].x,
+          scaledRightPoints[2].x,
+          scaledRightPoints[3].x,
           t,
         );
         const rightY = this.cubicBezier(
-          rightCurvePoints[0].y,
-          rightCurvePoints[1].y,
-          rightCurvePoints[2].y,
-          rightCurvePoints[3].y,
+          scaledRightPoints[0].y,
+          scaledRightPoints[1].y,
+          scaledRightPoints[2].y,
+          scaledRightPoints[3].y,
           t,
         );
 
@@ -259,19 +480,7 @@
       );
       if (!sliceElement) return;
 
-      let corners = this.getSliceCorners(sliceIndex);
-
-      // Apply scale to destination points around Paper's local center
-      if (this.scale !== 1) {
-        const centerX = 125; // Center of 250px paper width (local coordinates)
-        const centerY = 150; // Center of 300px paper height (local coordinates)
-        corners = {
-          tl: this.scalePoint(corners.tl, centerX, centerY, this.scale),
-          tr: this.scalePoint(corners.tr, centerX, centerY, this.scale),
-          bl: this.scalePoint(corners.bl, centerX, centerY, this.scale),
-          br: this.scalePoint(corners.br, centerX, centerY, this.scale),
-        };
-      }
+      const corners = this.getSliceCorners(sliceIndex);
 
       const sliceHeight = 300 / numSlices;
       const startY = sliceIndex * sliceHeight;
@@ -282,20 +491,18 @@
         { x: 250, y: startY + sliceHeight },
       ];
 
-      const dst = [corners.tl, corners.tr, corners.bl, corners.br];
+      // Apply global offsets to destination corners
+      const dst = [
+        { x: corners.tl.x + this.offsetX, y: corners.tl.y + this.offsetY },
+        { x: corners.tr.x + this.offsetX, y: corners.tr.y + this.offsetY },
+        { x: corners.bl.x + this.offsetX, y: corners.bl.y + this.offsetY },
+        { x: corners.br.x + this.offsetX, y: corners.br.y + this.offsetY },
+      ];
 
       const matrix = this.getPerspectiveTransform(src, dst);
 
       sliceElement.style.transform = `matrix3d(${matrix.join(',')})`;
       sliceElement.style.transformOrigin = '0 0';
-    }
-
-    // Scale a point around a center point
-    scalePoint(point, cx, cy, scale) {
-      return {
-        x: cx + (point.x - cx) * scale,
-        y: cy + (point.y - cy) * scale,
-      };
     }
 
     getSliceCorners(sliceIndex) {
@@ -340,6 +547,42 @@
       }
       for (let i = this.keyframes.length - 1; i > startIndex; i--) {
         if (this.keyframes[i]) return i;
+      }
+      return null;
+    }
+
+    findNextScaleKeyframe(startIndex) {
+      for (let i = startIndex; i < this.scaleKeyframes.length; i++) {
+        if (
+          this.scaleKeyframes[i] !== null &&
+          this.scaleKeyframes[i] !== undefined
+        )
+          return i;
+      }
+      for (let i = 0; i < startIndex; i++) {
+        if (
+          this.scaleKeyframes[i] !== null &&
+          this.scaleKeyframes[i] !== undefined
+        )
+          return i;
+      }
+      return null;
+    }
+
+    findPreviousScaleKeyframe(startIndex) {
+      for (let i = startIndex; i >= 0; i--) {
+        if (
+          this.scaleKeyframes[i] !== null &&
+          this.scaleKeyframes[i] !== undefined
+        )
+          return i;
+      }
+      for (let i = this.scaleKeyframes.length - 1; i > startIndex; i--) {
+        if (
+          this.scaleKeyframes[i] !== null &&
+          this.scaleKeyframes[i] !== undefined
+        )
+          return i;
       }
       return null;
     }

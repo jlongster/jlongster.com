@@ -16,10 +16,14 @@
   let overlayOffsetX = 0;     // Track overlay position offset from element
   let overlayOffsetY = 0;
   let scale = 1;              // Scale factor
+  let offsetX = 0;            // Global X offset for animation (px)
+  let offsetY = 0;            // Global Y offset for animation (px)
 
   // Animation state
   let keyframes = Array(totalKeyframes).fill(null);
+  let scaleKeyframes = Array(totalKeyframes).fill(null); // Separate timeline for scale
   let currentKeyframe = 0;
+  let currentScaleKeyframe = 0; // Current position in scale timeline
   let currentPlaybackFrame = 0; // Current frame in playback (can be fractional for interpolation)
   let isPlaying = false;
   let animationInterval = null;
@@ -27,6 +31,7 @@
 
   // UI elements
   let timelineContainer = null;
+  let scaleTimelineContainer = null;
   let playButton = null;
 
   // Initialize bezier control points
@@ -132,69 +137,114 @@
   }
 
   function createTimelineUI() {
+    let isCollapsed = false;
+
     // Main timeline container
     timelineContainer = document.createElement('div');
     timelineContainer.style.cssText = `
       position: fixed;
-      bottom: 20px;
+      bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
       background: white;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       z-index: 2000;
       min-width: 800px;
+    `;
+
+    // Collapsed controls (always visible)
+    const collapsedControls = document.createElement('div');
+    collapsedControls.style.cssText = `
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 4px;
+    `;
+
+    // Expanded controls container (can be hidden)
+    const expandedContainer = document.createElement('div');
+    expandedContainer.id = 'expanded-timeline';
+    expandedContainer.style.cssText = `
+      display: block;
     `;
 
     // Controls row
     const controls = document.createElement('div');
     controls.style.cssText = `
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 6px;
+      margin-bottom: 6px;
       align-items: center;
     `;
+
+    // Collapse/Expand button
+    const collapseButton = document.createElement('button');
+    collapseButton.textContent = '▼';
+    collapseButton.style.cssText = `
+      padding: 4px 8px;
+      background: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 11px;
+    `;
+    collapseButton.onclick = () => {
+      isCollapsed = !isCollapsed;
+      if (isCollapsed) {
+        expandedContainer.style.display = 'none';
+        collapseButton.textContent = '▲';
+      } else {
+        expandedContainer.style.display = 'block';
+        collapseButton.textContent = '▼';
+      }
+    };
 
     // Play button
     playButton = document.createElement('button');
     playButton.textContent = '▶ Play';
     playButton.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #3b82f6;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     playButton.onclick = togglePlay;
 
     // Save keyframe button
     const saveButton = document.createElement('button');
-    saveButton.textContent = 'Save Keyframe';
+    saveButton.textContent = 'Save';
     saveButton.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #10b981;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     saveButton.onclick = saveCurrentKeyframe;
 
     // Clear keyframe button
     const clearButton = document.createElement('button');
-    clearButton.textContent = 'Clear Keyframe';
+    clearButton.textContent = 'Clear';
     clearButton.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #ef4444;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     clearButton.onclick = clearCurrentKeyframe;
 
@@ -202,13 +252,14 @@
     const exportButton = document.createElement('button');
     exportButton.textContent = 'Export';
     exportButton.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #8b5cf6;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     exportButton.onclick = exportAnimation;
 
@@ -216,13 +267,14 @@
     const importButton = document.createElement('button');
     importButton.textContent = 'Import';
     importButton.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #06b6d4;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     importButton.onclick = () => importFileInput.click();
 
@@ -236,39 +288,41 @@
     // Transparency toggle button
     let isTransparent = false;
     const transparencyBtn = document.createElement('button');
-    transparencyBtn.textContent = 'Paper: Opaque';
+    transparencyBtn.textContent = 'Opaque';
     transparencyBtn.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #6b7280;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     transparencyBtn.onclick = () => {
       isTransparent = !isTransparent;
       togglePaperTransparency(isTransparent);
-      transparencyBtn.textContent = isTransparent ? 'Paper: Transparent' : 'Paper: Opaque';
+      transparencyBtn.textContent = isTransparent ? 'Transparent' : 'Opaque';
       transparencyBtn.style.background = isTransparent ? '#ef4444' : '#6b7280';
     };
 
     // Player mode toggle button
     const playerModeBtn = document.createElement('button');
-    playerModeBtn.textContent = 'Editor Mode';
+    playerModeBtn.textContent = 'Editor';
     playerModeBtn.style.cssText = `
-      padding: 8px 16px;
+      padding: 4px 10px;
       background: #8b5cf6;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 12px;
     `;
     playerModeBtn.onclick = () => {
       playerMode = !playerMode;
       togglePlayerMode();
-      playerModeBtn.textContent = playerMode ? 'Player Mode' : 'Editor Mode';
+      playerModeBtn.textContent = playerMode ? 'Player' : 'Editor';
       playerModeBtn.style.background = playerMode ? '#10b981' : '#8b5cf6';
     };
 
@@ -277,14 +331,14 @@
     timePerKeyframeLabel.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 14px;
+      gap: 3px;
+      font-size: 11px;
       color: #374151;
     `;
     timePerKeyframeLabel.innerHTML = `
-      Time/Keyframe (s):
+      Time/KF:
       <input type="number" id="time-per-keyframe" value="${timePerKeyframe}" min="0.01" max="10" step="0.1"
-        style="width: 60px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;">
+        style="width: 50px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
     `;
     const timePerKeyframeInput = timePerKeyframeLabel.querySelector('#time-per-keyframe');
     timePerKeyframeInput.addEventListener('change', (e) => {
@@ -297,14 +351,14 @@
     playbackFPSLabel.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 14px;
+      gap: 3px;
+      font-size: 11px;
       color: #374151;
     `;
     playbackFPSLabel.innerHTML = `
-      Playback FPS:
+      FPS:
       <input type="number" id="playback-fps" value="${playbackFPS}" min="0.01" max="120" step="0.1"
-        style="width: 60px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;">
+        style="width: 45px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
     `;
     const playbackFPSInput = playbackFPSLabel.querySelector('#playback-fps');
     playbackFPSInput.addEventListener('change', (e) => {
@@ -321,18 +375,58 @@
     scaleLabel.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 14px;
+      gap: 3px;
+      font-size: 11px;
       color: #374151;
     `;
     scaleLabel.innerHTML = `
       Scale:
       <input type="number" id="scale-input" value="${scale}" min="0.1" max="5" step="0.1"
-        style="width: 60px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;">
+        style="width: 45px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
     `;
     const scaleInput = scaleLabel.querySelector('#scale-input');
     scaleInput.addEventListener('change', (e) => {
       scale = parseFloat(e.target.value);
+      applyTransform();
+    });
+
+    // Offset X input
+    const offsetXLabel = document.createElement('label');
+    offsetXLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #374151;
+    `;
+    offsetXLabel.innerHTML = `
+      X:
+      <input type="number" id="offset-x-input" value="${offsetX}" min="-500" max="500" step="1"
+        style="width: 45px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
+    `;
+    const offsetXInput = offsetXLabel.querySelector('#offset-x-input');
+    offsetXInput.addEventListener('change', (e) => {
+      offsetX = parseFloat(e.target.value);
+      applyTransform();
+    });
+
+    // Offset Y input
+    const offsetYLabel = document.createElement('label');
+    offsetYLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #374151;
+    `;
+    offsetYLabel.innerHTML = `
+      Y:
+      <input type="number" id="offset-y-input" value="${offsetY}" min="-500" max="500" step="1"
+        style="width: 45px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
+    `;
+    const offsetYInput = offsetYLabel.querySelector('#offset-y-input');
+    offsetYInput.addEventListener('change', (e) => {
+      offsetY = parseFloat(e.target.value);
       applyTransform();
     });
 
@@ -344,6 +438,7 @@
       font-weight: 500;
       color: #374151;
       font-family: monospace;
+      font-size: 11px;
     `;
     timeDisplay.textContent = `Time: 0.00s / 0.00s`;
 
@@ -353,10 +448,16 @@
     frameDisplay.style.cssText = `
       font-weight: 500;
       color: #374151;
+      font-size: 11px;
     `;
-    frameDisplay.textContent = `Keyframe: ${currentKeyframe + 1} of ${totalKeyframes}`;
+    frameDisplay.textContent = `KF: ${currentKeyframe + 1}/${totalKeyframes}`;
 
-    controls.appendChild(playButton);
+    // Collapsed controls: only play button and frame display
+    collapsedControls.appendChild(collapseButton);
+    collapsedControls.appendChild(playButton);
+    collapsedControls.appendChild(frameDisplay);
+
+    // Expanded controls: everything else
     controls.appendChild(saveButton);
     controls.appendChild(clearButton);
     controls.appendChild(exportButton);
@@ -366,17 +467,20 @@
     controls.appendChild(timePerKeyframeLabel);
     controls.appendChild(playbackFPSLabel);
     controls.appendChild(scaleLabel);
+    controls.appendChild(offsetXLabel);
+    controls.appendChild(offsetYLabel);
     controls.appendChild(timeDisplay);
-    controls.appendChild(frameDisplay);
+
+    expandedContainer.appendChild(controls);
 
     // Timeline track
     const timeline = document.createElement('div');
     timeline.style.cssText = `
       display: flex;
-      gap: 2px;
+      gap: 1px;
       background: #e5e7eb;
-      padding: 4px;
-      border-radius: 4px;
+      padding: 3px;
+      border-radius: 3px;
     `;
 
     // Create keyframe slots
@@ -384,8 +488,8 @@
       const slot = document.createElement('div');
       slot.dataset.frame = i;
       slot.style.cssText = `
-        width: 12px;
-        height: 40px;
+        width: 10px;
+        height: 24px;
         background: #9ca3af;
         cursor: pointer;
         border-radius: 2px;
@@ -395,11 +499,103 @@
       timeline.appendChild(slot);
     }
 
-    timelineContainer.appendChild(controls);
-    timelineContainer.appendChild(timeline);
+    expandedContainer.appendChild(timeline);
+
+    timelineContainer.appendChild(collapsedControls);
+    timelineContainer.appendChild(expandedContainer);
+
+    // Scale Timeline (in expanded container)
+    const scaleTimelineLabel = document.createElement('div');
+    scaleTimelineLabel.style.cssText = `
+      margin-top: 8px;
+      margin-bottom: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #374151;
+    `;
+    scaleTimelineLabel.textContent = 'Scale Timeline';
+    expandedContainer.appendChild(scaleTimelineLabel);
+
+    const scaleControls = document.createElement('div');
+    scaleControls.style.cssText = `
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+      align-items: center;
+    `;
+
+    const saveScaleButton = document.createElement('button');
+    saveScaleButton.textContent = 'Save';
+    saveScaleButton.style.cssText = `
+      padding: 4px 10px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+    `;
+    saveScaleButton.onclick = saveCurrentScaleKeyframe;
+
+    const clearScaleButton = document.createElement('button');
+    clearScaleButton.textContent = 'Clear';
+    clearScaleButton.style.cssText = `
+      padding: 4px 10px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+    `;
+    clearScaleButton.onclick = clearCurrentScaleKeyframe;
+
+    const scaleFrameDisplay = document.createElement('span');
+    scaleFrameDisplay.id = 'scale-frame-display';
+    scaleFrameDisplay.style.cssText = `
+      font-weight: 500;
+      color: #374151;
+      font-size: 11px;
+    `;
+    scaleFrameDisplay.textContent = `Scale KF: ${currentScaleKeyframe + 1}/${totalKeyframes}`;
+
+    scaleControls.appendChild(saveScaleButton);
+    scaleControls.appendChild(clearScaleButton);
+    scaleControls.appendChild(scaleFrameDisplay);
+    expandedContainer.appendChild(scaleControls);
+
+    const scaleTimeline = document.createElement('div');
+    scaleTimeline.style.cssText = `
+      display: flex;
+      gap: 1px;
+      background: #e5e7eb;
+      padding: 3px;
+      border-radius: 3px;
+    `;
+
+    // Create scale keyframe slots
+    for (let i = 0; i < totalKeyframes; i++) {
+      const slot = document.createElement('div');
+      slot.dataset.scaleFrame = i;
+      slot.style.cssText = `
+        width: 10px;
+        height: 24px;
+        background: #9ca3af;
+        cursor: pointer;
+        border-radius: 2px;
+        transition: all 0.1s;
+      `;
+      slot.onclick = () => selectScaleKeyframe(i);
+      scaleTimeline.appendChild(slot);
+    }
+
+    expandedContainer.appendChild(scaleTimeline);
+    scaleTimelineContainer = scaleTimeline;
+
     document.body.appendChild(timelineContainer);
 
     updateTimelineUI();
+    updateScaleTimelineUI();
   }
 
   function updateTimelineUI() {
@@ -454,6 +650,30 @@
     }
   }
 
+  function updateScaleTimelineUI() {
+    const slots = scaleTimelineContainer.querySelectorAll('[data-scale-frame]');
+    slots.forEach((slot, i) => {
+      const isActive = i === currentScaleKeyframe;
+      const hasKeyframe = scaleKeyframes[i] !== null;
+
+      if (isActive) {
+        slot.style.background = '#3b82f6';
+        slot.style.transform = 'scaleY(1.2)';
+      } else if (hasKeyframe) {
+        slot.style.background = '#10b981';
+        slot.style.transform = 'scaleY(1)';
+      } else {
+        slot.style.background = '#9ca3af';
+        slot.style.transform = 'scaleY(1)';
+      }
+    });
+
+    const scaleFrameDisplay = document.getElementById('scale-frame-display');
+    if (scaleFrameDisplay) {
+      scaleFrameDisplay.textContent = `Scale Keyframe: ${currentScaleKeyframe + 1} of ${totalKeyframes}`;
+    }
+  }
+
   function selectKeyframe(index) {
     if (isPlaying) return;
 
@@ -467,13 +687,60 @@
     updateTimelineUI();
   }
 
+  function selectScaleKeyframe(index) {
+    if (isPlaying) return;
+
+    currentScaleKeyframe = index;
+
+    // Load scale keyframe if it exists
+    if (scaleKeyframes[index] !== null) {
+      scale = scaleKeyframes[index];
+      const scaleInput = document.getElementById('scale-input');
+      if (scaleInput) scaleInput.value = scale;
+      calculateSlicePoints();
+      drawCurves();
+      updateAllTransforms();
+    }
+
+    updateScaleTimelineUI();
+  }
+
+  function saveCurrentScaleKeyframe() {
+    scaleKeyframes[currentScaleKeyframe] = scale;
+
+    // Automatically advance to next keyframe slot
+    currentScaleKeyframe = (currentScaleKeyframe + 1) % totalKeyframes;
+
+    // Load the next scale keyframe if it exists
+    if (scaleKeyframes[currentScaleKeyframe] !== null) {
+      scale = scaleKeyframes[currentScaleKeyframe];
+      const scaleInput = document.getElementById('scale-input');
+      if (scaleInput) scaleInput.value = scale;
+      calculateSlicePoints();
+      drawCurves();
+      updateAllTransforms();
+    }
+
+    updateScaleTimelineUI();
+  }
+
+  function clearCurrentScaleKeyframe() {
+    // Shift all scale keyframes after the current one down by one slot
+    for (let i = currentScaleKeyframe; i < totalKeyframes - 1; i++) {
+      scaleKeyframes[i] = scaleKeyframes[i + 1];
+    }
+    // Clear the last slot
+    scaleKeyframes[totalKeyframes - 1] = null;
+
+    updateScaleTimelineUI();
+  }
+
   function saveCurrentKeyframe() {
     keyframes[currentKeyframe] = {
       leftCurve: leftCurvePoints.map(p => ({ x: p.x, y: p.y })),
       rightCurve: rightCurvePoints.map(p => ({ x: p.x, y: p.y })),
       overlayOffsetX: overlayOffsetX,
       overlayOffsetY: overlayOffsetY,
-      scale: scale,
     };
 
     // Automatically advance to next keyframe slot
@@ -576,6 +843,30 @@
     return null; // No keyframes at all
   }
 
+  // Find the next non-null scale keyframe after the given index
+  function findNextScaleKeyframe(startIndex) {
+    for (let i = startIndex; i < totalKeyframes; i++) {
+      if (scaleKeyframes[i] !== null) return i;
+    }
+    // If no keyframe found, wrap to beginning
+    for (let i = 0; i < startIndex; i++) {
+      if (scaleKeyframes[i] !== null) return i;
+    }
+    return null; // No scale keyframes at all
+  }
+
+  // Find the previous non-null scale keyframe before the given index
+  function findPreviousScaleKeyframe(startIndex) {
+    for (let i = startIndex; i >= 0; i--) {
+      if (scaleKeyframes[i] !== null) return i;
+    }
+    // If no keyframe found, wrap to end
+    for (let i = totalKeyframes - 1; i > startIndex; i--) {
+      if (scaleKeyframes[i] !== null) return i;
+    }
+    return null; // No scale keyframes at all
+  }
+
   // Interpolate and apply a frame at a given keyframe position (can be fractional)
   function applyInterpolatedFrame(keyframePosition) {
     // Find the keyframes to interpolate between
@@ -624,9 +915,23 @@
       overlay.style.top = (rect.top + overlayOffsetY) + 'px';
     }
 
-    // Interpolate scale
-    if (lowerKf.scale !== undefined && upperKf.scale !== undefined) {
-      scale = lerp(lowerKf.scale, upperKf.scale, t);
+    // Interpolate scale from scale timeline
+    let lowerScaleIndex = findPreviousScaleKeyframe(lowerIndex);
+    let upperScaleIndex = findNextScaleKeyframe(upperIndex);
+
+    if (lowerScaleIndex !== null && upperScaleIndex !== null) {
+      const lowerScale = scaleKeyframes[lowerScaleIndex];
+      const upperScale = scaleKeyframes[upperScaleIndex];
+
+      let scaleT;
+      if (lowerScaleIndex === upperScaleIndex) {
+        scaleT = 0;
+      } else {
+        scaleT = (keyframePosition - lowerScaleIndex) / (upperScaleIndex - lowerScaleIndex);
+        scaleT = Math.max(0, Math.min(1, scaleT));
+      }
+
+      scale = lerp(lowerScale, upperScale, scaleT);
     }
 
     // Update visuals
@@ -684,7 +989,9 @@
 
       // Update current keyframe for UI display (rounded to nearest)
       currentKeyframe = Math.round(keyframePosition) % totalKeyframes;
+      currentScaleKeyframe = Math.round(keyframePosition) % totalKeyframes;
       updateTimelineUI();
+      updateScaleTimelineUI();
     }, frameTime);
   }
 
@@ -807,36 +1114,52 @@
   function calculateSlicePoints() {
     slicePoints = [];
 
+    // Apply scale to bezier control points before calculating slice points
+    // Calculate the actual center of all control points
+    const allPoints = [...leftCurvePoints, ...rightCurvePoints];
+    const centerX = allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+    const centerY = allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+
+    const scaledLeftPoints = leftCurvePoints.map(p => ({
+      x: centerX + (p.x - centerX) * scale,
+      y: centerY + (p.y - centerY) * scale,
+    }));
+
+    const scaledRightPoints = rightCurvePoints.map(p => ({
+      x: centerX + (p.x - centerX) * scale,
+      y: centerY + (p.y - centerY) * scale,
+    }));
+
     for (let i = 0; i < numLines; i++) {
       const t = i / numSlices;
 
       const leftX = cubicBezier(
-        leftCurvePoints[0].x,
-        leftCurvePoints[1].x,
-        leftCurvePoints[2].x,
-        leftCurvePoints[3].x,
+        scaledLeftPoints[0].x,
+        scaledLeftPoints[1].x,
+        scaledLeftPoints[2].x,
+        scaledLeftPoints[3].x,
         t
       );
       const leftY = cubicBezier(
-        leftCurvePoints[0].y,
-        leftCurvePoints[1].y,
-        leftCurvePoints[2].y,
-        leftCurvePoints[3].y,
+        scaledLeftPoints[0].y,
+        scaledLeftPoints[1].y,
+        scaledLeftPoints[2].y,
+        scaledLeftPoints[3].y,
         t
       );
 
       const rightX = cubicBezier(
-        rightCurvePoints[0].x,
-        rightCurvePoints[1].x,
-        rightCurvePoints[2].x,
-        rightCurvePoints[3].x,
+        scaledRightPoints[0].x,
+        scaledRightPoints[1].x,
+        scaledRightPoints[2].x,
+        scaledRightPoints[3].x,
         t
       );
       const rightY = cubicBezier(
-        rightCurvePoints[0].y,
-        rightCurvePoints[1].y,
-        rightCurvePoints[2].y,
-        rightCurvePoints[3].y,
+        scaledRightPoints[0].y,
+        scaledRightPoints[1].y,
+        scaledRightPoints[2].y,
+        scaledRightPoints[3].y,
         t
       );
 
@@ -958,19 +1281,7 @@
     const sliceElement = document.querySelector(`.paper-slice-${sliceIndex}`);
     if (!sliceElement) return;
 
-    let corners = getSliceCorners(sliceIndex);
-
-    // Apply scale to destination points around Paper's local center
-    if (scale !== 1) {
-      const centerX = 125; // Center of 250px paper width (local coordinates)
-      const centerY = 150; // Center of 300px paper height (local coordinates)
-      corners = {
-        tl: scalePoint(corners.tl, centerX, centerY, scale),
-        tr: scalePoint(corners.tr, centerX, centerY, scale),
-        bl: scalePoint(corners.bl, centerX, centerY, scale),
-        br: scalePoint(corners.br, centerX, centerY, scale),
-      };
-    }
+    const corners = getSliceCorners(sliceIndex);
 
     const sliceHeight = 300 / numSlices;
     const startY = sliceIndex * sliceHeight;
@@ -981,20 +1292,18 @@
       { x: 250, y: startY + sliceHeight },
     ];
 
-    const dst = [corners.tl, corners.tr, corners.bl, corners.br];
+    // Apply global offsets to destination corners
+    const dst = [
+      { x: corners.tl.x + offsetX, y: corners.tl.y + offsetY },
+      { x: corners.tr.x + offsetX, y: corners.tr.y + offsetY },
+      { x: corners.bl.x + offsetX, y: corners.bl.y + offsetY },
+      { x: corners.br.x + offsetX, y: corners.br.y + offsetY },
+    ];
 
     const matrix = getPerspectiveTransform(src, dst);
 
     sliceElement.style.transform = `matrix3d(${matrix.join(',')})`;
     sliceElement.style.transformOrigin = '0 0';
-  }
-
-  // Scale a point around a center point
-  function scalePoint(point, cx, cy, scale) {
-    return {
-      x: cx + (point.x - cx) * scale,
-      y: cy + (point.y - cy) * scale,
-    };
   }
 
   function getPerspectiveTransform(src, dst) {
@@ -1079,6 +1388,9 @@
       timePerKeyframe: timePerKeyframe,
       playbackFPS: playbackFPS,
       keyframes: keyframes,
+      scaleKeyframes: scaleKeyframes,
+      offsetX: offsetX,
+      offsetY: offsetY,
     };
 
     const json = JSON.stringify(data, null, 2);
@@ -1121,13 +1433,36 @@
           keyframes = data.keyframes;
         }
 
+        // Restore scale keyframes
+        if (data.scaleKeyframes) {
+          scaleKeyframes = data.scaleKeyframes;
+        } else {
+          // For backward compatibility, initialize empty scale timeline
+          scaleKeyframes = Array(totalKeyframes).fill(null);
+        }
+
+        // Restore offsets
+        if (data.offsetX !== undefined) {
+          offsetX = data.offsetX;
+          const input = document.getElementById('offset-x-input');
+          if (input) input.value = offsetX;
+        }
+
+        if (data.offsetY !== undefined) {
+          offsetY = data.offsetY;
+          const input = document.getElementById('offset-y-input');
+          if (input) input.value = offsetY;
+        }
+
         // Reset to first keyframe and update display
         currentKeyframe = 0;
+        currentScaleKeyframe = 0;
         if (keyframes[0] && overlay) {
           loadKeyframe(0);
         }
         if (timelineContainer) {
           updateTimelineUI();
+          updateScaleTimelineUI();
         }
 
         // Clear file input so the same file can be imported again
