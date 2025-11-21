@@ -5,6 +5,7 @@
   let hasMore = true;
   let isLoading = false;
   let observer = null;
+  let scrollListId = null; // The list ID for infinite scroll
 
   console.log('[PaperRenderer] Script loaded');
 
@@ -30,70 +31,124 @@
         return;
       }
 
-      // Get the wrapper div
-      const wrapper = paperElement.closest('.col-start-1.row-start-1');
-      if (!wrapper) {
-        console.warn(
-          '[PaperRenderer] Wrapper not found for paper element:',
-          id,
+      // Save the source list attribute before removing the element
+      const sourceListId = paperElement.getAttribute('data-source-list');
+
+      // Check if this is an inline paper or a block paper
+      const inlineWrapper = paperElement.closest('.inline-paper-wrapper');
+      const blockWrapper = paperElement.closest('.col-start-1.row-start-1');
+
+      if (inlineWrapper) {
+        // Handle inline paper restart
+        console.log('[PaperRenderer] Restarting inline paper:', id);
+
+        // Get the post data from the paper element's content
+        const titleLink = paperElement.querySelector('a');
+        const title = titleLink ? titleLink.textContent : '';
+        const url = titleLink ? titleLink.getAttribute('href') : '';
+        const img = paperElement.querySelector('img');
+        const image = img ? img.getAttribute('src') : '';
+        const contentDiv = paperElement.querySelector('div[style*="font-size: 13px"]');
+        const content = contentDiv ? contentDiv.textContent : '';
+
+        // Get the parent container and next sibling for reinsertion
+        const parentContainer = inlineWrapper.parentElement;
+        const nextSibling = inlineWrapper.nextSibling;
+
+        // Remove the old wrapper
+        inlineWrapper.remove();
+
+        // Create new wrapper
+        const newWrapper = document.createElement('div');
+        newWrapper.className = 'inline-paper-wrapper';
+        newWrapper.style.cssText = 'position: relative; margin-bottom: 20px;';
+
+        // Generate the Paper HTML
+        newWrapper.innerHTML = window.generatePaperHTML({
+          title: title,
+          url: url,
+          content: content,
+          image: image,
+        });
+
+        // Set the ID and source list on the new paper element
+        const newPaperElement = newWrapper.querySelector('.paper-element');
+        if (newPaperElement) {
+          newPaperElement.setAttribute('data-paper-id', id);
+          if (sourceListId) {
+            newPaperElement.setAttribute('data-source-list', sourceListId);
+          }
+        }
+
+        // Insert at the same position
+        if (nextSibling) {
+          parentContainer.insertBefore(newWrapper, nextSibling);
+        } else {
+          parentContainer.appendChild(newWrapper);
+        }
+      } else if (blockWrapper) {
+        // Handle block paper restart (infinite scroll)
+        console.log('[PaperRenderer] Restarting block paper:', id);
+
+        // Get the parent block
+        const block = blockWrapper.parentElement;
+        const blockId = parseInt(block.getAttribute('data-block-id'));
+
+        // Calculate which post within the block this is
+        const wrappers = Array.from(
+          block.querySelectorAll('.col-start-1.row-start-1'),
         );
-        return;
-      }
+        const wrapperIndex = wrappers.indexOf(blockWrapper);
+        const postIndex = blockId * postsPerBlock + wrapperIndex;
 
-      // Get the parent block
-      const block = wrapper.parentElement;
-      const blockId = parseInt(block.getAttribute('data-block-id'));
+        console.log(
+          '[PaperRenderer] Found post at index',
+          postIndex,
+          'in block',
+          blockId,
+        );
 
-      // Calculate which post within the block this is
-      const wrappers = Array.from(
-        block.querySelectorAll('.col-start-1.row-start-1'),
-      );
-      const wrapperIndex = wrappers.indexOf(wrapper);
-      const postIndex = blockId * postsPerBlock + wrapperIndex;
+        // Get the post data
+        const post = allPosts[postIndex];
+        if (!post) {
+          console.warn('[PaperRenderer] Post not found at index', postIndex);
+          return;
+        }
 
-      console.log(
-        '[PaperRenderer] Found post at index',
-        postIndex,
-        'in block',
-        blockId,
-      );
+        // Remove the old wrapper
+        blockWrapper.remove();
 
-      // Get the post data
-      const post = allPosts[postIndex];
-      if (!post) {
-        console.warn('[PaperRenderer] Post not found at index', postIndex);
-        return;
-      }
+        // Create new wrapper
+        const newWrapper = document.createElement('div');
+        newWrapper.className = 'col-start-1 row-start-1';
 
-      // Remove the old wrapper
-      wrapper.remove();
+        // Generate the Paper HTML directly with the same ID
+        newWrapper.innerHTML = window.generatePaperHTML({
+          title: post.title,
+          url: post.url,
+          content: post.abstract,
+          image: post.image,
+        });
 
-      // Create new wrapper
-      const newWrapper = document.createElement('div');
-      newWrapper.className = 'col-start-1 row-start-1';
+        // Set the ID and source list on the new paper element
+        const newPaperElement = newWrapper.querySelector('.paper-element');
+        if (newPaperElement) {
+          newPaperElement.setAttribute('data-paper-id', id);
+          if (sourceListId) {
+            newPaperElement.setAttribute('data-source-list', sourceListId);
+          }
+        }
 
-      // Generate the Paper HTML directly with the same ID
-      newWrapper.innerHTML = window.generatePaperHTML({
-        title: post.title,
-        url: post.url,
-        content: post.abstract,
-        image: post.image,
-        rotation: 0,
-      });
-
-      // Set the ID on the new paper element
-      const newPaperElement = newWrapper.querySelector('.paper-element');
-      if (newPaperElement) {
-        newPaperElement.setAttribute('data-paper-id', id);
-      }
-
-      // Insert at the same position
-      if (wrapperIndex === 0) {
-        block.insertBefore(newWrapper, block.firstChild);
-      } else if (wrapperIndex < wrappers.length - 1) {
-        block.insertBefore(newWrapper, wrappers[wrapperIndex + 1]);
+        // Insert at the same position
+        if (wrapperIndex === 0) {
+          block.insertBefore(newWrapper, block.firstChild);
+        } else if (wrapperIndex < wrappers.length - 1) {
+          block.insertBefore(newWrapper, wrappers[wrapperIndex + 1]);
+        } else {
+          block.appendChild(newWrapper);
+        }
       } else {
-        block.appendChild(newWrapper);
+        console.warn('[PaperRenderer] Could not find wrapper for paper:', id);
       }
     },
   };
@@ -122,6 +177,18 @@
       });
     }
 
+    // Remove all inline paper containers
+    const inlineContainers = document.querySelectorAll('.inline-papers-container');
+    inlineContainers.forEach(container => {
+      container.remove();
+    });
+
+    // Show all PostsList elements again (they were hidden during init)
+    const postsLists = document.querySelectorAll('ul.list-none');
+    postsLists.forEach(list => {
+      list.style.display = '';
+    });
+
     // Reset state
     hasMore = true;
     isLoading = false;
@@ -130,21 +197,54 @@
   function init() {
     console.log('[PaperRenderer] Initializing...');
 
-    // Scrape all posts from the DOM
-    const postsList = document.getElementById('all-posts');
-    if (postsList) {
-      const postItems = postsList.querySelectorAll('.post-item');
-      allPosts = Array.from(postItems).map(item => ({
-        title: item.getAttribute('data-title') || '',
-        url: item.getAttribute('data-url') || '',
-        abstract: item.getAttribute('data-abstract') || '',
-        image: item.getAttribute('data-image') || '',
-      }));
-      console.log('[PaperRenderer] Scraped', allPosts.length, 'posts from DOM');
+    // Get the PostsList ID from the initial block's data attribute
+    const initialBlock = document.querySelector('[data-block-id="0"]');
+    scrollListId = initialBlock?.getAttribute('data-posts-list') || 'all-posts';
+
+    // Scrape posts ONLY from the specific list for infinite scroll
+    // This allows other PostsList components to remain as regular HTML
+    const scrollList = document.getElementById(scrollListId);
+
+    if (!scrollList) {
+      console.warn('[PaperRenderer] Scroll list not found:', scrollListId);
+      return;
     }
 
-    // Render initial block (block 0)
-    const initialBlock = document.querySelector('[data-block-id="0"]');
+    const postItems = scrollList.querySelectorAll('.post-item');
+    allPosts = Array.from(postItems).map(item => ({
+      title: item.getAttribute('data-title') || '',
+      url: item.getAttribute('data-url') || '',
+      abstract: item.getAttribute('data-abstract') || '',
+      image: item.getAttribute('data-image') || '',
+    }));
+
+    // Read animation configs from the list's data attribute
+    const animationConfigsAttr = scrollList.getAttribute('data-animation-configs');
+    let animationConfigs = null;
+    if (animationConfigsAttr) {
+      try {
+        animationConfigs = JSON.parse(animationConfigsAttr);
+        console.log('[PaperRenderer] Loaded', animationConfigs.length, 'animation configs from', scrollListId);
+      } catch (error) {
+        console.error('[PaperRenderer] Failed to parse animation configs:', error);
+      }
+    }
+
+    // Expose animation configs to PaperAnimator (or notify it even if none provided)
+    if (window.PaperAnimator) {
+      if (animationConfigs && animationConfigs.length > 0) {
+        window.PaperAnimator.setAnimationConfigs(scrollListId, animationConfigs);
+      } else {
+        console.log('[PaperRenderer] No animation configs provided, will use defaults');
+      }
+    }
+
+    // Hide the scroll list after scraping so only paper elements show
+    scrollList.style.display = 'none';
+
+    console.log('[PaperRenderer] Scraped', allPosts.length, 'posts from', scrollListId);
+
+    // Render initial block (block 0) - already declared at top
     if (initialBlock) {
       renderPostsIntoBlock(0, initialBlock);
     }
@@ -159,6 +259,85 @@
     } else {
       hasMore = false;
     }
+
+    // Handle all OTHER PostsList components - render them as inline paper elements
+    const allPostsLists = document.querySelectorAll('ul.list-none');
+    allPostsLists.forEach(postsList => {
+      const listId = postsList.getAttribute('id');
+
+      // Skip the list that's being used for infinite scroll
+      if (listId === scrollListId) {
+        return;
+      }
+
+      // Scrape posts from this list
+      const postItems = postsList.querySelectorAll('.post-item');
+      const posts = Array.from(postItems).map(item => ({
+        title: item.getAttribute('data-title') || '',
+        url: item.getAttribute('data-url') || '',
+        abstract: item.getAttribute('data-abstract') || '',
+        image: item.getAttribute('data-image') || '',
+      }));
+
+      if (posts.length === 0) {
+        return;
+      }
+
+      console.log('[PaperRenderer] Rendering', posts.length, 'inline papers for list:', listId);
+
+      // Read animation configs from this list (if any)
+      const configsAttr = postsList.getAttribute('data-animation-configs');
+      let configs = null;
+      if (configsAttr) {
+        try {
+          configs = JSON.parse(configsAttr);
+        } catch (error) {
+          console.error('[PaperRenderer] Failed to parse configs for inline list:', listId, error);
+        }
+      }
+
+      // Create a container for paper elements beside the original list
+      const paperContainer = document.createElement('div');
+      paperContainer.className = 'inline-papers-container';
+      paperContainer.style.cssText = 'position: relative;';
+      // Store list ID on container so animator can identify which list these papers belong to
+      paperContainer.setAttribute('data-source-list', listId);
+
+      // Insert the container after the original list
+      postsList.parentNode.insertBefore(paperContainer, postsList.nextSibling);
+
+      // Set configs for this list in the animator (if provided)
+      if (configs && configs.length > 0 && window.PaperAnimator) {
+        window.PaperAnimator.setAnimationConfigs(listId, configs);
+      }
+
+      // Render each post as a paper element
+      posts.forEach((post, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'inline-paper-wrapper';
+        wrapper.style.cssText = 'position: relative; margin-bottom: 20px;';
+
+        // Generate the Paper HTML
+        wrapper.innerHTML = window.generatePaperHTML({
+          title: post.title,
+          url: post.url,
+          content: post.abstract,
+          image: post.image,
+          rotation: 0,
+        });
+
+        // Mark the paper element with its source list so animator can get the right config
+        const paperElement = wrapper.querySelector('.paper-element');
+        if (paperElement) {
+          paperElement.setAttribute('data-source-list', listId);
+        }
+
+        paperContainer.appendChild(wrapper);
+      });
+
+      // Hide the original list
+      postsList.style.display = 'none';
+    });
 
     console.log('[PaperRenderer] Initialization complete');
   }
@@ -184,8 +363,13 @@
         url: post.url,
         content: post.abstract,
         image: post.image,
-        rotation: 0,
       });
+
+      // Mark the paper element with its source list
+      const paperElement = wrapper.querySelector('.paper-element');
+      if (paperElement && scrollListId) {
+        paperElement.setAttribute('data-source-list', scrollListId);
+      }
 
       blockElement.appendChild(wrapper);
     });

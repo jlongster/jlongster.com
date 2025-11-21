@@ -7,99 +7,34 @@
   let isPaused = false;
   let nextId = 0;
 
-  // First set: config for paper-0 through paper-4 (first block)
-  const firstBlockConfigs = [
-    {
-      offsetX: 159,
-      offsetY: 45,
-      rotation: -51,
-      startDelay: 0,
-      startKeyframe: 16,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 427,
-      offsetY: 93,
-      rotation: 0,
-      startDelay: 500,
-      startKeyframe: 10,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 830,
-      offsetY: 269,
-      rotation: 0,
-      startDelay: 1000,
-      startKeyframe: 22,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 357,
-      offsetY: 485,
-      rotation: 0,
-      startDelay: 1500,
-      startKeyframe: 25,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 676,
-      offsetY: 7,
-      rotation: 0,
-      startDelay: 2000,
-      startKeyframe: 25,
-      endKeyframe: 59,
-    },
-  ];
-
-  // Second set: config for all subsequent blocks (paper-5 onwards, repeating)
-  const repeatingConfigs = [
-    {
-      offsetX: 159,
-      offsetY: 45,
-      rotation: -51,
-      startDelay: 0,
-      startKeyframe: 16,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 427,
-      offsetY: 93,
-      rotation: 0,
-      startDelay: 500,
-      startKeyframe: 10,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 830,
-      offsetY: 269,
-      rotation: 0,
-      startDelay: 1000,
-      startKeyframe: 22,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 357,
-      offsetY: 485,
-      rotation: 0,
-      startDelay: 1500,
-      startKeyframe: 25,
-      endKeyframe: 59,
-    },
-    {
-      offsetX: 676,
-      offsetY: 7,
-      rotation: 0,
-      startDelay: 2000,
-      startKeyframe: 25,
-      endKeyframe: 59,
-    },
-  ];
-
   // Map to store per-paper-id config overrides (paperId -> config)
   const configOverrides = new Map();
 
+  // Map to store animation configs per list ID (listId -> configs array)
+  const listAnimationConfigs = new Map();
+
+  // Active list ID for infinite scroll (set by paper-renderer)
+  let activeListId = null;
+
+  // Default fallback config if none provided
+  const defaultConfig = {
+    animationIndex: 0,
+    offsetX: 0,
+    offsetY: 0,
+    rotation: 0,
+    scale: 1,
+    startDelay: 0,
+    startKeyframe: 0,
+    endKeyframe: 59,
+  };
+
   // Expose API for paper-renderer and devtools
   window.PaperAnimator = {
+    setAnimationConfigs: function (listId, configs) {
+      listAnimationConfigs.set(listId, configs);
+      activeListId = listId; // Set as active list
+      console.log('[PaperAnimator] Set', configs.length, 'animation configs for list:', listId);
+    },
     resetAll: function () {
       console.log('[PaperAnimator] Resetting all animators');
       // Stop all animations
@@ -119,30 +54,48 @@
         }
       }
     },
-    getAnimationConfigs: function () {
-      // Return only the first block configs (for devtools display/export)
-      return firstBlockConfigs;
+    getAnimations: function () {
+      // Return available animations for DevTools
+      return animations;
     },
-    getConfig: function (paperId) {
+    getAnimationConfigs: function () {
+      // Return configs for the active list (for devtools display/export)
+      if (activeListId && listAnimationConfigs.has(activeListId)) {
+        return listAnimationConfigs.get(activeListId);
+      }
+      return [];
+    },
+    getConfig: function (paperId, sourceListId) {
       // Check if there's an override first
       if (configOverrides.has(paperId)) {
         return configOverrides.get(paperId);
       }
 
-      // Determine which config set to use
+      // Use list-specific configs
       const paperNumber = parseInt(paperId.split('-')[1]) || 0;
 
-      if (paperNumber < 5) {
-        // First block (paper-0 through paper-4): use firstBlockConfigs
-        return firstBlockConfigs[paperNumber];
-      } else {
-        // All subsequent blocks: use repeatingConfigs (cycling)
-        const configIndex = (paperNumber - 5) % repeatingConfigs.length;
-        return repeatingConfigs[configIndex];
+      // Determine which list to get configs from
+      const listId = sourceListId || activeListId;
+
+      if (listId && listAnimationConfigs.has(listId)) {
+        const configs = listAnimationConfigs.get(listId);
+        if (configs && configs.length > 0) {
+          const configIndex = paperNumber % configs.length;
+          return configs[configIndex];
+        }
       }
+
+      // Fall back to default config
+      console.log('[PaperAnimator] Using default config for', paperId);
+      return defaultConfig;
     },
     setConfig: function (paperId, config) {
-      configOverrides.set(paperId, config);
+      // Merge with existing override (if any) to preserve other properties
+      const existingOverride = configOverrides.get(paperId);
+      const mergedConfig = existingOverride
+        ? { ...existingOverride, ...config }
+        : config;
+      configOverrides.set(paperId, mergedConfig);
 
       // Apply to animator if it exists
       const animator = animatorRegistry.get(paperId);
@@ -157,6 +110,9 @@
         if (config.rotation !== undefined) {
           animator.updateRotation(config.rotation);
         }
+        if (config.scale !== undefined) {
+          animator.updateScale(config.scale);
+        }
         if (config.startDelay !== undefined) {
           animator.startDelay = config.startDelay;
         }
@@ -167,6 +123,10 @@
           animator.endKeyframe = config.endKeyframe;
         }
       }
+    },
+    clearConfig: function (paperId) {
+      // Remove any config override for this paper
+      configOverrides.delete(paperId);
     },
     getConfigOverrides: function () {
       // Return overrides for export
@@ -231,17 +191,40 @@
         paperElement.setAttribute('data-paper-id', paperId);
       }
 
-      const animationIndex = animatorRegistry.size % animations.length;
+      console.log('[PaperAnimator] Initializing paper:', paperId);
+
+      // Get config from centralized source
+      // Check if this paper has a source list specified
+      const sourceListId = paperElement.getAttribute('data-source-list');
+      const config = window.PaperAnimator.getConfig(paperId, sourceListId);
+
+      // Use animationIndex from config, or fall back to cycling
+      const animationIndex =
+        config?.animationIndex ?? animatorRegistry.size % animations.length;
       let animationData = animations[animationIndex];
 
       if (animationData) {
-        // Extract the numeric ID from paperId (e.g., "paper-7" -> 7)
-        const paperNumber = parseInt(paperId.split('-')[1]) || 0;
+        // Deep copy animation data to avoid mutating the original
+        // This is crucial for arrays like keyframes and scaleKeyframes
+        animationData = JSON.parse(JSON.stringify(animationData));
 
-        // Get config from centralized source
-        const config = window.PaperAnimator.getConfig(paperId);
+        // Apply instance config overrides (positioning, timing, etc.)
+        // Only override specific properties, don't spread entire config
         if (config) {
-          animationData = { ...animationData, ...config };
+          if (config.offsetX !== undefined)
+            animationData.offsetX = config.offsetX;
+          if (config.offsetY !== undefined)
+            animationData.offsetY = config.offsetY;
+          if (config.rotation !== undefined)
+            animationData.rotation = config.rotation;
+          if (config.scale !== undefined)
+            animationData.scale = config.scale;
+          if (config.startDelay !== undefined)
+            animationData.startDelay = config.startDelay;
+          if (config.startKeyframe !== undefined)
+            animationData.startKeyframe = config.startKeyframe;
+          if (config.endKeyframe !== undefined)
+            animationData.endKeyframe = config.endKeyframe;
         }
 
         // Get delay from animation data or config
@@ -260,6 +243,9 @@
           // Create animator and start
           const animator = new PaperAnimator(paperElement, animationData);
           animator.id = paperId;
+
+          // Ensure animationIndex is set on the animator for DevTools
+          animator.animationIndex = animationIndex;
 
           // Register in our local registry
           animatorRegistry.set(paperId, animator);
@@ -286,10 +272,12 @@
             // Check if the added node is a paper element or contains paper elements
             if (node.classList && node.classList.contains('paper-element')) {
               hasNewPaperElements = true;
+              console.log('[PaperAnimator] MutationObserver detected paper element added');
             } else if (node.querySelectorAll) {
               const paperElements = node.querySelectorAll('.paper-element');
               if (paperElements.length > 0) {
                 hasNewPaperElements = true;
+                console.log('[PaperAnimator] MutationObserver detected', paperElements.length, 'paper elements added');
               }
             }
           }
@@ -297,6 +285,7 @@
       });
 
       if (hasNewPaperElements) {
+        console.log('[PaperAnimator] Calling initializePaperElements from MutationObserver');
         initializePaperElements();
       }
     });
@@ -338,6 +327,7 @@
       this.offsetX = animationData.offsetX || 0;
       this.offsetY = animationData.offsetY || 0;
       this.rotation = animationData.rotation || 0; // Rotation in degrees
+      this.globalScale = animationData.scale !== undefined ? animationData.scale : 1; // Global scale multiplier
 
       // Timing configuration - now in keyframe indices
       this.startDelay = animationData.startDelay || 0;
@@ -507,6 +497,12 @@
       this.applyInterpolatedFrame(this.currentKeyframePosition);
     }
 
+    updateScale(scale) {
+      this.globalScale = scale;
+      // Re-render current keyframe position with new scale
+      this.applyInterpolatedFrame(this.currentKeyframePosition);
+    }
+
     applyFadeIn() {
       // Set transition first
       this.paperElement.style.transition = `opacity ${this.fadeInDuration}ms ease-out`;
@@ -583,6 +579,9 @@
 
         this.scale = this.lerp(lowerScale, upperScale, scaleT);
       }
+
+      // Apply global scale multiplier
+      this.scale *= this.globalScale;
 
       // Apply transforms to all slices
       this.updateAllTransforms();

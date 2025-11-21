@@ -7,7 +7,7 @@ function escapeHtml(text) {
 }
 
 window.generatePaperHTML = function (data) {
-  const { title, url, content = '', image = '', rotation = 0 } = data;
+  const { title, url, content = '', image = '' } = data;
   const numSlices = 10;
 
   const escapedTitle = escapeHtml(title);
@@ -23,7 +23,7 @@ window.generatePaperHTML = function (data) {
     `;
   }
   if (content) {
-    contentHtml += `<div style="font-size: 13px; line-height: 1.5em; color: #404031;">${escapedContent}</div>`;
+    contentHtml += `<div style="font-size: 15px; line-height: 1.5em; color: #404031;">${escapedContent}</div>`;
   }
 
   // Paper content that will be repeated in each slice
@@ -35,12 +35,12 @@ window.generatePaperHTML = function (data) {
         height: 100%;
         padding: 20px;
         background-color: white;
-        border: 3px solid black;
+        border: 2px solid #202020;
+        font-family: LoveLexie, sans-serif;
       "
       class="bg-transparent"
     >
       <a href="${escapedUrl}" class="text-2xl mb-4 leading-tight block" style="
-        font-family: LoveLexie, sans-serif;
        ">
         ${escapedTitle}
       </a>
@@ -76,12 +76,6 @@ window.generatePaperHTML = function (data) {
     <div
       class="uncolored-links paper-element block relative text-black no-underline"
       style="
-        opacity: 0;
-        width: 250px;
-        height: 300px;
-        transform: rotate(${rotation}deg);
-        transform-style: preserve-3d;
-        z-index: 10;
       "
     >
       ${slices}

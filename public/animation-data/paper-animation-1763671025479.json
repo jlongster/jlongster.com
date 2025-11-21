@@ -1,7 +1,7 @@
 {
   "version": 1,
   "timePerKeyframe": 0.08,
-  "playbackFPS": 30,
+  "playbackFPS": 15,
   "keyframes": [
     {
       "leftCurve": [

@@ -1366,16 +1366,14 @@
   }
 
   function togglePaperTransparency(isTransparent) {
-    // Find all SVG path elements in the paper slices
-    const paths = document.querySelectorAll('.paper-slice path');
+    // Find all paper slice content divs (the inner div with background-color)
+    const slices = document.querySelectorAll('.paper-slice > div');
 
-    paths.forEach(path => {
+    slices.forEach(slice => {
       if (isTransparent) {
-        path.setAttribute('fill', 'red');
-        path.setAttribute('opacity', '0.5');
+        slice.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
       } else {
-        path.setAttribute('fill', 'white');
-        path.setAttribute('opacity', '1');
+        slice.style.backgroundColor = 'white';
       }
     });
   }

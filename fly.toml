@@ -1,4 +1,4 @@
-app = "jlongster"
+app = "jlongster-staging"
 
 kill_signal = "SIGINT"
 kill_timeout = 5
@@ -11,7 +11,7 @@ processes = []
   auto_rollback = true
 
 [mounts]
-  source="jlongstercom_data"
+  source="jlongstercom_staging_data"
   destination="/data"
 
 [metrics]

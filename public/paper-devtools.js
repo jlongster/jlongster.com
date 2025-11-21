@@ -3,6 +3,7 @@
   let animatorRegistry = new Map(); // id -> animator
   let savedConfigs = new Map(); // id -> config
   let selectedAnimatorId = null;
+  let selectedListId = null; // Currently selected posts list
   let isDragging = false;
   let dragStartX = 0;
   let dragStartY = 0;
@@ -10,7 +11,9 @@
   let dragOffsetY = 0;
 
   // Load collapsed state from localStorage
-  let isCollapsed = localStorage.getItem('paperDevToolsCollapsed') === 'true';
+  // let isCollapsed = localStorage.getItem('paperDevToolsCollapsed')
+  // === 'true';
+  let isCollapsed = true;
 
   console.log('[PaperDevTools] Script loaded');
 
@@ -22,13 +25,21 @@
 
       // Read config from PaperAnimator (source of truth)
       if (window.PaperAnimator && window.PaperAnimator.getConfig) {
-        const config = window.PaperAnimator.getConfig(id);
+        // Get source list from the paper element
+        const sourceList = animator.paperElement.getAttribute('data-source-list');
+        const config = window.PaperAnimator.getConfig(id, sourceList);
         if (config) {
           savedConfigs.set(id, config);
-          console.log('[PaperDevTools] Loaded config from PaperAnimator:', id, config);
+          console.log(
+            '[PaperDevTools] Loaded config from PaperAnimator:',
+            id,
+            config,
+          );
         }
       }
 
+      // Update list selector when new animators are added
+      populateListSelector();
       updateDevToolsUI();
     },
     unregisterAnimator: function (id) {
@@ -36,13 +47,13 @@
       animatorRegistry.delete(id);
       updateDevToolsUI();
     },
-    getSavedConfig: function(id) {
+    getSavedConfig: function (id) {
       return savedConfigs.get(id);
     },
-    saveConfig: function(id, config) {
+    saveConfig: function (id, config) {
       savedConfigs.set(id, config);
       console.log('[PaperDevTools] Saved config:', id, config);
-    }
+    },
   };
 
   function init() {
@@ -66,11 +77,13 @@
   }
 
   function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
       // Ctrl+Shift+R to restart all animations
       if (e.ctrlKey && e.shiftKey && e.key === 'R') {
         e.preventDefault();
-        console.log('[PaperDevTools] Restarting all animations via keyboard shortcut');
+        console.log(
+          '[PaperDevTools] Restarting all animations via keyboard shortcut',
+        );
         if (window.PaperRenderer) {
           window.PaperRenderer.restartAll();
         }
@@ -143,6 +156,22 @@
       border-bottom: 1px solid #4b5563;
     `;
     globalControls.innerHTML = `
+      <div style="margin-bottom: 12px;">
+        <div style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; font-weight: 500;">
+          POSTS LIST
+        </div>
+        <select id="list-selector" style="
+          width: 100%;
+          padding: 6px;
+          background: #1f2937;
+          border: 1px solid #4b5563;
+          border-radius: 4px;
+          color: #f3f4f6;
+          font-size: 12px;
+          cursor: pointer;
+        ">
+        </select>
+      </div>
       <button id="restart-all-btn" style="
         width: 100%;
         padding: 8px;
@@ -231,21 +260,27 @@
       }
     });
 
-    document.getElementById('export-config-btn').addEventListener('click', () => {
-      exportConfiguration();
-    });
+    document
+      .getElementById('export-config-btn')
+      .addEventListener('click', () => {
+        exportConfiguration();
+      });
 
-    document.getElementById('import-config-btn').addEventListener('click', () => {
-      document.getElementById('import-file-input').click();
-    });
+    document
+      .getElementById('import-config-btn')
+      .addEventListener('click', () => {
+        document.getElementById('import-file-input').click();
+      });
 
-    document.getElementById('import-file-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        importConfiguration(file);
-        e.target.value = ''; // Reset input
-      }
-    });
+    document
+      .getElementById('import-file-input')
+      .addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          importConfiguration(file);
+          e.target.value = ''; // Reset input
+        }
+      });
 
     document.getElementById('collapse-btn').addEventListener('click', () => {
       toggleCollapse();
@@ -254,34 +289,91 @@
     collapseTab.addEventListener('click', () => {
       toggleCollapse();
     });
+
+    document.getElementById('list-selector').addEventListener('change', e => {
+      selectedListId = e.target.value;
+      console.log('[PaperDevTools] Selected list:', selectedListId);
+      updateDevToolsUI();
+    });
+
+    // Populate list selector
+    populateListSelector();
+  }
+
+  function populateListSelector() {
+    const listSelector = document.getElementById('list-selector');
+    if (!listSelector) return;
+
+    // Find all unique list IDs from the page
+    const listIds = new Set();
+
+    // Check all paper elements for data-source-list attribute
+    const paperElements = document.querySelectorAll('.paper-element');
+    paperElements.forEach(el => {
+      const sourceList = el.getAttribute('data-source-list');
+      if (sourceList) {
+        listIds.add(sourceList);
+      }
+    });
+
+    // Also check for PostsList elements in the DOM
+    const postsLists = document.querySelectorAll('ul.list-none[id]');
+    postsLists.forEach(list => {
+      const listId = list.getAttribute('id');
+      if (listId) {
+        listIds.add(listId);
+      }
+    });
+
+    // Clear existing options
+    listSelector.innerHTML = '';
+
+    // Add options for each list
+    const sortedListIds = Array.from(listIds).sort();
+    sortedListIds.forEach(listId => {
+      const option = document.createElement('option');
+      option.value = listId;
+      option.textContent = listId;
+      listSelector.appendChild(option);
+    });
+
+    // Select the first list by default if none selected
+    if (!selectedListId && sortedListIds.length > 0) {
+      selectedListId = sortedListIds[0];
+      listSelector.value = selectedListId;
+      console.log('[PaperDevTools] Auto-selected list:', selectedListId);
+    } else if (selectedListId) {
+      // Ensure the currently selected list is still in the dropdown
+      listSelector.value = selectedListId;
+    }
   }
 
   function exportConfiguration() {
-    // Export only the first 5 configs as an array
-    const animations = [];
-    let count = 0;
+    // Get all animators for the selected list
+    const listAnimators = Array.from(animatorRegistry.entries())
+      .filter(([id, animator]) => {
+        const sourceList = animator.paperElement.getAttribute('data-source-list');
+        return sourceList === selectedListId;
+      })
+      .sort((a, b) => {
+        const numA = parseInt(a[0].replace('paper-', ''));
+        const numB = parseInt(b[0].replace('paper-', ''));
+        return numA - numB;
+      });
 
-    // Get the first 5 animators from the registry
-    for (const [id, config] of savedConfigs) {
-      if (count < 5) {
-        animations.push(config);
-        count++;
-      } else {
-        break;
-      }
-    }
-
-    // If we have fewer than 5, fill with defaults
-    while (animations.length < 5) {
-      animations.push({
+    // Export configs for this list
+    const animations = listAnimators.map(([id, _]) => {
+      const config = savedConfigs.get(id);
+      return config || {
+        animationIndex: 0,
         offsetX: 0,
         offsetY: 0,
         rotation: 0,
-        startDelay: animations.length * 500,
+        startDelay: 0,
         startKeyframe: 0,
-        endKeyframe: 59
-      });
-    }
+        endKeyframe: 59,
+      };
+    });
 
     const configObject = { animations };
     const configJson = JSON.stringify(configObject, null, 2);
@@ -291,18 +383,18 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'paper-animations-config.json';
+    a.download = `paper-animations-${selectedListId}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    console.log('[PaperDevTools] Configuration exported:', configObject);
+    console.log('[PaperDevTools] Configuration exported for', selectedListId, ':', configObject);
   }
 
   function importConfiguration(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
         const configData = JSON.parse(e.target.result);
 
@@ -316,14 +408,20 @@
             const paperId = `paper-${index}`;
             savedConfigs.set(paperId, config);
           });
-          console.log('[PaperDevTools] Configuration imported (array format):', configData);
+          console.log(
+            '[PaperDevTools] Configuration imported (array format):',
+            configData,
+          );
         }
         // Handle old object format for backwards compatibility
         else {
           Object.entries(configData).forEach(([id, config]) => {
             savedConfigs.set(id, config);
           });
-          console.log('[PaperDevTools] Configuration imported (object format):', configData);
+          console.log(
+            '[PaperDevTools] Configuration imported (object format):',
+            configData,
+          );
         }
 
         // Restart all animations to apply the new configuration
@@ -365,12 +463,27 @@
 
     listContainer.innerHTML = '';
 
+    // Filter by selected list
+    const entriesToShow = Array.from(animatorRegistry.entries()).filter(([id, animator]) => {
+      const sourceList = animator.paperElement.getAttribute('data-source-list');
+      return sourceList === selectedListId;
+    });
+
     // Sort by ID for consistent ordering
-    const sortedEntries = Array.from(animatorRegistry.entries()).sort((a, b) => {
+    const sortedEntries = entriesToShow.sort((a, b) => {
       const numA = parseInt(a[0].replace('paper-', ''));
       const numB = parseInt(b[0].replace('paper-', ''));
       return numA - numB;
     });
+
+    if (sortedEntries.length === 0) {
+      listContainer.innerHTML = `
+        <div style="padding: 16px; text-align: center; color: #9ca3af; font-size: 12px;">
+          No papers found for list "${selectedListId}"
+        </div>
+      `;
+      return;
+    }
 
     sortedEntries.forEach(([id, animator]) => {
       const card = createAnimatorCard(id, animator);
@@ -387,7 +500,9 @@
       border-radius: 6px;
       margin-bottom: 8px;
       padding: 12px;
-      border: 2px solid ${selectedAnimatorId === id ? '#3b82f6' : 'transparent'};
+      border: 2px solid ${
+        selectedAnimatorId === id ? '#3b82f6' : 'transparent'
+      };
       cursor: pointer;
       transition: border-color 0.2s;
     `;
@@ -422,6 +537,41 @@
     `;
     card.appendChild(cardHeader);
 
+    // Animation selector
+    const animations = window.PaperAnimator?.getAnimations() || [];
+    const currentConfig = window.PaperAnimator?.getConfig(id) || {};
+    const currentAnimationIndex = currentConfig.animationIndex ?? 0;
+
+    const animationSection = document.createElement('div');
+    animationSection.style.cssText = `
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #4b5563;
+    `;
+
+    const animationOptions = animations
+      .map((anim, idx) => {
+        return `<option value="${idx}" ${
+          idx === currentAnimationIndex ? 'selected' : ''
+        }>Animation ${idx + 1}</option>`;
+      })
+      .join('');
+
+    animationSection.innerHTML = `
+      <div style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; font-weight: 500;">
+        ANIMATION
+      </div>
+      <label style="display: block;">
+        <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Select Animation</div>
+        <select class="animation-selector"
+          style="width: 100%; padding: 6px; background: #1f2937; border: 1px solid #4b5563;
+          border-radius: 3px; color: #f3f4f6; font-size: 12px; cursor: pointer;">
+          ${animationOptions}
+        </select>
+      </label>
+    `;
+    card.appendChild(animationSection);
+
     // Position controls
     const positionSection = document.createElement('div');
     positionSection.style.cssText = `
@@ -449,7 +599,17 @@
       </div>
       <label style="display: block; margin-bottom: 6px;">
         <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Rotation (degrees)</div>
-        <input type="number" class="rotation" value="${animator.rotation || 0}" step="1"
+        <input type="number" class="rotation" value="${
+          animator.rotation || 0
+        }" step="1"
+          style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
+          border-radius: 3px; color: #f3f4f6; font-size: 12px;">
+      </label>
+      <label style="display: block; margin-bottom: 6px;">
+        <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Scale (0-3)</div>
+        <input type="number" class="scale" value="${
+          animator.globalScale !== undefined ? animator.globalScale : 1
+        }" step="0.1" min="0" max="3"
           style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
           border-radius: 3px; color: #f3f4f6; font-size: 12px;">
       </label>
@@ -472,20 +632,26 @@
       </div>
       <label style="display: block; margin-bottom: 6px;">
         <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Start Delay (ms)</div>
-        <input type="number" class="start-delay" value="${animator.startDelay || 0}" min="0" step="100"
+        <input type="number" class="start-delay" value="${
+          animator.startDelay || 0
+        }" min="0" step="100"
           style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
           border-radius: 3px; color: #f3f4f6; font-size: 12px;">
       </label>
       <div style="display: flex; gap: 8px;">
         <label style="flex: 1;">
           <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Start Keyframe</div>
-          <input type="number" class="start-keyframe" value="${animator.startKeyframe || 0}" min="0" max="${animator.totalKeyframes - 1}"
+          <input type="number" class="start-keyframe" value="${
+            animator.startKeyframe || 0
+          }" min="0" max="${animator.totalKeyframes - 1}"
             style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
             border-radius: 3px; color: #f3f4f6; font-size: 12px;">
         </label>
         <label style="flex: 1;">
           <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">End Keyframe</div>
-          <input type="number" class="end-keyframe" value="${animator.endKeyframe}" min="0" max="${animator.totalKeyframes - 1}"
+          <input type="number" class="end-keyframe" value="${
+            animator.endKeyframe
+          }" min="0" max="${animator.totalKeyframes - 1}"
             style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
             border-radius: 3px; color: #f3f4f6; font-size: 12px;">
         </label>
@@ -517,12 +683,53 @@
     card.appendChild(actions);
 
     // Event listeners
+    const animationSelector = card.querySelector('.animation-selector');
     const offsetXInput = card.querySelector('.offset-x');
     const offsetYInput = card.querySelector('.offset-y');
     const rotationInput = card.querySelector('.rotation');
+    const scaleInput = card.querySelector('.scale');
     const startDelayInput = card.querySelector('.start-delay');
     const startKeyframeInput = card.querySelector('.start-keyframe');
     const endKeyframeInput = card.querySelector('.end-keyframe');
+
+    // Stop click propagation on animation selector to prevent card selection
+    animationSelector.addEventListener('click', e => {
+      e.stopPropagation();
+    });
+
+    // Animation selector change
+    animationSelector.addEventListener('change', e => {
+      e.stopPropagation();
+      const newAnimationIndex = parseInt(animationSelector.value);
+      const currentConfig = window.PaperAnimator.getConfig(id);
+
+      // Create a fresh config with only the properties we want to keep
+      // Don't carry over any animation-specific properties that might interfere
+      const updatedConfig = {
+        animationIndex: newAnimationIndex,
+        startKeyframe: 0, // Reset to start from beginning
+        // Only preserve positioning/timing overrides if they exist
+        offsetX: currentConfig.offsetX,
+        offsetY: currentConfig.offsetY,
+        rotation: currentConfig.rotation,
+        scale: currentConfig.scale,
+        startDelay: currentConfig.startDelay,
+        endKeyframe: currentConfig.endKeyframe,
+      };
+
+      // Clear the old override completely and set the new one
+      // This ensures no animation-specific properties bleed through
+      window.PaperAnimator.clearConfig(id);
+      window.PaperAnimator.setConfig(id, updatedConfig);
+
+      // Update local map for UI
+      savedConfigs.set(id, updatedConfig);
+
+      // Restart the animator to apply new animation
+      if (window.PaperRenderer) {
+        window.PaperRenderer.restartAnimator(id);
+      }
+    });
 
     // Auto-apply offset changes
     offsetXInput.addEventListener('input', () => {
@@ -544,6 +751,15 @@
       saveConfig(id, animator);
     });
 
+    // Auto-apply scale changes
+    scaleInput.addEventListener('input', () => {
+      const newScale = parseFloat(scaleInput.value);
+      if (!isNaN(newScale)) {
+        animator.updateScale(newScale);
+        saveConfig(id, animator);
+      }
+    });
+
     // Auto-apply timing changes
     startDelayInput.addEventListener('change', () => {
       animator.startDelay = parseFloat(startDelayInput.value) || 0;
@@ -556,16 +772,17 @@
     });
 
     endKeyframeInput.addEventListener('change', () => {
-      animator.endKeyframe = parseInt(endKeyframeInput.value) || animator.endKeyframe;
+      animator.endKeyframe =
+        parseInt(endKeyframeInput.value) || animator.endKeyframe;
       saveConfig(id, animator);
     });
 
-    card.querySelector('.select-btn').addEventListener('click', (e) => {
+    card.querySelector('.select-btn').addEventListener('click', e => {
       e.stopPropagation();
       selectAnimator(id);
     });
 
-    card.querySelector('.restart-btn').addEventListener('click', (e) => {
+    card.querySelector('.restart-btn').addEventListener('click', e => {
       e.stopPropagation();
 
       // Trigger restart for this specific animator
@@ -585,9 +802,11 @@
 
   function saveConfig(id, animator) {
     const config = {
+      animationIndex: animator.animationIndex,
       offsetX: animator.offsetX,
       offsetY: animator.offsetY,
       rotation: animator.rotation,
+      scale: animator.globalScale,
       startDelay: animator.startDelay,
       startKeyframe: animator.startKeyframe,
       endKeyframe: animator.endKeyframe,
@@ -609,7 +828,7 @@
 
     // Update all cards
     const cards = document.querySelectorAll('.animator-card');
-    cards.forEach((card) => {
+    cards.forEach(card => {
       const cardId = card.getAttribute('data-animator-id');
       if (cardId === id) {
         card.style.borderColor = '#3b82f6';
@@ -635,15 +854,38 @@
   }
 
   function setupDragListeners() {
-    document.addEventListener('mousedown', (e) => {
+    let hasDragged = false;
+    let dragJustEnded = false;
+
+    // Prevent clicks on links if we just dragged
+    document.addEventListener('click', e => {
+      if (dragJustEnded) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragJustEnded = false;
+      }
+    }, true); // Use capture phase to intercept before link handling
+
+    document.addEventListener('mousedown', e => {
       // Use elementFromPoint to check what's actually at the mouse position
       const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+
+      if (elementAtPoint.classList.contains('paper-element')) {
+        return;
+      }
+
+      hasDragged = false;
+      dragJustEnded = false;
 
       // Check if we clicked on any paper element
       let clickedPaperId = null;
       for (const [id, animator] of animatorRegistry.entries()) {
         const paperElement = animator.paperElement;
-        if (elementAtPoint && (paperElement.contains(elementAtPoint) || paperElement === elementAtPoint)) {
+        if (
+          elementAtPoint &&
+          (paperElement.contains(elementAtPoint) ||
+            paperElement === elementAtPoint)
+        ) {
           clickedPaperId = id;
           break;
         }
@@ -669,7 +911,7 @@
       }
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('mousemove', e => {
       if (!isDragging || selectedAnimatorId === null) return;
 
       const animator = animatorRegistry.get(selectedAnimatorId);
@@ -678,13 +920,20 @@
       const deltaX = e.clientX - dragStartX;
       const deltaY = e.clientY - dragStartY;
 
+      // Mark that we've actually dragged (moved the mouse)
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+        hasDragged = true;
+      }
+
       const newOffsetX = dragOffsetX + deltaX;
       const newOffsetY = dragOffsetY + deltaY;
 
       animator.updateOffsets(newOffsetX, newOffsetY);
 
       // Update the UI
-      const card = document.querySelector(`[data-animator-id="${selectedAnimatorId}"]`);
+      const card = document.querySelector(
+        `[data-animator-id="${selectedAnimatorId}"]`,
+      );
       if (card && card._updateOffsets) {
         card._updateOffsets(newOffsetX, newOffsetY);
       }
@@ -698,6 +947,15 @@
           // Save config after dragging
           saveConfig(selectedAnimatorId, animator);
         }
+
+        // If we dragged, prevent clicks on links
+        if (hasDragged) {
+          dragJustEnded = true;
+          // Reset after a short delay to allow normal clicks again
+          setTimeout(() => {
+            dragJustEnded = false;
+          }, 100);
+        }
       }
       isDragging = false;
     });
@@ -705,7 +963,7 @@
     // Set cursor for selected paper when hovering over it
     // We need to use mousemove to continuously check elementFromPoint
     let lastCursorState = false;
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('mousemove', e => {
       if (selectedAnimatorId === null || isDragging) return;
 
       const animator = animatorRegistry.get(selectedAnimatorId);
@@ -715,7 +973,10 @@
 
       // Use elementFromPoint to check what's actually at the mouse position
       const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-      const isOverPaper = elementAtPoint && (paperElement.contains(elementAtPoint) || paperElement === elementAtPoint);
+      const isOverPaper =
+        elementAtPoint &&
+        (paperElement.contains(elementAtPoint) ||
+          paperElement === elementAtPoint);
 
       // Only update cursor if state changed (performance optimization)
       if (isOverPaper !== lastCursorState) {
