@@ -248,6 +248,21 @@
     `;
     clearButton.onclick = clearCurrentKeyframe;
 
+    // Straighten button
+    const straightenButton = document.createElement('button');
+    straightenButton.textContent = 'Straighten';
+    straightenButton.style.cssText = `
+      padding: 4px 10px;
+      background: #f59e0b;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 12px;
+    `;
+    straightenButton.onclick = straightenAndMarkKeyframe;
+
     // Export button
     const exportButton = document.createElement('button');
     exportButton.textContent = 'Export';
@@ -460,6 +475,7 @@
     // Expanded controls: everything else
     controls.appendChild(saveButton);
     controls.appendChild(clearButton);
+    controls.appendChild(straightenButton);
     controls.appendChild(exportButton);
     controls.appendChild(importButton);
     controls.appendChild(transparencyBtn);
@@ -766,6 +782,101 @@
     }
 
     updateTimelineUI();
+  }
+
+  function straightenAndMarkKeyframe() {
+    // Get the four corner points from the current bezier curves
+    const topLeft = leftCurvePoints[0];
+    const topRight = rightCurvePoints[0];
+    const bottomLeft = leftCurvePoints[3];
+    const bottomRight = rightCurvePoints[3];
+
+    // Calculate the center point of the current shape
+    const centerX = (topLeft.x + topRight.x + bottomLeft.x + bottomRight.x) / 4;
+    const centerY = (topLeft.y + topRight.y + bottomLeft.y + bottomRight.y) / 4;
+
+    // Calculate the average width and height
+    const topWidth = Math.sqrt(
+      Math.pow(topRight.x - topLeft.x, 2) + Math.pow(topRight.y - topLeft.y, 2)
+    );
+    const bottomWidth = Math.sqrt(
+      Math.pow(bottomRight.x - bottomLeft.x, 2) + Math.pow(bottomRight.y - bottomLeft.y, 2)
+    );
+    const leftHeight = Math.sqrt(
+      Math.pow(bottomLeft.x - topLeft.x, 2) + Math.pow(bottomLeft.y - topLeft.y, 2)
+    );
+    const rightHeight = Math.sqrt(
+      Math.pow(bottomRight.x - topRight.x, 2) + Math.pow(bottomRight.y - topRight.y, 2)
+    );
+
+    const width = (topWidth + bottomWidth) / 2;
+    const height = (leftHeight + rightHeight) / 2;
+
+    // Calculate rotation angle from the top edge
+    const dx = topRight.x - topLeft.x;
+    const dy = topRight.y - topLeft.y;
+    const rotation = Math.atan2(dy, dx);
+
+    // Create perfect rectangle corners
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+
+    // Calculate rectangle corners (unrotated, centered at origin)
+    const corners = [
+      { x: -halfWidth, y: -halfHeight }, // top-left
+      { x: halfWidth, y: -halfHeight },  // top-right
+      { x: -halfWidth, y: halfHeight },  // bottom-left
+      { x: halfWidth, y: halfHeight },   // bottom-right
+    ];
+
+    // Rotate and translate corners
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
+
+    const rotatedCorners = corners.map(corner => ({
+      x: corner.x * cos - corner.y * sin + centerX,
+      y: corner.x * sin + corner.y * cos + centerY,
+    }));
+
+    // Set the corner points
+    leftCurvePoints[0].x = rotatedCorners[0].x;
+    leftCurvePoints[0].y = rotatedCorners[0].y;
+    rightCurvePoints[0].x = rotatedCorners[1].x;
+    rightCurvePoints[0].y = rotatedCorners[1].y;
+    leftCurvePoints[3].x = rotatedCorners[2].x;
+    leftCurvePoints[3].y = rotatedCorners[2].y;
+    rightCurvePoints[3].x = rotatedCorners[3].x;
+    rightCurvePoints[3].y = rotatedCorners[3].y;
+
+    // Set the middle control points to create straight lines
+    // Left curve: straight line from top-left to bottom-left
+    leftCurvePoints[1].x = leftCurvePoints[0].x + (leftCurvePoints[3].x - leftCurvePoints[0].x) / 3;
+    leftCurvePoints[1].y = leftCurvePoints[0].y + (leftCurvePoints[3].y - leftCurvePoints[0].y) / 3;
+    leftCurvePoints[2].x = leftCurvePoints[0].x + (2 * (leftCurvePoints[3].x - leftCurvePoints[0].x)) / 3;
+    leftCurvePoints[2].y = leftCurvePoints[0].y + (2 * (leftCurvePoints[3].y - leftCurvePoints[0].y)) / 3;
+
+    // Right curve: straight line from top-right to bottom-right
+    rightCurvePoints[1].x = rightCurvePoints[0].x + (rightCurvePoints[3].x - rightCurvePoints[0].x) / 3;
+    rightCurvePoints[1].y = rightCurvePoints[0].y + (rightCurvePoints[3].y - rightCurvePoints[0].y) / 3;
+    rightCurvePoints[2].x = rightCurvePoints[0].x + (2 * (rightCurvePoints[3].x - rightCurvePoints[0].x)) / 3;
+    rightCurvePoints[2].y = rightCurvePoints[0].y + (2 * (rightCurvePoints[3].y - rightCurvePoints[0].y)) / 3;
+
+    // Update the visual representation
+    calculateSlicePoints();
+    updateAllTransforms();
+    updateControlPointElements();
+
+    // Save the keyframe with a special flag
+    keyframes[currentKeyframe] = {
+      leftCurve: leftCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      rightCurve: rightCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      overlayOffsetX: overlayOffsetX,
+      overlayOffsetY: overlayOffsetY,
+      isRectangle: true, // Mark as special rectangle keyframe
+    };
+
+    updateTimelineUI();
+    console.log('[Straighten] Created perfect rectangle keyframe at', currentKeyframe);
   }
 
   function loadKeyframe(index) {

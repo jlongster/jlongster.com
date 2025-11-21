@@ -329,6 +329,10 @@
       this.rotation = animationData.rotation || 0; // Rotation in degrees
       this.globalScale = animationData.scale !== undefined ? animationData.scale : 1; // Global scale multiplier
 
+      // Rectangle mode (single DOM node rendering)
+      this.isRectangleMode = false;
+      this.rectangleElement = null;
+
       // Timing configuration - now in keyframe indices
       this.startDelay = animationData.startDelay || 0;
 
@@ -503,6 +507,105 @@
       this.applyInterpolatedFrame(this.currentKeyframePosition);
     }
 
+    renderAsRectangle(leftCurvePoints, rightCurvePoints) {
+      // Hide all slices
+      for (let i = 0; i < 10; i++) {
+        const slice = this.paperElement.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.display = 'none';
+        }
+      }
+
+      // Create or get the rectangle element
+      if (!this.rectangleElement) {
+        this.rectangleElement = document.createElement('div');
+        this.rectangleElement.className = 'paper-rectangle';
+        this.rectangleElement.style.cssText = `
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          top: 0;
+          left: 0;
+          transform-origin: 0 0;
+          pointer-events: none;
+        `;
+
+        // Clone the background image from the first slice
+        const firstSlice = this.paperElement.querySelector('.paper-slice-0');
+        if (firstSlice) {
+          const bgImage = window.getComputedStyle(firstSlice).backgroundImage;
+          this.rectangleElement.style.backgroundImage = bgImage;
+          this.rectangleElement.style.backgroundSize = 'cover';
+          this.rectangleElement.style.backgroundPosition = 'center';
+        }
+
+        this.paperElement.appendChild(this.rectangleElement);
+      }
+
+      this.rectangleElement.style.display = 'block';
+      this.isRectangleMode = true;
+
+      // Calculate the transformation matrix from the corner points
+      const topLeft = leftCurvePoints[0];
+      const topRight = rightCurvePoints[0];
+      const bottomLeft = leftCurvePoints[3];
+      const bottomRight = rightCurvePoints[3];
+
+      // Calculate position, rotation, and scale from corner points
+      const centerX = (topLeft.x + topRight.x + bottomLeft.x + bottomRight.x) / 4;
+      const centerY = (topLeft.y + topRight.y + bottomLeft.y + bottomRight.y) / 4;
+
+      // Calculate rotation from the top edge
+      const dx = topRight.x - topLeft.x;
+      const dy = topRight.y - topLeft.y;
+      const rotation = Math.atan2(dy, dx);
+
+      // Calculate width and height
+      const width = Math.sqrt(dx * dx + dy * dy);
+      const height = Math.sqrt(
+        Math.pow(bottomLeft.x - topLeft.x, 2) +
+        Math.pow(bottomLeft.y - topLeft.y, 2)
+      );
+
+      // Get the original paper dimensions
+      const originalWidth = 250;  // Default paper width
+      const originalHeight = 300; // Default paper height
+
+      // Calculate scale factors
+      const scaleX = width / originalWidth;
+      const scaleY = height / originalHeight;
+
+      // Apply scale from timeline
+      const finalScaleX = scaleX * this.scale;
+      const finalScaleY = scaleY * this.scale;
+
+      // Apply the transformation matrix
+      const transform = `
+        translate(${topLeft.x + this.offsetX}px, ${topLeft.y + this.offsetY}px)
+        rotate(${rotation}rad)
+        scale(${finalScaleX}, ${finalScaleY})
+      `;
+
+      this.rectangleElement.style.transform = transform;
+    }
+
+    switchToSliceMode() {
+      // Hide the rectangle element
+      if (this.rectangleElement) {
+        this.rectangleElement.style.display = 'none';
+      }
+
+      // Show all slices
+      for (let i = 0; i < 10; i++) {
+        const slice = this.paperElement.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.display = 'block';
+        }
+      }
+
+      this.isRectangleMode = false;
+    }
+
     applyFadeIn() {
       // Set transition first
       this.paperElement.style.transition = `opacity ${this.fadeInDuration}ms ease-out`;
@@ -528,6 +631,9 @@
 
       const lowerKf = this.keyframes[lowerKeyframeIndex];
       const upperKf = this.keyframes[upperKeyframeIndex];
+
+      // Check if either keyframe is a rectangle keyframe
+      const isRectangle = lowerKf.isRectangle || upperKf.isRectangle;
 
       let t;
       if (lowerKeyframeIndex === upperKeyframeIndex) {
@@ -583,8 +689,17 @@
       // Apply global scale multiplier
       this.scale *= this.globalScale;
 
-      // Apply transforms to all slices
-      this.updateAllTransforms();
+      // If this is a rectangle keyframe, render as single DOM node
+      if (isRectangle) {
+        this.renderAsRectangle(leftCurvePoints, rightCurvePoints);
+      } else {
+        // Switch back to slice mode if we were in rectangle mode
+        if (this.isRectangleMode) {
+          this.switchToSliceMode();
+        }
+        // Apply transforms to all slices
+        this.updateAllTransforms();
+      }
     }
 
     calculateSlicePoints(leftCurvePoints, rightCurvePoints) {

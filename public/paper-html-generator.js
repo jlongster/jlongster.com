@@ -23,7 +23,7 @@ window.generatePaperHTML = function (data) {
     `;
   }
   if (content) {
-    contentHtml += `<div style="font-size: 15px; line-height: 1.5em; color: #404031;">${escapedContent}</div>`;
+    contentHtml += `<div style="font-size: 14px; line-height: 1.5em; color: #404031;">${escapedContent}</div>`;
   }
 
   // Paper content that will be repeated in each slice
@@ -34,13 +34,13 @@ window.generatePaperHTML = function (data) {
         width: 100%;
         height: 100%;
         padding: 20px;
-        background-color: white;
         border: 2px solid #202020;
-        font-family: LoveLexie, sans-serif;
+        background-color: white;
       "
       class="bg-transparent"
     >
       <a href="${escapedUrl}" class="text-2xl mb-4 leading-tight block" style="
+        font-family: LoveLexie, sans-serif;
        ">
         ${escapedTitle}
       </a>
