@@ -751,12 +751,21 @@
   }
 
   function saveCurrentKeyframe() {
-    keyframes[currentKeyframe] = {
+    // Preserve the isRectangle property if it exists
+    const existingKeyframe = keyframes[currentKeyframe];
+    const newKeyframe = {
       leftCurve: leftCurvePoints.map(p => ({ x: p.x, y: p.y })),
       rightCurve: rightCurvePoints.map(p => ({ x: p.x, y: p.y })),
       overlayOffsetX: overlayOffsetX,
       overlayOffsetY: overlayOffsetY,
     };
+
+    // Preserve isRectangle flag if it existed
+    if (existingKeyframe && existingKeyframe.isRectangle) {
+      newKeyframe.isRectangle = true;
+    }
+
+    keyframes[currentKeyframe] = newKeyframe;
 
     // Automatically advance to next keyframe slot
     currentKeyframe = (currentKeyframe + 1) % totalKeyframes;
@@ -864,7 +873,7 @@
     // Update the visual representation
     calculateSlicePoints();
     updateAllTransforms();
-    updateControlPointElements();
+    updateControlPointPositions();
 
     // Save the keyframe with a special flag
     keyframes[currentKeyframe] = {
@@ -877,6 +886,8 @@
 
     updateTimelineUI();
     console.log('[Straighten] Created perfect rectangle keyframe at', currentKeyframe);
+    console.log('[Straighten] Keyframe data:', keyframes[currentKeyframe]);
+    console.log('[Straighten] Has isRectangle flag:', keyframes[currentKeyframe].isRectangle);
   }
 
   function loadKeyframe(index) {
@@ -1499,6 +1510,13 @@
       offsetX: offsetX,
       offsetY: offsetY,
     };
+
+    // Debug: Check which keyframes have isRectangle flag
+    const rectangleKeyframes = keyframes
+      .map((kf, i) => kf && kf.isRectangle ? i : null)
+      .filter(i => i !== null);
+    console.log('[Export] Keyframes with isRectangle flag:', rectangleKeyframes);
+    console.log('[Export] Total keyframes:', keyframes.filter(kf => kf !== null).length);
 
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });

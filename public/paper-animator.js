@@ -33,10 +33,8 @@
     setAnimationConfigs: function (listId, configs) {
       listAnimationConfigs.set(listId, configs);
       activeListId = listId; // Set as active list
-      console.log('[PaperAnimator] Set', configs.length, 'animation configs for list:', listId);
     },
     resetAll: function () {
-      console.log('[PaperAnimator] Resetting all animators');
       // Stop all animations
       animatorRegistry.forEach(animator => animator.stop());
       // Clear registry
@@ -323,6 +321,14 @@
 
       this.fadeInDuration = 100;
 
+      // Get paper dimensions from data attributes
+      this.paperWidth = parseInt(paperElement.getAttribute('data-paper-width')) || 250;
+      this.paperHeight = parseInt(paperElement.getAttribute('data-paper-height')) || 300;
+
+      // Calculate scale factors for animation data (assumes 250x300 baseline)
+      this.widthScale = this.paperWidth / 250;
+      this.heightScale = this.paperHeight / 300;
+
       // Transform state
       this.offsetX = animationData.offsetX || 0;
       this.offsetY = animationData.offsetY || 0;
@@ -342,9 +348,9 @@
       );
       this.scale = firstScaleKeyframe !== undefined ? firstScaleKeyframe : 1;
 
-      // Apply rotation to keyframes
-      this.keyframes = this.applyRotationToKeyframes(
-        animationData.keyframes || [],
+      // Apply rotation first, then scale for dimensions
+      this.keyframes = this.scaleKeyframes_forDimensions(
+        this.applyRotationToKeyframes(animationData.keyframes || []),
       );
 
       // Total keyframes count
@@ -374,6 +380,25 @@
 
       // Render the initial frame immediately to prevent flash
       this.renderInitialFrame();
+    }
+
+    scaleKeyframes_forDimensions(keyframes) {
+      // Scale all keyframe coordinates based on paper dimensions
+      return keyframes.map(keyframe => {
+        if (!keyframe) return keyframe;
+
+        return {
+          ...keyframe,
+          leftCurve: keyframe.leftCurve.map(point => ({
+            x: (point.x / 250) * this.paperWidth,
+            y: (point.y / 300) * this.paperHeight,
+          })),
+          rightCurve: keyframe.rightCurve.map(point => ({
+            x: (point.x / 250) * this.paperWidth,
+            y: (point.y / 300) * this.paperHeight,
+          })),
+        };
+      });
     }
 
     applyRotationToKeyframes(keyframes) {
@@ -493,9 +518,9 @@
 
     updateRotation(rotation) {
       this.rotation = rotation;
-      // Recalculate keyframes with new rotation
-      this.keyframes = this.applyRotationToKeyframes(
-        this.animationData.keyframes || [],
+      // Recalculate keyframes: rotation first, then dimension scaling
+      this.keyframes = this.scaleKeyframes_forDimensions(
+        this.applyRotationToKeyframes(this.animationData.keyframes || []),
       );
       // Re-render current keyframe position
       this.applyInterpolatedFrame(this.currentKeyframePosition);
@@ -522,21 +547,31 @@
         this.rectangleElement.className = 'paper-rectangle';
         this.rectangleElement.style.cssText = `
           position: absolute;
-          width: 100%;
-          height: 100%;
+          width: ${this.paperWidth}px;
+          height: ${this.paperHeight}px;
           top: 0;
           left: 0;
           transform-origin: 0 0;
           pointer-events: none;
+          overflow: hidden;
         `;
 
-        // Clone the background image from the first slice
+        // Clone the content from the first slice
         const firstSlice = this.paperElement.querySelector('.paper-slice-0');
         if (firstSlice) {
+          // Clone the inner content (includes images, text, etc.)
+          const content = firstSlice.querySelector('div');
+          if (content) {
+            this.rectangleElement.appendChild(content.cloneNode(true));
+          }
+
+          // Also copy any background image if it exists
           const bgImage = window.getComputedStyle(firstSlice).backgroundImage;
-          this.rectangleElement.style.backgroundImage = bgImage;
-          this.rectangleElement.style.backgroundSize = 'cover';
-          this.rectangleElement.style.backgroundPosition = 'center';
+          if (bgImage && bgImage !== 'none') {
+            this.rectangleElement.style.backgroundImage = bgImage;
+            this.rectangleElement.style.backgroundSize = 'cover';
+            this.rectangleElement.style.backgroundPosition = 'center';
+          }
         }
 
         this.paperElement.appendChild(this.rectangleElement);
@@ -545,48 +580,34 @@
       this.rectangleElement.style.display = 'block';
       this.isRectangleMode = true;
 
-      // Calculate the transformation matrix from the corner points
-      const topLeft = leftCurvePoints[0];
-      const topRight = rightCurvePoints[0];
-      const bottomLeft = leftCurvePoints[3];
-      const bottomRight = rightCurvePoints[3];
+      // Use the same evaluated bezier points that the slices use
+      // The slices use this.slicePoints which are the evaluated bezier curve points
+      // For a rectangle, we want the top corners (slicePoints[0]) and bottom corners (slicePoints[10])
+      const topLine = this.slicePoints[0];
+      const bottomLine = this.slicePoints[10];
 
-      // Calculate position, rotation, and scale from corner points
-      const centerX = (topLeft.x + topRight.x + bottomLeft.x + bottomRight.x) / 4;
-      const centerY = (topLeft.y + topRight.y + bottomLeft.y + bottomRight.y) / 4;
+      // Define source rectangle (the rectangle element's natural dimensions)
+      const src = [
+        { x: 0, y: 0 },
+        { x: this.paperWidth, y: 0 },
+        { x: 0, y: this.paperHeight },
+        { x: this.paperWidth, y: this.paperHeight },
+      ];
 
-      // Calculate rotation from the top edge
-      const dx = topRight.x - topLeft.x;
-      const dy = topRight.y - topLeft.y;
-      const rotation = Math.atan2(dy, dx);
+      // Define destination corners using evaluated bezier points (with offset applied)
+      const dst = [
+        { x: topLine.left.x + this.offsetX, y: topLine.left.y + this.offsetY },
+        { x: topLine.right.x + this.offsetX, y: topLine.right.y + this.offsetY },
+        { x: bottomLine.left.x + this.offsetX, y: bottomLine.left.y + this.offsetY },
+        { x: bottomLine.right.x + this.offsetX, y: bottomLine.right.y + this.offsetY },
+      ];
 
-      // Calculate width and height
-      const width = Math.sqrt(dx * dx + dy * dy);
-      const height = Math.sqrt(
-        Math.pow(bottomLeft.x - topLeft.x, 2) +
-        Math.pow(bottomLeft.y - topLeft.y, 2)
-      );
-
-      // Get the original paper dimensions
-      const originalWidth = 250;  // Default paper width
-      const originalHeight = 300; // Default paper height
-
-      // Calculate scale factors
-      const scaleX = width / originalWidth;
-      const scaleY = height / originalHeight;
-
-      // Apply scale from timeline
-      const finalScaleX = scaleX * this.scale;
-      const finalScaleY = scaleY * this.scale;
-
-      // Apply the transformation matrix
-      const transform = `
-        translate(${topLeft.x + this.offsetX}px, ${topLeft.y + this.offsetY}px)
-        rotate(${rotation}rad)
-        scale(${finalScaleX}, ${finalScaleY})
-      `;
+      // Calculate perspective transform matrix (same as slices)
+      const matrix = this.getPerspectiveTransform(src, dst);
+      const transform = `matrix3d(${matrix.join(',')})`;
 
       this.rectangleElement.style.transform = transform;
+      this.rectangleElement.style.transformOrigin = '0 0';
     }
 
     switchToSliceMode() {
@@ -777,13 +798,13 @@
 
       const corners = this.getSliceCorners(sliceIndex);
 
-      const sliceHeight = 300 / numSlices;
+      const sliceHeight = this.paperHeight / numSlices;
       const startY = sliceIndex * sliceHeight;
       const src = [
         { x: 0, y: startY },
-        { x: 250, y: startY },
+        { x: this.paperWidth, y: startY },
         { x: 0, y: startY + sliceHeight },
-        { x: 250, y: startY + sliceHeight },
+        { x: this.paperWidth, y: startY + sliceHeight },
       ];
 
       // Apply global offsets to destination corners

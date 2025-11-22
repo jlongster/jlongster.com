@@ -30,10 +30,16 @@ function PostsList({
   posts,
   id,
   animationConfigs,
+  paperStyle = 'text',
+  width = 250,
+  height = 300,
 }: {
   posts: any[];
   id?: string;
   animationConfigs?: any[];
+  paperStyle?: 'text' | 'image';
+  width?: number;
+  height?: number;
 }) {
   return (
     <ul
@@ -42,6 +48,9 @@ function PostsList({
       data-animation-configs={
         animationConfigs ? JSON.stringify(animationConfigs) : undefined
       }
+      data-paper-style={paperStyle}
+      data-paper-width={width}
+      data-paper-height={height}
     >
       {posts.map((post: any) => (
         <li
@@ -92,13 +101,7 @@ export default function Index() {
             className="intro"
           >
             <div style={{ width: 500 }}>
-              <h1
-                style={{
-                  color: 'var(--color-accent)',
-                }}
-              >
-                Hello, I'm James
-              </h1>
+              <h1>Hello, I'm James</h1>
               <section style={{ fontSize: 18 }}>
                 <p>
                   I'm a design engineer with two decades of experience building
@@ -111,36 +114,6 @@ export default function Index() {
                   posts={content}
                   id="content-posts"
                   animationConfigs={[
-                    {
-                      animationIndex: 0,
-                      offsetX: 199,
-                      offsetY: -1,
-                      rotation: 0,
-                      scale: 0.8,
-                      startDelay: 3500,
-                      startKeyframe: 31,
-                      endKeyframe: 59,
-                    },
-                    {
-                      animationIndex: 0,
-                      offsetX: 145,
-                      offsetY: 108,
-                      rotation: -22,
-                      scale: 0.8,
-                      startDelay: 3500,
-                      startKeyframe: 28,
-                      endKeyframe: 59,
-                    },
-                    {
-                      animationIndex: 0,
-                      offsetX: 146,
-                      offsetY: 222,
-                      rotation: -50,
-                      scale: 0.8,
-                      startDelay: 3500,
-                      startKeyframe: 25,
-                      endKeyframe: 59,
-                    },
                     {
                       animationIndex: 0,
                       offsetX: -352,
@@ -167,6 +140,9 @@ export default function Index() {
           <PostsList
             posts={experiments}
             id="experiments-posts"
+            paperStyle="image"
+            width={400}
+            height={400}
             animationConfigs={[
               {
                 animationIndex: 0,

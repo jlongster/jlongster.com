@@ -7,7 +7,7 @@ function escapeHtml(text) {
 }
 
 window.generatePaperHTML = function (data) {
-  const { title, url, content = '', image = '' } = data;
+  const { title, url, content = '', image = '', paperStyle = 'text', width = 250, height = 300 } = data;
   const numSlices = 10;
 
   const escapedTitle = escapeHtml(title);
@@ -15,14 +15,26 @@ window.generatePaperHTML = function (data) {
   const escapedUrl = escapeHtml(url);
   const escapedImage = escapeHtml(image);
 
+  // Determine padding and layout based on paperStyle
+  const padding = paperStyle === 'image' ? '0' : '20px';
+  const showTitle = paperStyle !== 'image';
+
   // Build content with image in proper order if present
   let contentHtml = '';
   if (image) {
-    contentHtml = `
-      <img src="${escapedImage}" style="width: 100%; height: auto; margin: 8px 0; display: block;" />
-    `;
+    if (paperStyle === 'image') {
+      // For image style, make the image fill the entire paper
+      contentHtml = `
+        <img src="${escapedImage}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+      `;
+    } else {
+      // For text style, keep the original image styling
+      contentHtml = `
+        <img src="${escapedImage}" style="width: 100%; height: auto; margin: 8px 0; display: block;" />
+      `;
+    }
   }
-  if (content) {
+  if (content && paperStyle !== 'image') {
     contentHtml += `<div style="font-size: 14px; line-height: 1.5em; color: #404031;">${escapedContent}</div>`;
   }
 
@@ -33,24 +45,20 @@ window.generatePaperHTML = function (data) {
         position: relative;
         width: 100%;
         height: 100%;
-        padding: 20px;
+        padding: ${padding};
         border: 2px solid #202020;
         background-color: white;
       "
       class="bg-transparent"
     >
-      <a href="${escapedUrl}" class="text-2xl mb-4 leading-tight block" style="
-        font-family: LoveLexie, sans-serif;
-       ">
-        ${escapedTitle}
-      </a>
+      ${showTitle ? `<a href="${escapedUrl}" class="text-2xl mb-4 leading-tight block" style="font-family: LoveLexie, sans-serif;">${escapedTitle}</a>` : ''}
       ${contentHtml}
     </div>
   `;
 
   // Generate slices
   const slices = Array.from({ length: numSlices }, (_, i) => {
-    const sliceHeight = 300 / numSlices;
+    const sliceHeight = height / numSlices;
     const startY = i * sliceHeight;
     const endY = (i + 1) * sliceHeight;
 
@@ -61,9 +69,9 @@ window.generatePaperHTML = function (data) {
           position: absolute;
           top: 0;
           left: 0;
-          width: 250px;
-          height: 300px;
-          clip-path: polygon(0 ${startY}px, 250px ${startY}px, 250px ${endY}px, 0 ${endY}px);
+          width: ${width}px;
+          height: ${height}px;
+          clip-path: polygon(0 ${startY}px, ${width}px ${startY}px, ${width}px ${endY}px, 0 ${endY}px);
           transform-style: preserve-3d;
         "
       >

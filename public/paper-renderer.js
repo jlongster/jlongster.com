@@ -48,8 +48,16 @@
         const url = titleLink ? titleLink.getAttribute('href') : '';
         const img = paperElement.querySelector('img');
         const image = img ? img.getAttribute('src') : '';
-        const contentDiv = paperElement.querySelector('div[style*="font-size: 13px"]');
+        const contentDiv = paperElement.querySelector(
+          'div[style*="font-size: 13px"]',
+        );
         const content = contentDiv ? contentDiv.textContent : '';
+        const paperStyle =
+          paperElement.getAttribute('data-paper-style') || 'text';
+        const paperWidth =
+          parseInt(paperElement.getAttribute('data-paper-width')) || 250;
+        const paperHeight =
+          parseInt(paperElement.getAttribute('data-paper-height')) || 300;
 
         // Get the parent container and next sibling for reinsertion
         const parentContainer = inlineWrapper.parentElement;
@@ -69,12 +77,18 @@
           url: url,
           content: content,
           image: image,
+          paperStyle: paperStyle,
+          width: paperWidth,
+          height: paperHeight,
         });
 
-        // Set the ID and source list on the new paper element
+        // Set the ID, source list, and paper style on the new paper element
         const newPaperElement = newWrapper.querySelector('.paper-element');
         if (newPaperElement) {
           newPaperElement.setAttribute('data-paper-id', id);
+          newPaperElement.setAttribute('data-paper-style', paperStyle);
+          newPaperElement.setAttribute('data-paper-width', paperWidth);
+          newPaperElement.setAttribute('data-paper-height', paperHeight);
           if (sourceListId) {
             newPaperElement.setAttribute('data-source-list', sourceListId);
           }
@@ -128,12 +142,21 @@
           url: post.url,
           content: post.abstract,
           image: post.image,
+          paperStyle: post.paperStyle,
+          width: post.width,
+          height: post.height,
         });
 
-        // Set the ID and source list on the new paper element
+        // Set the ID, source list, and paper style on the new paper element
         const newPaperElement = newWrapper.querySelector('.paper-element');
         if (newPaperElement) {
           newPaperElement.setAttribute('data-paper-id', id);
+          newPaperElement.setAttribute(
+            'data-paper-style',
+            post.paperStyle || 'text',
+          );
+          newPaperElement.setAttribute('data-paper-width', post.width || 250);
+          newPaperElement.setAttribute('data-paper-height', post.height || 300);
           if (sourceListId) {
             newPaperElement.setAttribute('data-source-list', sourceListId);
           }
@@ -178,7 +201,9 @@
     }
 
     // Remove all inline paper containers
-    const inlineContainers = document.querySelectorAll('.inline-papers-container');
+    const inlineContainers = document.querySelectorAll(
+      '.inline-papers-container',
+    );
     inlineContainers.forEach(container => {
       container.remove();
     });
@@ -210,39 +235,68 @@
       return;
     }
 
+    const paperStyle = scrollList.getAttribute('data-paper-style') || 'text';
+    const paperWidth =
+      parseInt(scrollList.getAttribute('data-paper-width')) || 250;
+    const paperHeight =
+      parseInt(scrollList.getAttribute('data-paper-height')) || 300;
+
     const postItems = scrollList.querySelectorAll('.post-item');
     allPosts = Array.from(postItems).map(item => ({
       title: item.getAttribute('data-title') || '',
       url: item.getAttribute('data-url') || '',
       abstract: item.getAttribute('data-abstract') || '',
       image: item.getAttribute('data-image') || '',
+      paperStyle: paperStyle,
+      width: paperWidth,
+      height: paperHeight,
     }));
 
     // Read animation configs from the list's data attribute
-    const animationConfigsAttr = scrollList.getAttribute('data-animation-configs');
+    const animationConfigsAttr = scrollList.getAttribute(
+      'data-animation-configs',
+    );
     let animationConfigs = null;
     if (animationConfigsAttr) {
       try {
         animationConfigs = JSON.parse(animationConfigsAttr);
-        console.log('[PaperRenderer] Loaded', animationConfigs.length, 'animation configs from', scrollListId);
+        console.log(
+          '[PaperRenderer] Loaded',
+          animationConfigs.length,
+          'animation configs from',
+          scrollListId,
+        );
       } catch (error) {
-        console.error('[PaperRenderer] Failed to parse animation configs:', error);
+        console.error(
+          '[PaperRenderer] Failed to parse animation configs:',
+          error,
+        );
       }
     }
 
     // Expose animation configs to PaperAnimator (or notify it even if none provided)
     if (window.PaperAnimator) {
       if (animationConfigs && animationConfigs.length > 0) {
-        window.PaperAnimator.setAnimationConfigs(scrollListId, animationConfigs);
+        window.PaperAnimator.setAnimationConfigs(
+          scrollListId,
+          animationConfigs,
+        );
       } else {
-        console.log('[PaperRenderer] No animation configs provided, will use defaults');
+        console.log(
+          '[PaperRenderer] No animation configs provided, will use defaults',
+        );
       }
     }
 
     // Hide the scroll list after scraping so only paper elements show
     scrollList.style.display = 'none';
 
-    console.log('[PaperRenderer] Scraped', allPosts.length, 'posts from', scrollListId);
+    console.log(
+      '[PaperRenderer] Scraped',
+      allPosts.length,
+      'posts from',
+      scrollListId,
+    );
 
     // Render initial block (block 0) - already declared at top
     if (initialBlock) {
@@ -271,19 +325,33 @@
       }
 
       // Scrape posts from this list
+      const listPaperStyle =
+        postsList.getAttribute('data-paper-style') || 'text';
+      const listPaperWidth =
+        parseInt(postsList.getAttribute('data-paper-width')) || 250;
+      const listPaperHeight =
+        parseInt(postsList.getAttribute('data-paper-height')) || 300;
       const postItems = postsList.querySelectorAll('.post-item');
       const posts = Array.from(postItems).map(item => ({
         title: item.getAttribute('data-title') || '',
         url: item.getAttribute('data-url') || '',
         abstract: item.getAttribute('data-abstract') || '',
         image: item.getAttribute('data-image') || '',
+        paperStyle: listPaperStyle,
+        width: listPaperWidth,
+        height: listPaperHeight,
       }));
 
       if (posts.length === 0) {
         return;
       }
 
-      console.log('[PaperRenderer] Rendering', posts.length, 'inline papers for list:', listId);
+      console.log(
+        '[PaperRenderer] Rendering',
+        posts.length,
+        'inline papers for list:',
+        listId,
+      );
 
       // Read animation configs from this list (if any)
       const configsAttr = postsList.getAttribute('data-animation-configs');
@@ -292,7 +360,11 @@
         try {
           configs = JSON.parse(configsAttr);
         } catch (error) {
-          console.error('[PaperRenderer] Failed to parse configs for inline list:', listId, error);
+          console.error(
+            '[PaperRenderer] Failed to parse configs for inline list:',
+            listId,
+            error,
+          );
         }
       }
 
@@ -324,12 +396,21 @@
           content: post.abstract,
           image: post.image,
           rotation: 0,
+          paperStyle: post.paperStyle,
+          width: post.width,
+          height: post.height,
         });
 
-        // Mark the paper element with its source list so animator can get the right config
+        // Mark the paper element with its source list and paper style
         const paperElement = wrapper.querySelector('.paper-element');
         if (paperElement) {
           paperElement.setAttribute('data-source-list', listId);
+          paperElement.setAttribute(
+            'data-paper-style',
+            post.paperStyle || 'text',
+          );
+          paperElement.setAttribute('data-paper-width', post.width || 250);
+          paperElement.setAttribute('data-paper-height', post.height || 300);
         }
 
         paperContainer.appendChild(wrapper);
@@ -363,12 +444,21 @@
         url: post.url,
         content: post.abstract,
         image: post.image,
+        paperStyle: post.paperStyle,
+        width: post.width,
+        height: post.height,
       });
 
-      // Mark the paper element with its source list
+      // Mark the paper element with its source list and paper style
       const paperElement = wrapper.querySelector('.paper-element');
       if (paperElement && scrollListId) {
         paperElement.setAttribute('data-source-list', scrollListId);
+        paperElement.setAttribute(
+          'data-paper-style',
+          post.paperStyle || 'text',
+        );
+        paperElement.setAttribute('data-paper-width', post.width || 250);
+        paperElement.setAttribute('data-paper-height', post.height || 300);
       }
 
       blockElement.appendChild(wrapper);
