@@ -552,7 +552,7 @@
           top: 0;
           left: 0;
           transform-origin: 0 0;
-          pointer-events: none;
+          pointer-events: auto;
           overflow: hidden;
         `;
 
@@ -580,34 +580,8 @@
       this.rectangleElement.style.display = 'block';
       this.isRectangleMode = true;
 
-      // Use the same evaluated bezier points that the slices use
-      // The slices use this.slicePoints which are the evaluated bezier curve points
-      // For a rectangle, we want the top corners (slicePoints[0]) and bottom corners (slicePoints[10])
-      const topLine = this.slicePoints[0];
-      const bottomLine = this.slicePoints[10];
-
-      // Define source rectangle (the rectangle element's natural dimensions)
-      const src = [
-        { x: 0, y: 0 },
-        { x: this.paperWidth, y: 0 },
-        { x: 0, y: this.paperHeight },
-        { x: this.paperWidth, y: this.paperHeight },
-      ];
-
-      // Define destination corners using evaluated bezier points (with offset applied)
-      const dst = [
-        { x: topLine.left.x + this.offsetX, y: topLine.left.y + this.offsetY },
-        { x: topLine.right.x + this.offsetX, y: topLine.right.y + this.offsetY },
-        { x: bottomLine.left.x + this.offsetX, y: bottomLine.left.y + this.offsetY },
-        { x: bottomLine.right.x + this.offsetX, y: bottomLine.right.y + this.offsetY },
-      ];
-
-      // Calculate perspective transform matrix (same as slices)
-      const matrix = this.getPerspectiveTransform(src, dst);
-      const transform = `matrix3d(${matrix.join(',')})`;
-
-      this.rectangleElement.style.transform = transform;
-      this.rectangleElement.style.transformOrigin = '0 0';
+      // Update the rectangle's transform
+      this.updateRectangleTransform();
     }
 
     switchToSliceMode() {
@@ -785,9 +759,46 @@
     }
 
     updateAllTransforms() {
-      for (let i = 0; i < numSlices; i++) {
-        this.updateSliceTransform(i);
+      if (this.isRectangleMode) {
+        this.updateRectangleTransform();
+      } else {
+        for (let i = 0; i < numSlices; i++) {
+          this.updateSliceTransform(i);
+        }
       }
+    }
+
+    updateRectangleTransform() {
+      if (!this.rectangleElement || !this.slicePoints || this.slicePoints.length < 11) {
+        return;
+      }
+
+      // Use the same evaluated bezier points that the slices use
+      const topLine = this.slicePoints[0];
+      const bottomLine = this.slicePoints[10];
+
+      // Define source rectangle (the rectangle element's natural dimensions)
+      const src = [
+        { x: 0, y: 0 },
+        { x: this.paperWidth, y: 0 },
+        { x: 0, y: this.paperHeight },
+        { x: this.paperWidth, y: this.paperHeight },
+      ];
+
+      // Define destination corners using evaluated bezier points (with offset applied)
+      const dst = [
+        { x: topLine.left.x + this.offsetX, y: topLine.left.y + this.offsetY },
+        { x: topLine.right.x + this.offsetX, y: topLine.right.y + this.offsetY },
+        { x: bottomLine.left.x + this.offsetX, y: bottomLine.left.y + this.offsetY },
+        { x: bottomLine.right.x + this.offsetX, y: bottomLine.right.y + this.offsetY },
+      ];
+
+      // Calculate perspective transform matrix (same as slices)
+      const matrix = this.getPerspectiveTransform(src, dst);
+      const transform = `matrix3d(${matrix.join(',')})`;
+
+      this.rectangleElement.style.transform = transform;
+      this.rectangleElement.style.transformOrigin = '0 0';
     }
 
     updateSliceTransform(sliceIndex) {

@@ -110,10 +110,42 @@ export default function Index() {
                   currently looking for my next thing.
                 </p>
 
+                <p>Hello</p>
+
                 <PostsList
-                  posts={content}
+                  posts={[content[3]]}
                   id="content-posts"
                   animationConfigs={[
+                    // {
+                    //   animationIndex: 0,
+                    //   offsetX: 199,
+                    //   offsetY: -1,
+                    //   rotation: 0,
+                    //   scale: 0.8,
+                    //   startDelay: 3500,
+                    //   startKeyframe: 31,
+                    //   endKeyframe: 59,
+                    // },
+                    // {
+                    //   animationIndex: 0,
+                    //   offsetX: 145,
+                    //   offsetY: 108,
+                    //   rotation: -22,
+                    //   scale: 0.8,
+                    //   startDelay: 3500,
+                    //   startKeyframe: 28,
+                    //   endKeyframe: 59,
+                    // },
+                    // {
+                    //   animationIndex: 0,
+                    //   offsetX: 146,
+                    //   offsetY: 222,
+                    //   rotation: -50,
+                    //   scale: 0.8,
+                    //   startDelay: 3500,
+                    //   startKeyframe: 25,
+                    //   endKeyframe: 59,
+                    // },
                     {
                       animationIndex: 0,
                       offsetX: -352,
@@ -141,8 +173,6 @@ export default function Index() {
             posts={experiments}
             id="experiments-posts"
             paperStyle="image"
-            width={400}
-            height={400}
             animationConfigs={[
               {
                 animationIndex: 0,
