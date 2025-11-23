@@ -110,10 +110,10 @@
 
 @theme {
   --color-primary: #313131;
-  --color-subdued: #818a92;
+  --color-subdued: #dad9d7;
   --color-link: #317AE7;
   --color-accent: #F98D2F;
-  --color-bg: white;
+  --color-bg: #fcfbf9;
 }
 
 .dark-mode {
@@ -229,15 +229,15 @@ header .context {
   font-style: italic;
 }
 
-ul li {
+.post ul li {
   list-style: disc;
 }
 
-ol li {
+.post ol li {
   list-style: decimal;
 }
 
-ul li, ol li {
+.post ul li, ol li {
   margin-left: 25px;
 }
 

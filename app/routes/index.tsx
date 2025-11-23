@@ -19,54 +19,6 @@ export async function loader() {
   return { content, posts };
 }
 
-function PostsList({
-  posts,
-  id,
-  animationConfigs,
-  paperStyle = 'text',
-  width = 250,
-  height = 300,
-}: {
-  posts: any[];
-  id?: string;
-  animationConfigs?: any[];
-  paperStyle?: 'text' | 'image';
-  width?: number;
-  height?: number;
-}) {
-  return (
-    <ul
-      id={id}
-      className="posts-list list-none"
-      data-animation-configs={
-        animationConfigs ? JSON.stringify(animationConfigs) : undefined
-      }
-      data-paper-style={paperStyle}
-      data-paper-width={width}
-      data-paper-height={height}
-    >
-      {posts.map((post: any) => (
-        <li
-          key={post.url}
-          className="post-item"
-          data-url={post.url}
-          data-title={post.title}
-          data-abstract={post.abstract || ''}
-          data-image={post.gif || ''}
-        >
-          <a href={post.url} className="font-bold text-2xl">
-            {post.title}
-          </a>
-          {post.gif ? <img src={post.gif} /> : null}
-          {post.abstract ? (
-            <p className="text-sm text-gray-600">{post.abstract}</p>
-          ) : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export default function Index() {
   const { content, posts } = useLoaderData<typeof loader>();
 
@@ -103,9 +55,53 @@ export default function Index() {
           </div>
         </div>
 
-        <section style={{ width: 800, margin: '0 auto', position: 'relative' }}>
+        <section
+          style={{
+            width: 1000,
+            margin: '0 auto',
+            position: 'relative',
+            marginBottom: 500,
+          }}
+        >
           <h1>Posts</h1>
-          <PostsList posts={posts} id="content-posts" />
+          <ul
+            id="content-posts"
+            className="posts-list list-none grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-12"
+          >
+            {posts.slice(0, 6).map((post: any) => {
+              const img = !!post.gif;
+              return (
+                <li
+                  key={post.url}
+                  className={`post-item border border-subdued rounded-lg ${
+                    img ? '' : 'p-4'
+                  }`}
+                  data-url={post.url}
+                  data-title={post.title}
+                  data-abstract={post.abstract || ''}
+                  data-image={post.gif || ''}
+                >
+                  {img ? (
+                    <img src={post.gif} className="mt-2" />
+                  ) : (
+                    <>
+                      <a
+                        href={post.url}
+                        className="font-bold text-lg uncolored-link"
+                      >
+                        {post.title}
+                      </a>
+                      {post.abstract ? (
+                        <p className="text-sm text-gray-600 mt-2">
+                          {post.abstract}
+                        </p>
+                      ) : null}
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
 
         {/* Semantic list of all posts - will be scraped by JS
@@ -156,20 +152,20 @@ export default function Index() {
             },
           ]}
           />*/}
-        <script
+        {/* Paper animation disabled - uncomment to re-enable */}
+        {/*<script
           dangerouslySetInnerHTML={{
             __html:
               'for(let el of document.querySelectorAll(".posts-list")) { el.style.display = "none" }',
           }}
         />
 
-        {/* Initial block - will be populated by JS */}
         <div
           className="p-8 overflow-visible grid"
           data-block-id="0"
           data-posts-list="content-posts"
           style={{ height: 'min(100vh, 800px)' }}
-        ></div>
+        ></div>*/}
       </div>
     </>
   );
