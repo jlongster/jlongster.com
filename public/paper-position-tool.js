@@ -56,6 +56,10 @@
       return;
     }
 
+    // Set z-index to ensure paper is above video player
+    paperElement.style.position = 'relative';
+    paperElement.style.zIndex = '100';
+
     // Ensure all slices are visible (disable any fade-in effects)
     const slices = paperElement.querySelectorAll('.paper-slice');
     slices.forEach(slice => {

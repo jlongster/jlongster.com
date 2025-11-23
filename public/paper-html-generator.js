@@ -46,12 +46,12 @@ window.generatePaperHTML = function (data) {
         width: 100%;
         height: 100%;
         padding: ${padding};
-        border: 2px solid #202020;
+        border: 1px solid #f0f1ec;
         background-color: white;
       "
       class="bg-transparent"
     >
-      ${showTitle ? `<a href="${escapedUrl}" class="text-2xl mb-4 leading-tight block" style="font-family: LoveLexie, sans-serif;">${escapedTitle}</a>` : ''}
+      ${showTitle ? `<a href="${escapedUrl}" class="text-lg mb-4 leading-tight block">${escapedTitle}</a>` : ''}
       ${contentHtml}
     </div>
   `;
@@ -71,8 +71,10 @@ window.generatePaperHTML = function (data) {
           left: 0;
           width: ${width}px;
           height: ${height}px;
-          clip-path: polygon(0 ${startY}px, ${width}px ${startY}px, ${width}px ${endY}px, 0 ${endY}px);
+          clip-path: polygon(0 ${startY-1}px, ${width}px ${startY-1}px, ${width}px ${endY}px, 0 ${endY}px);
           transform-style: preserve-3d;
+          backface-visibility: hidden;
+          will-change: transform;
         "
       >
         ${paperContent}

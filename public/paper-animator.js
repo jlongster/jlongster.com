@@ -215,8 +215,7 @@
             animationData.offsetY = config.offsetY;
           if (config.rotation !== undefined)
             animationData.rotation = config.rotation;
-          if (config.scale !== undefined)
-            animationData.scale = config.scale;
+          if (config.scale !== undefined) animationData.scale = config.scale;
           if (config.startDelay !== undefined)
             animationData.startDelay = config.startDelay;
           if (config.startKeyframe !== undefined)
@@ -270,12 +269,18 @@
             // Check if the added node is a paper element or contains paper elements
             if (node.classList && node.classList.contains('paper-element')) {
               hasNewPaperElements = true;
-              console.log('[PaperAnimator] MutationObserver detected paper element added');
+              console.log(
+                '[PaperAnimator] MutationObserver detected paper element added',
+              );
             } else if (node.querySelectorAll) {
               const paperElements = node.querySelectorAll('.paper-element');
               if (paperElements.length > 0) {
                 hasNewPaperElements = true;
-                console.log('[PaperAnimator] MutationObserver detected', paperElements.length, 'paper elements added');
+                console.log(
+                  '[PaperAnimator] MutationObserver detected',
+                  paperElements.length,
+                  'paper elements added',
+                );
               }
             }
           }
@@ -283,7 +288,9 @@
       });
 
       if (hasNewPaperElements) {
-        console.log('[PaperAnimator] Calling initializePaperElements from MutationObserver');
+        console.log(
+          '[PaperAnimator] Calling initializePaperElements from MutationObserver',
+        );
         initializePaperElements();
       }
     });
@@ -322,8 +329,10 @@
       this.fadeInDuration = 100;
 
       // Get paper dimensions from data attributes
-      this.paperWidth = parseInt(paperElement.getAttribute('data-paper-width')) || 250;
-      this.paperHeight = parseInt(paperElement.getAttribute('data-paper-height')) || 300;
+      this.paperWidth =
+        parseInt(paperElement.getAttribute('data-paper-width')) || 250;
+      this.paperHeight =
+        parseInt(paperElement.getAttribute('data-paper-height')) || 300;
 
       // Calculate scale factors for animation data (assumes 250x300 baseline)
       this.widthScale = this.paperWidth / 250;
@@ -333,7 +342,8 @@
       this.offsetX = animationData.offsetX || 0;
       this.offsetY = animationData.offsetY || 0;
       this.rotation = animationData.rotation || 0; // Rotation in degrees
-      this.globalScale = animationData.scale !== undefined ? animationData.scale : 1; // Global scale multiplier
+      this.globalScale =
+        animationData.scale !== undefined ? animationData.scale : 1; // Global scale multiplier
 
       // Rectangle mode (single DOM node rendering)
       this.isRectangleMode = false;
@@ -769,7 +779,11 @@
     }
 
     updateRectangleTransform() {
-      if (!this.rectangleElement || !this.slicePoints || this.slicePoints.length < 11) {
+      if (
+        !this.rectangleElement ||
+        !this.slicePoints ||
+        this.slicePoints.length < 11
+      ) {
         return;
       }
 
@@ -788,9 +802,18 @@
       // Define destination corners using evaluated bezier points (with offset applied)
       const dst = [
         { x: topLine.left.x + this.offsetX, y: topLine.left.y + this.offsetY },
-        { x: topLine.right.x + this.offsetX, y: topLine.right.y + this.offsetY },
-        { x: bottomLine.left.x + this.offsetX, y: bottomLine.left.y + this.offsetY },
-        { x: bottomLine.right.x + this.offsetX, y: bottomLine.right.y + this.offsetY },
+        {
+          x: topLine.right.x + this.offsetX,
+          y: topLine.right.y + this.offsetY,
+        },
+        {
+          x: bottomLine.left.x + this.offsetX,
+          y: bottomLine.left.y + this.offsetY,
+        },
+        {
+          x: bottomLine.right.x + this.offsetX,
+          y: bottomLine.right.y + this.offsetY,
+        },
       ];
 
       // Calculate perspective transform matrix (same as slices)
