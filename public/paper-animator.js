@@ -303,6 +303,120 @@
       }
     };
 
+    // Create and manage scaled shadow outline (shrinks toward top)
+    let scaledOutlineSVG = null;
+    let scaledOutlinePath = null;
+    let shadowUpdateLoop = null;
+
+    const updateScaledOutline = () => {
+      const slicePoints = animator.slicePoints || [];
+      if (slicePoints.length < 11) {
+        shadowUpdateLoop = requestAnimationFrame(updateScaledOutline);
+        return;
+      }
+
+      // Calculate center point for scaling
+      const centerX = slicePoints.reduce((sum, p) => sum + (p.left.x + p.right.x) / 2, 0) / slicePoints.length;
+      const centerY = slicePoints.reduce((sum, p) => sum + (p.left.y + p.right.y) / 2, 0) / slicePoints.length;
+
+      // Scale factor: 1.0 at bottom (index 10), progressively smaller toward top (index 0)
+      const getScaleFactor = (index) => {
+        const t = index / 10; // 0 at top, 1 at bottom
+        return 0.85 + (t * 0.15); // Scale from 0.85 at top to 1.0 at bottom
+      };
+
+      // Build scaled path (no offset needed, SVG is inside paper element)
+      const scaledLeftPoints = slicePoints.map((point, i) => {
+        const scale = getScaleFactor(i);
+        return {
+          x: centerX + (point.left.x - centerX) * scale,
+          y: centerY + (point.left.y - centerY) * scale,
+        };
+      });
+
+      const scaledRightPoints = slicePoints.map((point, i) => {
+        const scale = getScaleFactor(i);
+        return {
+          x: centerX + (point.right.x - centerX) * scale,
+          y: centerY + (point.right.y - centerY) * scale,
+        };
+      });
+
+      // Build path - down left edge
+      let pathData = `M ${scaledLeftPoints[0].x} ${scaledLeftPoints[0].y}`;
+      for (let i = 1; i < scaledLeftPoints.length; i++) {
+        pathData += ` L ${scaledLeftPoints[i].x} ${scaledLeftPoints[i].y}`;
+      }
+
+      // Across bottom right
+      pathData += ` L ${scaledRightPoints[scaledRightPoints.length - 1].x} ${scaledRightPoints[scaledRightPoints.length - 1].y}`;
+
+      // Up right edge
+      for (let i = scaledRightPoints.length - 2; i >= 0; i--) {
+        pathData += ` L ${scaledRightPoints[i].x} ${scaledRightPoints[i].y}`;
+      }
+
+      pathData += ' Z';
+
+      // Update path
+      if (scaledOutlinePath) {
+        scaledOutlinePath.setAttribute('d', pathData);
+      }
+
+      // Continue update loop
+      shadowUpdateLoop = requestAnimationFrame(updateScaledOutline);
+    };
+
+    const createScaledOutline = () => {
+      // Create SVG element
+      scaledOutlineSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      scaledOutlineSVG.id = `paper-scaled-shadow-${animator.id}`;
+      scaledOutlineSVG.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+        overflow: visible;
+      `;
+
+      // Create SVG filter for drop shadow
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+      filter.setAttribute('id', `shadow-filter-${animator.id}`);
+      filter.setAttribute('x', '-50%');
+      filter.setAttribute('y', '-50%');
+      filter.setAttribute('width', '200%');
+      filter.setAttribute('height', '200%');
+
+      const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+      feDropShadow.setAttribute('dx', '0');
+      feDropShadow.setAttribute('dy', '4');
+      feDropShadow.setAttribute('stdDeviation', '3');
+      feDropShadow.setAttribute('flood-color', 'rgba(0, 0, 0, 1)');
+
+      filter.appendChild(feDropShadow);
+      defs.appendChild(filter);
+      scaledOutlineSVG.appendChild(defs);
+
+      // Create path element with fill to cast shadow
+      scaledOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      scaledOutlinePath.setAttribute('fill', 'none'); // Temporarily visible to debug
+      scaledOutlinePath.setAttribute('stroke', 'rgba(0, 0, 0, 0.1)');
+      scaledOutlinePath.setAttribute('filter', `url(#shadow-filter-${animator.id})`);
+
+      scaledOutlineSVG.appendChild(scaledOutlinePath);
+      paperElement.appendChild(scaledOutlineSVG);
+
+      // Start update loop
+      shadowUpdateLoop = requestAnimationFrame(updateScaledOutline);
+    };
+
+    // Create the scaled outline
+    createScaledOutline();
+
     const animateTopAndBottomScale = (topTarget, bottomTarget, delay = 0) => {
       // Animate top immediately
       animator.topScale = topTarget;
