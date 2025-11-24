@@ -48,11 +48,17 @@ function PostsList({
             paperStyle={paperStyle}
           >
             {post.gif ? (
-              <img
-                src={post.gif}
-                className="w-full h-full object-cover"
-                alt=""
-              />
+              <>
+                <img
+                  src={post.gif}
+                  className="w-full h-full object-cover"
+                  alt=""
+                />
+                <img
+                  src={`https://d3ui957tjb5bqd.cloudfront.net/op/font-preview/291939758/2/14?s=%7B%22size%22%3A48%2C%22text%22%3A%22${post.title}%22%2C%22retina%22%3Atrue%7D`}
+                  style={{ height: 18, marginTop: 13, marginLeft: 10 }}
+                />
+              </>
             ) : (
               <>
                 <a href={post.url} className="font-bold text-lg block mb-2">
@@ -269,8 +275,8 @@ export default function Index() {
           animationConfigs={[
             {
               animationIndex: 1,
-              offsetX: 615,
-              offsetY: -58,
+              offsetX: 537,
+              offsetY: -46,
               rotation: -45,
               scale: 1,
               startDelay: 0,
@@ -279,18 +285,18 @@ export default function Index() {
             },
             {
               animationIndex: 1,
-              startKeyframe: 0,
-              offsetX: 940,
-              offsetY: 331,
+              offsetX: 753,
+              offsetY: 282,
               rotation: -49,
               scale: 1.1,
               startDelay: 600,
+              startKeyframe: 0,
               endKeyframe: 59,
             },
             {
               animationIndex: 1,
-              offsetX: 625,
-              offsetY: 292,
+              offsetX: 509,
+              offsetY: 272,
               rotation: -40,
               scale: 1.1,
               startDelay: 400,
@@ -299,8 +305,8 @@ export default function Index() {
             },
             {
               animationIndex: 1,
-              offsetX: 956,
-              offsetY: -89,
+              offsetX: 771,
+              offsetY: -82,
               rotation: -36,
               scale: 1.1,
               startDelay: 200,

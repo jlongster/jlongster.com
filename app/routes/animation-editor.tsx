@@ -25,7 +25,7 @@ export default function AnimationEditor() {
                 const paperHtml = window.generatePaperHTML({
                   title: 'Animation Editor Demo',
                   url: '#',
-                  content: 'This is a demo paper for testing the animation editor.',
+                  content: 'This is a demo paper for testing the animation editor. This is a demo paper for testing the animation editor. This is a demo paper for testing the animation editor. This is a demo paper for testing the animation editor. This is a demo paper for testing the animation editor. This is a demo paper for testing the animation editor.',
                   image: '',
                   rotation: 0
                 });

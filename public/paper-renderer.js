@@ -2,6 +2,114 @@
 (function () {
   console.log('[PaperRenderer] Script loaded');
 
+  // Helper function to generate Paper HTML structure
+  function createPaperHTML(htmlContent, paperStyle) {
+    const width = 250;
+    const height = 300;
+    const numSlices = 10;
+    const styles =
+      paperStyle === 'image'
+          ? `padding: 10px;
+             padding-bottom: 50px;
+             overflow: hidden;
+             line-height: 0`
+        : `padding: 20px`;
+
+    // Paper content that will be repeated in each slice
+    const paperContent = `
+      <div
+        style="
+          position: relative;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          border: 1px solid #f0f1ec;
+          background-color: white;
+          font-family: LoveLexie;
+          color: #404031;
+          box-sizing: border-box;
+          ${styles}
+        "
+        class="bg-transparent"
+      >
+        ${htmlContent}
+      </div>
+    `;
+
+    // Generate slices
+    const slices = Array.from({ length: numSlices }, (_, i) => {
+      const sliceHeight = height / numSlices;
+      const startY = i * sliceHeight;
+      const endY = (i + 1) * sliceHeight;
+
+      return `
+        <div
+          class="paper-slice paper-slice-${i}"
+          style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: ${width}px;
+            height: ${height}px;
+            clip-path: polygon(0 ${startY - 1}px, ${width}px ${
+        startY - 1
+      }px, ${width}px ${endY}px, 0 ${endY}px);
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            will-change: transform;
+          "
+        >
+          ${paperContent}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div
+        class="uncolored-links paper-element block relative text-black no-underline"
+        style=""
+      >
+        ${slices}
+      </div>
+    `;
+  }
+
+  // Helper function to set data attributes on a paper element
+  function setPaperAttributes(paperElement, config) {
+    const {
+      id,
+      paperStyle,
+      paperGroup,
+      animationIndex,
+      offsetX,
+      offsetY,
+      rotation,
+      scale,
+      startDelay,
+      startKeyframe,
+      endKeyframe,
+    } = config;
+
+    paperElement.setAttribute('data-paper-component', 'true');
+    if (id) {
+      paperElement.setAttribute('data-paper-id', id);
+    }
+    if (paperStyle) {
+      paperElement.setAttribute('data-paper-style', paperStyle);
+    }
+    paperElement.setAttribute('data-animation-index', animationIndex);
+    paperElement.setAttribute('data-offset-x', offsetX);
+    paperElement.setAttribute('data-offset-y', offsetY);
+    paperElement.setAttribute('data-rotation', rotation);
+    paperElement.setAttribute('data-scale', scale);
+    paperElement.setAttribute('data-start-delay', startDelay);
+    paperElement.setAttribute('data-start-keyframe', startKeyframe);
+    paperElement.setAttribute('data-end-keyframe', endKeyframe);
+    if (paperGroup) {
+      paperElement.setAttribute('data-paper-group', paperGroup);
+    }
+  }
+
   // Expose API for devtools
   window.PaperRenderer = {
     restartAll: function () {
@@ -98,85 +206,25 @@
       newWrapper.className = 'paper-component-wrapper';
       newWrapper.style.cssText = 'position: relative;';
 
-      // Generate the Paper HTML structure
-      const width = 250;
-      const height = 300;
-      const numSlices = 10;
-      const padding = paperStyle === 'image' ? '10px' : '20px';
-
-      const paperContent = `
-        <div
-          style="
-            position: relative;
-            width: 100%;
-            height: 100%;
-            padding: ${padding};
-            margin: 0;
-            border: 1px solid #f0f1ec;
-            background-color: white;
-            font-family: LoveLexie;
-            color: #404031;
-            box-sizing: border-box;
-            ${paperStyle === 'image' ? 'overflow: hidden; line-height: 0;' : ''}
-          "
-          class="bg-transparent"
-        >
-          ${htmlContent}
-        </div>
-      `;
-
-      const slices = Array.from({ length: numSlices }, (_, i) => {
-        const sliceHeight = height / numSlices;
-        const startY = i * sliceHeight;
-        const endY = (i + 1) * sliceHeight;
-
-        return `
-          <div
-            class="paper-slice paper-slice-${i}"
-            style="
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: ${width}px;
-              height: ${height}px;
-              clip-path: polygon(0 ${startY - 1}px, ${width}px ${
-          startY - 1
-        }px, ${width}px ${endY}px, 0 ${endY}px);
-              transform-style: preserve-3d;
-              backface-visibility: hidden;
-              will-change: transform;
-            "
-          >
-            ${paperContent}
-          </div>
-        `;
-      }).join('');
-
-      newWrapper.innerHTML = `
-        <div
-          class="uncolored-links paper-element block relative text-black no-underline"
-          style=""
-        >
-          ${slices}
-        </div>
-      `;
+      // Generate the Paper HTML structure using helper function
+      newWrapper.innerHTML = createPaperHTML(htmlContent, paperStyle);
 
       // Mark the paper element with animation config and ID
       const newPaperElement = newWrapper.querySelector('.paper-element');
       if (newPaperElement) {
-        newPaperElement.setAttribute('data-paper-id', id);
-        newPaperElement.setAttribute('data-paper-component', 'true');
-        newPaperElement.setAttribute('data-animation-index', animationIndex);
-        newPaperElement.setAttribute('data-offset-x', offsetX);
-        newPaperElement.setAttribute('data-offset-y', offsetY);
-        newPaperElement.setAttribute('data-rotation', rotation);
-        newPaperElement.setAttribute('data-scale', scale);
-        newPaperElement.setAttribute('data-start-delay', startDelay);
-        newPaperElement.setAttribute('data-start-keyframe', startKeyframe);
-        newPaperElement.setAttribute('data-end-keyframe', endKeyframe);
-        if (paperGroup) {
-          newPaperElement.setAttribute('data-paper-group', paperGroup);
-        }
+        setPaperAttributes(newPaperElement, {
+          id,
+          paperStyle,
+          paperGroup,
+          animationIndex,
+          offsetX,
+          offsetY,
+          rotation,
+          scale,
+          startDelay,
+          startKeyframe,
+          endKeyframe,
+        });
       }
 
       // Insert at the same position
@@ -240,91 +288,24 @@
       wrapper.className = 'paper-component-wrapper';
       wrapper.style.cssText = 'position: relative;';
 
-      // Generate the Paper HTML structure
-      const width = 250;
-      const height = 300;
-      const numSlices = 10;
-      const styles =
-        paperStyle === 'image'
-            ? `padding: 10px;
-               padding-bottom: 50px;
-               overflow: hidden;
-               line-height: 0`
-          : `padding: 20px`;
-
-      // Paper content that will be repeated in each slice
-      const paperContent = `
-        <div
-          style="
-            position: relative;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            border: 1px solid #f0f1ec;
-            background-color: white;
-            font-family: LoveLexie;
-            color: #404031;
-            box-sizing: border-box;
-            ${styles}
-          "
-          class="bg-transparent"
-        >
-          ${htmlContent}
-        </div>
-      `;
-
-      // Generate slices
-      const slices = Array.from({ length: numSlices }, (_, i) => {
-        const sliceHeight = height / numSlices;
-        const startY = i * sliceHeight;
-        const endY = (i + 1) * sliceHeight;
-
-        return `
-          <div
-            class="paper-slice paper-slice-${i}"
-            style="
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: ${width}px;
-              height: ${height}px;
-              clip-path: polygon(0 ${startY - 1}px, ${width}px ${
-          startY - 1
-        }px, ${width}px ${endY}px, 0 ${endY}px);
-              transform-style: preserve-3d;
-              backface-visibility: hidden;
-              will-change: transform;
-            "
-          >
-            ${paperContent}
-          </div>
-        `;
-      }).join('');
-
-      wrapper.innerHTML = `
-        <div
-          class="uncolored-links paper-element block relative text-black no-underline"
-          style=""
-        >
-          ${slices}
-        </div>
-      `;
+      // Generate the Paper HTML structure using helper function
+      wrapper.innerHTML = createPaperHTML(htmlContent, paperStyle);
 
       // Mark the paper element with animation config
       const paperElement = wrapper.querySelector('.paper-element');
       if (paperElement) {
-        paperElement.setAttribute('data-paper-component', 'true');
-        paperElement.setAttribute('data-animation-index', animationIndex);
-        paperElement.setAttribute('data-offset-x', offsetX);
-        paperElement.setAttribute('data-offset-y', offsetY);
-        paperElement.setAttribute('data-rotation', rotation);
-        paperElement.setAttribute('data-scale', scale);
-        paperElement.setAttribute('data-start-delay', startDelay);
-        paperElement.setAttribute('data-start-keyframe', startKeyframe);
-        paperElement.setAttribute('data-end-keyframe', endKeyframe);
-        if (parentGroup) {
-          paperElement.setAttribute('data-paper-group', parentGroup);
-        }
+        setPaperAttributes(paperElement, {
+          paperStyle,
+          paperGroup: parentGroup,
+          animationIndex,
+          offsetX,
+          offsetY,
+          rotation,
+          scale,
+          startDelay,
+          startKeyframe,
+          endKeyframe,
+        });
       }
 
       // Replace the component with the wrapper
