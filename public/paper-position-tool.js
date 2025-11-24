@@ -1929,7 +1929,11 @@
       polygon.setAttribute('fill', 'url(#shape-gradient)');
       polygon.setAttribute('stroke', 'none');
       polygon.setAttribute('class', 'shape-slice');
-      polygon.style.pointerEvents = 'none';
+      polygon.style.pointerEvents = 'all';
+      polygon.style.cursor = 'move';
+
+      // Add drag listener
+      polygon.addEventListener('mousedown', startShadowWholeDrag);
 
       svg.appendChild(polygon);
     }
@@ -2181,6 +2185,20 @@
     };
   }
 
+  function startShadowWholeDrag(e) {
+    if (isPlaying || shadowPlayerMode) return; // Don't allow dragging while playing or in shadow player mode
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling
+
+    dragging = {
+      type: 'wholeShadow',
+      startX: e.clientX,
+      startY: e.clientY,
+      initialLeftPoints: shapeLeftCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      initialRightPoints: shapeRightCurvePoints.map(p => ({ x: p.x, y: p.y })),
+    };
+  }
+
   function onDrag(e) {
     if (!dragging) return;
 
@@ -2262,6 +2280,31 @@
           calculateSlicePoints();
           drawCurves();
           updateAllTransforms();
+          updateScheduled = false;
+        });
+      }
+    } else if (currentDrag.type === 'wholeShadow') {
+      const deltaX = e.clientX - currentDrag.startX;
+      const deltaY = e.clientY - currentDrag.startY;
+
+      // Update all shadow control points
+      shapeLeftCurvePoints.forEach((p, i) => {
+        p.x = currentDrag.initialLeftPoints[i].x + deltaX;
+        p.y = currentDrag.initialLeftPoints[i].y + deltaY;
+      });
+
+      shapeRightCurvePoints.forEach((p, i) => {
+        p.x = currentDrag.initialRightPoints[i].x + deltaX;
+        p.y = currentDrag.initialRightPoints[i].y + deltaY;
+      });
+
+      if (!updateScheduled) {
+        updateScheduled = true;
+        requestAnimationFrame(() => {
+          updateShapeControlPointPositions();
+          drawShapeCurves();
+          generateShapePoints();
+          drawSVGShape();
           updateScheduled = false;
         });
       }
@@ -2583,6 +2626,11 @@
           curves.forEach(curve => {
             curve.style.display = 'none';
           });
+          // Disable dragging on shape slices
+          const shapeSlices = shapeSvg.querySelectorAll('.shape-slice');
+          shapeSlices.forEach(slice => {
+            slice.style.cursor = 'default';
+          });
         }
       }
     } else {
@@ -2601,6 +2649,11 @@
           const curves = shapeSvg.querySelectorAll('path, line');
           curves.forEach(curve => {
             curve.style.display = 'block';
+          });
+          // Enable dragging on shape slices
+          const shapeSlices = shapeSvg.querySelectorAll('.shape-slice');
+          shapeSlices.forEach(slice => {
+            slice.style.cursor = 'move';
           });
         }
       }
