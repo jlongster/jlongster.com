@@ -35,7 +35,7 @@ window.generatePaperHTML = function (data) {
     }
   }
   if (content && paperStyle !== 'image') {
-    contentHtml += `<div style="font-size: 14px; line-height: 1.5em; color: #404031;">${escapedContent}</div>`;
+    contentHtml += `<div style="font-size: 14px; line-height: 1.5em;">${escapedContent}</div>`;
   }
 
   // Paper content that will be repeated in each slice
@@ -48,6 +48,7 @@ window.generatePaperHTML = function (data) {
         padding: ${padding};
         border: 1px solid #f0f1ec;
         background-color: white;
+        font-family: LoveLexie;
       "
       class="bg-transparent"
     >

@@ -1,20 +1,26 @@
-// Paper renderer - converts posts from DOM into Paper elements
+// Paper renderer - converts Paper components into animated Paper elements
 (function () {
-  let allPosts = [];
-  let postsPerBlock = 5;
-  let hasMore = true;
-  let isLoading = false;
-  let observer = null;
-  let scrollListId = null; // The list ID for infinite scroll
-
   console.log('[PaperRenderer] Script loaded');
 
   // Expose API for devtools
   window.PaperRenderer = {
     restartAll: function () {
       console.log('[PaperRenderer] Restarting all animations');
-      unmountAllPapers();
-      init();
+
+      // Find all existing paper elements and restart each one
+      const paperElements = document.querySelectorAll('[data-paper-id]');
+      console.log(
+        '[PaperRenderer] Found',
+        paperElements.length,
+        'paper elements to restart',
+      );
+
+      paperElements.forEach(paperElement => {
+        const id = paperElement.getAttribute('data-paper-id');
+        if (id) {
+          this.restartAnimator(id);
+        }
+      });
     },
     restartAnimator: function (id) {
       console.log('[PaperRenderer] Restarting animator:', id);
@@ -31,538 +37,301 @@
         return;
       }
 
-      // Save the source list attribute before removing the element
-      const sourceListId = paperElement.getAttribute('data-source-list');
+      // Get the wrapper and its HTML content
+      const wrapper = paperElement.closest('.paper-component-wrapper');
+      if (!wrapper) {
+        console.warn('[PaperRenderer] Wrapper not found for paper:', id);
+        return;
+      }
 
-      // Check if this is an inline paper or a block paper
-      const inlineWrapper = paperElement.closest('.inline-paper-wrapper');
-      const blockWrapper = paperElement.closest('.col-start-1.row-start-1');
+      // Get the paper style and group from the paper element
+      const paperStyle =
+        paperElement.getAttribute('data-paper-style') || 'text';
+      const paperGroup = paperElement.getAttribute('data-paper-group') || null;
 
-      if (inlineWrapper) {
-        // Handle inline paper restart
-        console.log('[PaperRenderer] Restarting inline paper:', id);
+      // Get the animation config from PaperAnimator (which has the latest saved config)
+      let config;
+      if (window.PaperAnimator && window.PaperAnimator.getConfig) {
+        config = window.PaperAnimator.getConfig(id);
+      }
 
-        // Get the post data from the paper element's content
-        const titleLink = paperElement.querySelector('a');
-        const title = titleLink ? titleLink.textContent : '';
-        const url = titleLink ? titleLink.getAttribute('href') : '';
-        const img = paperElement.querySelector('img');
-        const image = img ? img.getAttribute('src') : '';
-        const contentDiv = paperElement.querySelector(
-          'div[style*="font-size: 13px"]',
-        );
-        const content = contentDiv ? contentDiv.textContent : '';
-        const paperStyle =
-          paperElement.getAttribute('data-paper-style') || 'text';
-        const paperWidth =
-          parseInt(paperElement.getAttribute('data-paper-width')) || 250;
-        const paperHeight =
-          parseInt(paperElement.getAttribute('data-paper-height')) || 300;
+      // Fall back to reading from data attributes if no saved config
+      if (!config) {
+        config = {
+          animationIndex:
+            parseInt(paperElement.getAttribute('data-animation-index')) || 0,
+          offsetX: parseFloat(paperElement.getAttribute('data-offset-x')) || 0,
+          offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
+          rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
+          scale: parseFloat(paperElement.getAttribute('data-scale')) || 1,
+          startDelay:
+            parseInt(paperElement.getAttribute('data-start-delay')) || 0,
+          startKeyframe:
+            parseInt(paperElement.getAttribute('data-start-keyframe')) || 0,
+          endKeyframe:
+            parseInt(paperElement.getAttribute('data-end-keyframe')) || 59,
+        };
+      }
 
-        // Get the parent container and next sibling for reinsertion
-        const parentContainer = inlineWrapper.parentElement;
-        const nextSibling = inlineWrapper.nextSibling;
+      const {
+        animationIndex,
+        offsetX,
+        offsetY,
+        rotation,
+        scale,
+        startDelay,
+        startKeyframe,
+        endKeyframe,
+      } = config;
 
-        // Remove the old wrapper
-        inlineWrapper.remove();
+      // Get the HTML content from the first slice's content div
+      const contentDiv = paperElement.querySelector('.paper-slice > div');
+      const htmlContent = contentDiv ? contentDiv.innerHTML : '';
 
-        // Create new wrapper
-        const newWrapper = document.createElement('div');
-        newWrapper.className = 'inline-paper-wrapper';
-        newWrapper.style.cssText = 'position: relative; margin-bottom: 20px;';
+      // Remove old wrapper
+      const parent = wrapper.parentElement;
+      const nextSibling = wrapper.nextSibling;
+      wrapper.remove();
 
-        // Generate the Paper HTML
-        newWrapper.innerHTML = window.generatePaperHTML({
-          title: title,
-          url: url,
-          content: content,
-          image: image,
-          paperStyle: paperStyle,
-          width: paperWidth,
-          height: paperHeight,
-        });
+      // Create new wrapper with the same content
+      const newWrapper = document.createElement('div');
+      newWrapper.className = 'paper-component-wrapper';
+      newWrapper.style.cssText = 'position: relative;';
 
-        // Set the ID, source list, and paper style on the new paper element
-        const newPaperElement = newWrapper.querySelector('.paper-element');
-        if (newPaperElement) {
-          newPaperElement.setAttribute('data-paper-id', id);
-          newPaperElement.setAttribute('data-paper-style', paperStyle);
-          newPaperElement.setAttribute('data-paper-width', paperWidth);
-          newPaperElement.setAttribute('data-paper-height', paperHeight);
-          if (sourceListId) {
-            newPaperElement.setAttribute('data-source-list', sourceListId);
-          }
+      // Generate the Paper HTML structure
+      const width = 250;
+      const height = 300;
+      const numSlices = 10;
+      const padding = paperStyle === 'image' ? '10px' : '20px';
+
+      const paperContent = `
+        <div
+          style="
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: ${padding};
+            margin: 0;
+            border: 1px solid #f0f1ec;
+            background-color: white;
+            font-family: LoveLexie;
+            color: #404031;
+            box-sizing: border-box;
+            ${paperStyle === 'image' ? 'overflow: hidden; line-height: 0;' : ''}
+          "
+          class="bg-transparent"
+        >
+          ${htmlContent}
+        </div>
+      `;
+
+      const slices = Array.from({ length: numSlices }, (_, i) => {
+        const sliceHeight = height / numSlices;
+        const startY = i * sliceHeight;
+        const endY = (i + 1) * sliceHeight;
+
+        return `
+          <div
+            class="paper-slice paper-slice-${i}"
+            style="
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: ${width}px;
+              height: ${height}px;
+              clip-path: polygon(0 ${startY - 1}px, ${width}px ${
+          startY - 1
+        }px, ${width}px ${endY}px, 0 ${endY}px);
+              transform-style: preserve-3d;
+              backface-visibility: hidden;
+              will-change: transform;
+            "
+          >
+            ${paperContent}
+          </div>
+        `;
+      }).join('');
+
+      newWrapper.innerHTML = `
+        <div
+          class="uncolored-links paper-element block relative text-black no-underline"
+          style=""
+        >
+          ${slices}
+        </div>
+      `;
+
+      // Mark the paper element with animation config and ID
+      const newPaperElement = newWrapper.querySelector('.paper-element');
+      if (newPaperElement) {
+        newPaperElement.setAttribute('data-paper-id', id);
+        newPaperElement.setAttribute('data-paper-component', 'true');
+        newPaperElement.setAttribute('data-animation-index', animationIndex);
+        newPaperElement.setAttribute('data-offset-x', offsetX);
+        newPaperElement.setAttribute('data-offset-y', offsetY);
+        newPaperElement.setAttribute('data-rotation', rotation);
+        newPaperElement.setAttribute('data-scale', scale);
+        newPaperElement.setAttribute('data-start-delay', startDelay);
+        newPaperElement.setAttribute('data-start-keyframe', startKeyframe);
+        newPaperElement.setAttribute('data-end-keyframe', endKeyframe);
+        if (paperGroup) {
+          newPaperElement.setAttribute('data-paper-group', paperGroup);
         }
+      }
 
-        // Insert at the same position
-        if (nextSibling) {
-          parentContainer.insertBefore(newWrapper, nextSibling);
-        } else {
-          parentContainer.appendChild(newWrapper);
-        }
-      } else if (blockWrapper) {
-        // Handle block paper restart (infinite scroll)
-        console.log('[PaperRenderer] Restarting block paper:', id);
-
-        // Get the parent block
-        const block = blockWrapper.parentElement;
-        const blockId = parseInt(block.getAttribute('data-block-id'));
-
-        // Calculate which post within the block this is
-        const wrappers = Array.from(
-          block.querySelectorAll('.col-start-1.row-start-1'),
-        );
-        const wrapperIndex = wrappers.indexOf(blockWrapper);
-        const postIndex = blockId * postsPerBlock + wrapperIndex;
-
-        console.log(
-          '[PaperRenderer] Found post at index',
-          postIndex,
-          'in block',
-          blockId,
-        );
-
-        // Get the post data
-        const post = allPosts[postIndex];
-        if (!post) {
-          console.warn('[PaperRenderer] Post not found at index', postIndex);
-          return;
-        }
-
-        // Remove the old wrapper
-        blockWrapper.remove();
-
-        // Create new wrapper
-        const newWrapper = document.createElement('div');
-        newWrapper.className = 'col-start-1 row-start-1';
-
-        // Generate the Paper HTML directly with the same ID
-        newWrapper.innerHTML = window.generatePaperHTML({
-          title: post.title,
-          url: post.url,
-          content: post.abstract,
-          image: post.image,
-          paperStyle: post.paperStyle,
-          width: post.width,
-          height: post.height,
-        });
-
-        // Set the ID, source list, and paper style on the new paper element
-        const newPaperElement = newWrapper.querySelector('.paper-element');
-        if (newPaperElement) {
-          newPaperElement.setAttribute('data-paper-id', id);
-          newPaperElement.setAttribute(
-            'data-paper-style',
-            post.paperStyle || 'text',
-          );
-          newPaperElement.setAttribute('data-paper-width', post.width || 250);
-          newPaperElement.setAttribute('data-paper-height', post.height || 300);
-          if (sourceListId) {
-            newPaperElement.setAttribute('data-source-list', sourceListId);
-          }
-        }
-
-        // Insert at the same position
-        if (wrapperIndex === 0) {
-          block.insertBefore(newWrapper, block.firstChild);
-        } else if (wrapperIndex < wrappers.length - 1) {
-          block.insertBefore(newWrapper, wrappers[wrapperIndex + 1]);
-        } else {
-          block.appendChild(newWrapper);
-        }
+      // Insert at the same position
+      if (nextSibling) {
+        parent.insertBefore(newWrapper, nextSibling);
       } else {
-        console.warn('[PaperRenderer] Could not find wrapper for paper:', id);
+        parent.appendChild(newWrapper);
       }
     },
   };
 
-  function unmountAllPapers() {
-    console.log('[PaperRenderer] Unmounting all paper elements');
-
-    // Reset animators first
-    if (window.PaperAnimator) {
-      window.PaperAnimator.resetAll();
-    }
-
-    // Remove all rendered blocks except the initial one
-    const container = document.getElementById('scroll-container');
-    if (container) {
-      const blocks = container.querySelectorAll('[data-block-id]');
-      blocks.forEach(block => {
-        if (block.getAttribute('data-block-id') === '0') {
-          // Clear block 0
-          block.innerHTML = '';
-          block.classList.remove('sentinel-block');
-        } else {
-          // Remove other blocks
-          block.remove();
-        }
-      });
-    }
-
-    // Remove all inline paper containers
-    const inlineContainers = document.querySelectorAll(
-      '.inline-papers-container',
-    );
-    inlineContainers.forEach(container => {
-      container.remove();
-    });
-
-    // Show all PostsList elements again (they were hidden during init)
-    const postsLists = document.querySelectorAll('ul.list-none');
-    postsLists.forEach(list => {
-      list.style.display = '';
-    });
-
-    // Reset state
-    hasMore = true;
-    isLoading = false;
-  }
-
   function init() {
     console.log('[PaperRenderer] Initializing...');
 
-    // Get the PostsList ID from the initial block's data attribute
-    const initialBlock = document.querySelector('[data-block-id="0"]');
-    scrollListId = initialBlock?.getAttribute('data-posts-list') || 'all-posts';
+    // Find all Paper component elements
+    const paperComponents = document.querySelectorAll('.paper-component');
+    console.log(
+      '[PaperRenderer] Found',
+      paperComponents.length,
+      'paper components',
+    );
 
-    // Scrape posts ONLY from the specific list for infinite scroll
-    // This allows other PostsList components to remain as regular HTML
-    const scrollList = document.getElementById(scrollListId);
-
-    if (!scrollList) {
-      console.warn('[PaperRenderer] Scroll list not found:', scrollListId);
+    if (paperComponents.length === 0) {
+      console.log('[PaperRenderer] No paper components found');
       return;
     }
 
-    const paperStyle = scrollList.getAttribute('data-paper-style') || 'text';
-    const paperWidth =
-      parseInt(scrollList.getAttribute('data-paper-width')) || 250;
-    const paperHeight =
-      parseInt(scrollList.getAttribute('data-paper-height')) || 300;
+    paperComponents.forEach((component, index) => {
+      // Get the HTML content from inside the component
+      const htmlContent = component.innerHTML;
+      const paperStyle = component.getAttribute('data-paper-style') || 'text';
+      const animationIndex =
+        parseInt(component.getAttribute('data-animation-index')) || 0;
+      const offsetX = parseFloat(component.getAttribute('data-offset-x')) || 0;
+      const offsetY = parseFloat(component.getAttribute('data-offset-y')) || 0;
+      const rotation = parseFloat(component.getAttribute('data-rotation')) || 0;
+      const scale = parseFloat(component.getAttribute('data-scale')) || 1;
+      const startDelay =
+        parseInt(component.getAttribute('data-start-delay')) || 0;
+      const startKeyframe =
+        parseInt(component.getAttribute('data-start-keyframe')) || 0;
+      const endKeyframe =
+        parseInt(component.getAttribute('data-end-keyframe')) || 59;
 
-    const postItems = scrollList.querySelectorAll('.post-item');
-    allPosts = Array.from(postItems).map(item => ({
-      title: item.getAttribute('data-title') || '',
-      url: item.getAttribute('data-url') || '',
-      abstract: item.getAttribute('data-abstract') || '',
-      image: item.getAttribute('data-image') || '',
-      paperStyle: paperStyle,
-      width: paperWidth,
-      height: paperHeight,
-    }));
+      // Check if parent element has a group name
+      const parentGroup =
+        component.parentElement?.getAttribute('data-paper-group') || null;
 
-    // Read animation configs from the list's data attribute
-    const animationConfigsAttr = scrollList.getAttribute(
-      'data-animation-configs',
-    );
-    let animationConfigs = null;
-    if (animationConfigsAttr) {
-      try {
-        animationConfigs = JSON.parse(animationConfigsAttr);
-        console.log(
-          '[PaperRenderer] Loaded',
-          animationConfigs.length,
-          'animation configs from',
-          scrollListId,
-        );
-      } catch (error) {
-        console.error(
-          '[PaperRenderer] Failed to parse animation configs:',
-          error,
-        );
-      }
-    }
-
-    // Expose animation configs to PaperAnimator (or notify it even if none provided)
-    if (window.PaperAnimator) {
-      if (animationConfigs && animationConfigs.length > 0) {
-        window.PaperAnimator.setAnimationConfigs(
-          scrollListId,
-          animationConfigs,
-        );
-      } else {
-        console.log(
-          '[PaperRenderer] No animation configs provided, will use defaults',
-        );
-      }
-    }
-
-    // Hide the scroll list after scraping so only paper elements show
-    scrollList.style.display = 'none';
-
-    console.log(
-      '[PaperRenderer] Scraped',
-      allPosts.length,
-      'posts from',
-      scrollListId,
-    );
-
-    // Render initial block (block 0) - already declared at top
-    if (initialBlock) {
-      renderPostsIntoBlock(0, initialBlock);
-    }
-
-    // Setup intersection observer for infinite scroll
-    setupIntersectionObserver();
-
-    // Create first sentinel if we have more posts
-    if (allPosts.length > postsPerBlock) {
-      hasMore = true;
-      createSentinelBlock(1);
-    } else {
-      hasMore = false;
-    }
-
-    // Handle all OTHER PostsList components - render them as inline paper elements
-    const allPostsLists = document.querySelectorAll('ul.list-none');
-    allPostsLists.forEach(postsList => {
-      const listId = postsList.getAttribute('id');
-
-      // Skip the list that's being used for infinite scroll
-      if (listId === scrollListId) {
-        return;
-      }
-
-      // Scrape posts from this list
-      const listPaperStyle =
-        postsList.getAttribute('data-paper-style') || 'text';
-      const listPaperWidth =
-        parseInt(postsList.getAttribute('data-paper-width')) || 250;
-      const listPaperHeight =
-        parseInt(postsList.getAttribute('data-paper-height')) || 300;
-      const postItems = postsList.querySelectorAll('.post-item');
-      const posts = Array.from(postItems).map(item => ({
-        title: item.getAttribute('data-title') || '',
-        url: item.getAttribute('data-url') || '',
-        abstract: item.getAttribute('data-abstract') || '',
-        image: item.getAttribute('data-image') || '',
-        paperStyle: listPaperStyle,
-        width: listPaperWidth,
-        height: listPaperHeight,
-      }));
-
-      if (posts.length === 0) {
-        return;
-      }
-
-      console.log(
-        '[PaperRenderer] Rendering',
-        posts.length,
-        'inline papers for list:',
-        listId,
-      );
-
-      // Read animation configs from this list (if any)
-      const configsAttr = postsList.getAttribute('data-animation-configs');
-      let configs = null;
-      if (configsAttr) {
-        try {
-          configs = JSON.parse(configsAttr);
-        } catch (error) {
-          console.error(
-            '[PaperRenderer] Failed to parse configs for inline list:',
-            listId,
-            error,
-          );
-        }
-      }
-
-      // Create a container for paper elements beside the original list
-      const paperContainer = document.createElement('div');
-      paperContainer.className = 'inline-papers-container';
-      paperContainer.style.cssText = 'position: relative;';
-      // Store list ID on container so animator can identify which list these papers belong to
-      paperContainer.setAttribute('data-source-list', listId);
-
-      // Insert the container after the original list
-      postsList.parentNode.insertBefore(paperContainer, postsList.nextSibling);
-
-      // Set configs for this list in the animator (if provided)
-      if (configs && configs.length > 0 && window.PaperAnimator) {
-        window.PaperAnimator.setAnimationConfigs(listId, configs);
-      }
-
-      // Render each post as a paper element
-      posts.forEach((post, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'inline-paper-wrapper';
-        wrapper.style.cssText = 'position: relative; margin-bottom: 20px;';
-
-        // Generate the Paper HTML
-        wrapper.innerHTML = window.generatePaperHTML({
-          title: post.title,
-          url: post.url,
-          content: post.abstract,
-          image: post.image,
-          rotation: 0,
-          paperStyle: post.paperStyle,
-          width: post.width,
-          height: post.height,
-        });
-
-        // Mark the paper element with its source list and paper style
-        const paperElement = wrapper.querySelector('.paper-element');
-        if (paperElement) {
-          paperElement.setAttribute('data-source-list', listId);
-          paperElement.setAttribute(
-            'data-paper-style',
-            post.paperStyle || 'text',
-          );
-          paperElement.setAttribute('data-paper-width', post.width || 250);
-          paperElement.setAttribute('data-paper-height', post.height || 300);
-        }
-
-        paperContainer.appendChild(wrapper);
+      console.log('[PaperRenderer] Processing paper component:', {
+        index,
+        paperStyle,
+        animationIndex,
+        offsetX,
+        offsetY,
+        rotation,
+        scale,
       });
 
-      // Hide the original list
-      postsList.style.display = 'none';
+      // Create a wrapper for the paper element
+      const wrapper = document.createElement('div');
+      wrapper.className = 'paper-component-wrapper';
+      wrapper.style.cssText = 'position: relative;';
+
+      // Generate the Paper HTML structure
+      const width = 250;
+      const height = 300;
+      const numSlices = 10;
+      const styles =
+        paperStyle === 'image'
+            ? `padding: 10px;
+               padding-bottom: 50px;
+               overflow: hidden;
+               line-height: 0`
+          : `padding: 20px`;
+
+      // Paper content that will be repeated in each slice
+      const paperContent = `
+        <div
+          style="
+            position: relative;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            border: 1px solid #f0f1ec;
+            background-color: white;
+            font-family: LoveLexie;
+            color: #404031;
+            box-sizing: border-box;
+            ${styles}
+          "
+          class="bg-transparent"
+        >
+          ${htmlContent}
+        </div>
+      `;
+
+      // Generate slices
+      const slices = Array.from({ length: numSlices }, (_, i) => {
+        const sliceHeight = height / numSlices;
+        const startY = i * sliceHeight;
+        const endY = (i + 1) * sliceHeight;
+
+        return `
+          <div
+            class="paper-slice paper-slice-${i}"
+            style="
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: ${width}px;
+              height: ${height}px;
+              clip-path: polygon(0 ${startY - 1}px, ${width}px ${
+          startY - 1
+        }px, ${width}px ${endY}px, 0 ${endY}px);
+              transform-style: preserve-3d;
+              backface-visibility: hidden;
+              will-change: transform;
+            "
+          >
+            ${paperContent}
+          </div>
+        `;
+      }).join('');
+
+      wrapper.innerHTML = `
+        <div
+          class="uncolored-links paper-element block relative text-black no-underline"
+          style=""
+        >
+          ${slices}
+        </div>
+      `;
+
+      // Mark the paper element with animation config
+      const paperElement = wrapper.querySelector('.paper-element');
+      if (paperElement) {
+        paperElement.setAttribute('data-paper-component', 'true');
+        paperElement.setAttribute('data-animation-index', animationIndex);
+        paperElement.setAttribute('data-offset-x', offsetX);
+        paperElement.setAttribute('data-offset-y', offsetY);
+        paperElement.setAttribute('data-rotation', rotation);
+        paperElement.setAttribute('data-scale', scale);
+        paperElement.setAttribute('data-start-delay', startDelay);
+        paperElement.setAttribute('data-start-keyframe', startKeyframe);
+        paperElement.setAttribute('data-end-keyframe', endKeyframe);
+        if (parentGroup) {
+          paperElement.setAttribute('data-paper-group', parentGroup);
+        }
+      }
+
+      // Replace the component with the wrapper
+      component.parentNode.replaceChild(wrapper, component);
     });
 
     console.log('[PaperRenderer] Initialization complete');
-  }
-
-  function renderPostsIntoBlock(blockId, blockElement) {
-    const offset = blockId * postsPerBlock;
-    const posts = allPosts.slice(offset, offset + postsPerBlock);
-
-    console.log(
-      '[PaperRenderer] Rendering',
-      posts.length,
-      'posts into block',
-      blockId,
-    );
-
-    posts.forEach((post, index) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'col-start-1 row-start-1';
-
-      // Generate the Paper HTML directly
-      wrapper.innerHTML = window.generatePaperHTML({
-        title: post.title,
-        url: post.url,
-        content: post.abstract,
-        image: post.image,
-        paperStyle: post.paperStyle,
-        width: post.width,
-        height: post.height,
-      });
-
-      // Mark the paper element with its source list and paper style
-      const paperElement = wrapper.querySelector('.paper-element');
-      if (paperElement && scrollListId) {
-        paperElement.setAttribute('data-source-list', scrollListId);
-        paperElement.setAttribute(
-          'data-paper-style',
-          post.paperStyle || 'text',
-        );
-        paperElement.setAttribute('data-paper-width', post.width || 250);
-        paperElement.setAttribute('data-paper-height', post.height || 300);
-      }
-
-      blockElement.appendChild(wrapper);
-    });
-  }
-
-  function setupIntersectionObserver() {
-    observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          const blockId = parseInt(entry.target.getAttribute('data-block-id'));
-
-          if (entry.isIntersecting) {
-            const block = entry.target;
-            const isSentinel = block.classList.contains('sentinel-block');
-
-            if (isSentinel && !isLoading && hasMore) {
-              console.log('[PaperRenderer] Loading posts for block:', blockId);
-              loadPostsForBlock(blockId, block);
-            }
-          }
-        });
-      },
-      {
-        rootMargin: '0px',
-        threshold: 0.5,
-      },
-    );
-  }
-
-  function loadPostsForBlock(blockId, blockElement) {
-    if (isLoading) {
-      console.log('[PaperRenderer] Already loading, skipping');
-      return;
-    }
-
-    console.log('[PaperRenderer] Loading block:', blockId);
-    isLoading = true;
-
-    // Show loading state
-    blockElement.innerHTML =
-      '<div class="text-gray-500 text-lg">Loading...</div>';
-
-    // Get posts for this block
-    const offset = blockId * postsPerBlock;
-    const posts = allPosts.slice(offset, offset + postsPerBlock);
-    hasMore = offset + postsPerBlock < allPosts.length;
-
-    console.log(
-      '[PaperRenderer] Rendering',
-      posts.length,
-      'posts, hasMore:',
-      hasMore,
-    );
-
-    if (posts.length > 0) {
-      // Remove sentinel class
-      blockElement.classList.remove('sentinel-block');
-
-      // Clear loading message
-      blockElement.innerHTML = '';
-
-      // Render posts into this block
-      renderPostsIntoBlock(blockId, blockElement);
-
-      // If there are more posts, create another sentinel block
-      if (hasMore) {
-        console.log(
-          '[PaperRenderer] Creating next sentinel block:',
-          blockId + 1,
-        );
-        createSentinelBlock(blockId + 1);
-      } else {
-        console.log('[PaperRenderer] No more posts to load');
-      }
-    } else {
-      console.log('[PaperRenderer] No posts returned, removing block');
-      hasMore = false;
-      blockElement.remove();
-    }
-
-    isLoading = false;
-  }
-
-  function createSentinelBlock(blockId) {
-    const container = document.getElementById('scroll-container');
-    if (!container) {
-      console.warn('[PaperRenderer] Container not found for sentinel block');
-      return;
-    }
-
-    const block = document.createElement('div');
-    block.className = 'p-8 overflow-visible grid sentinel-block';
-    block.style.height = 'min(100vh, 800px)';
-    block.setAttribute('data-block-id', blockId);
-    block.innerHTML = ''; // Empty sentinel
-
-    container.appendChild(block);
-
-    // Observe this block
-    if (observer) {
-      observer.observe(block);
-      console.log('[PaperRenderer] Observing sentinel block:', blockId);
-    }
   }
 
   // Initialize when DOM is ready

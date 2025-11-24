@@ -3,16 +3,15 @@
   let animatorRegistry = new Map(); // id -> animator
   let savedConfigs = new Map(); // id -> config
   let selectedAnimatorId = null;
-  let selectedListId = null; // Currently selected posts list
+  let lastUnregisteredId = null; // Track last unregistered ID for auto-reselect
   let isDragging = false;
   let dragStartX = 0;
   let dragStartY = 0;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
+  let highlightUpdateLoop = null;
 
   // Load collapsed state from localStorage
-  // let isCollapsed = localStorage.getItem('paperDevToolsCollapsed')
-  // === 'true';
   let isCollapsed = true;
 
   console.log('[PaperDevTools] Script loaded');
@@ -25,9 +24,7 @@
 
       // Read config from PaperAnimator (source of truth)
       if (window.PaperAnimator && window.PaperAnimator.getConfig) {
-        // Get source list from the paper element
-        const sourceList = animator.paperElement.getAttribute('data-source-list');
-        const config = window.PaperAnimator.getConfig(id, sourceList);
+        const config = window.PaperAnimator.getConfig(id);
         if (config) {
           savedConfigs.set(id, config);
           console.log(
@@ -38,13 +35,22 @@
         }
       }
 
-      // Update list selector when new animators are added
-      populateListSelector();
-      updateDevToolsUI();
+      // Auto-reselect if this was the previously unregistered animator (restart case)
+      if (lastUnregisteredId === id) {
+        console.log('[PaperDevTools] Auto-reselecting after restart:', id);
+        lastUnregisteredId = null;
+        selectAnimator(id);
+      } else {
+        updateDevToolsUI();
+      }
     },
     unregisterAnimator: function (id) {
       console.log('[PaperDevTools] Unregistering animator:', id);
       animatorRegistry.delete(id);
+      if (selectedAnimatorId === id) {
+        lastUnregisteredId = id; // Remember for auto-reselect
+        selectedAnimatorId = null;
+      }
       updateDevToolsUI();
     },
     getSavedConfig: function (id) {
@@ -53,6 +59,9 @@
     saveConfig: function (id, config) {
       savedConfigs.set(id, config);
       console.log('[PaperDevTools] Saved config:', id, config);
+    },
+    selectAnimator: function (id) {
+      selectAnimator(id);
     },
   };
 
@@ -130,7 +139,7 @@
           Paper DevTools
         </h2>
         <p style="margin: 4px 0 0 0; font-size: 11px; color: #9ca3af;">
-          Drag papers to adjust position
+          Click any paper to configure it
         </p>
       </div>
       <button id="collapse-btn" style="
@@ -156,22 +165,6 @@
       border-bottom: 1px solid #4b5563;
     `;
     globalControls.innerHTML = `
-      <div style="margin-bottom: 12px;">
-        <div style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; font-weight: 500;">
-          POSTS LIST
-        </div>
-        <select id="list-selector" style="
-          width: 100%;
-          padding: 6px;
-          background: #1f2937;
-          border: 1px solid #4b5563;
-          border-radius: 4px;
-          color: #f3f4f6;
-          font-size: 12px;
-          cursor: pointer;
-        ">
-        </select>
-      </div>
       <button id="restart-all-btn" style="
         width: 100%;
         padding: 8px;
@@ -218,13 +211,26 @@
     `;
     sidebar.appendChild(globalControls);
 
-    // Animators list container
-    const animatorsList = document.createElement('div');
-    animatorsList.id = 'animators-list';
-    animatorsList.style.cssText = `
+    // Selected paper info
+    const selectedInfo = document.createElement('div');
+    selectedInfo.id = 'selected-info';
+    selectedInfo.style.cssText = `
+      padding: 12px 16px;
+      background: #374151;
+      border-bottom: 1px solid #4b5563;
+      font-size: 12px;
+      color: #9ca3af;
+    `;
+    selectedInfo.textContent = 'No paper selected';
+    sidebar.appendChild(selectedInfo);
+
+    // Animator config container (will show selected paper's config)
+    const configContainer = document.createElement('div');
+    configContainer.id = 'config-container';
+    configContainer.style.cssText = `
       padding: 8px;
     `;
-    sidebar.appendChild(animatorsList);
+    sidebar.appendChild(configContainer);
 
     document.body.appendChild(sidebar);
 
@@ -254,7 +260,6 @@
 
     // Event listeners
     document.getElementById('restart-all-btn').addEventListener('click', () => {
-      // Trigger full restart from paper-renderer
       if (window.PaperRenderer) {
         window.PaperRenderer.restartAll();
       }
@@ -289,107 +294,82 @@
     collapseTab.addEventListener('click', () => {
       toggleCollapse();
     });
-
-    document.getElementById('list-selector').addEventListener('change', e => {
-      selectedListId = e.target.value;
-      console.log('[PaperDevTools] Selected list:', selectedListId);
-      updateDevToolsUI();
-    });
-
-    // Populate list selector
-    populateListSelector();
   }
 
-  function populateListSelector() {
-    const listSelector = document.getElementById('list-selector');
-    if (!listSelector) return;
-
-    // Find all unique list IDs from the page
-    const listIds = new Set();
-
-    // Check all paper elements for data-source-list attribute
-    const paperElements = document.querySelectorAll('.paper-element');
-    paperElements.forEach(el => {
-      const sourceList = el.getAttribute('data-source-list');
-      if (sourceList) {
-        listIds.add(sourceList);
-      }
-    });
-
-    // Also check for PostsList elements in the DOM
-    const postsLists = document.querySelectorAll('ul.list-none[id]');
-    postsLists.forEach(list => {
-      const listId = list.getAttribute('id');
-      if (listId) {
-        listIds.add(listId);
-      }
-    });
-
-    // Clear existing options
-    listSelector.innerHTML = '';
-
-    // Add options for each list
-    const sortedListIds = Array.from(listIds).sort();
-    sortedListIds.forEach(listId => {
-      const option = document.createElement('option');
-      option.value = listId;
-      option.textContent = listId;
-      listSelector.appendChild(option);
-    });
-
-    // Select the first list by default if none selected
-    if (!selectedListId && sortedListIds.length > 0) {
-      selectedListId = sortedListIds[0];
-      listSelector.value = selectedListId;
-      console.log('[PaperDevTools] Auto-selected list:', selectedListId);
-    } else if (selectedListId) {
-      // Ensure the currently selected list is still in the dropdown
-      listSelector.value = selectedListId;
+  async function exportConfiguration() {
+    if (!selectedAnimatorId) {
+      alert('No animation selected');
+      return;
     }
-  }
 
-  function exportConfiguration() {
-    // Get all animators for the selected list
-    const listAnimators = Array.from(animatorRegistry.entries())
-      .filter(([id, animator]) => {
-        const sourceList = animator.paperElement.getAttribute('data-source-list');
-        return sourceList === selectedListId;
-      })
-      .sort((a, b) => {
-        const numA = parseInt(a[0].replace('paper-', ''));
-        const numB = parseInt(b[0].replace('paper-', ''));
-        return numA - numB;
+    const selectedAnimator = animatorRegistry.get(selectedAnimatorId);
+    if (!selectedAnimator) {
+      alert('Selected animation not found');
+      return;
+    }
+
+    const groupName = selectedAnimator.groupName;
+    let configToExport;
+
+    if (groupName) {
+      // Export all configs for the group as an array
+      const groupAnimators = Array.from(animatorRegistry.entries())
+        .filter(([_, animator]) => animator.groupName === groupName)
+        .sort((a, b) => {
+          const numA = parseInt(a[0].replace('paper-', ''));
+          const numB = parseInt(b[0].replace('paper-', ''));
+          return numA - numB;
+        });
+
+      configToExport = groupAnimators.map(([id, _]) => {
+        const config = savedConfigs.get(id);
+        return config || {
+          animationIndex: 0,
+          offsetX: 0,
+          offsetY: 0,
+          rotation: 0,
+          scale: 1,
+          startDelay: 0,
+          startKeyframe: 0,
+          endKeyframe: 59,
+        };
       });
-
-    // Export configs for this list
-    const animations = listAnimators.map(([id, _]) => {
-      const config = savedConfigs.get(id);
-      return config || {
+    } else {
+      // Export just the selected animation's config (not as an array)
+      const config = savedConfigs.get(selectedAnimatorId);
+      configToExport = config || {
         animationIndex: 0,
         offsetX: 0,
         offsetY: 0,
         rotation: 0,
+        scale: 1,
         startDelay: 0,
         startKeyframe: 0,
         endKeyframe: 59,
       };
-    });
+    }
 
-    const configObject = { animations };
-    const configJson = JSON.stringify(configObject, null, 2);
+    const configJson = JSON.stringify(configToExport, null, 2);
 
-    // Create a blob and download
-    const blob = new Blob([configJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `paper-animations-${selectedListId}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(configJson);
+      console.log('[PaperDevTools] Configuration copied to clipboard:', configToExport);
 
-    console.log('[PaperDevTools] Configuration exported for', selectedListId, ':', configObject);
+      // Show feedback to user
+      const exportBtn = document.getElementById('export-config-btn');
+      const originalText = exportBtn.textContent;
+      exportBtn.textContent = '✓ Copied!';
+      exportBtn.style.background = '#10b981';
+
+      setTimeout(() => {
+        exportBtn.textContent = originalText;
+        exportBtn.style.background = '#3b82f6';
+      }, 2000);
+    } catch (err) {
+      console.error('[PaperDevTools] Failed to copy to clipboard:', err);
+      alert('Failed to copy to clipboard');
+    }
   }
 
   function importConfiguration(file) {
@@ -401,27 +381,13 @@
         // Clear existing configs
         savedConfigs.clear();
 
-        // Handle new array format
+        // Handle array format
         if (configData.animations && Array.isArray(configData.animations)) {
-          // Map the array to paper IDs (paper-0, paper-1, etc.)
           configData.animations.forEach((config, index) => {
             const paperId = `paper-${index}`;
             savedConfigs.set(paperId, config);
           });
-          console.log(
-            '[PaperDevTools] Configuration imported (array format):',
-            configData,
-          );
-        }
-        // Handle old object format for backwards compatibility
-        else {
-          Object.entries(configData).forEach(([id, config]) => {
-            savedConfigs.set(id, config);
-          });
-          console.log(
-            '[PaperDevTools] Configuration imported (object format):',
-            configData,
-          );
+          console.log('[PaperDevTools] Configuration imported:', configData);
         }
 
         // Restart all animations to apply the new configuration
@@ -458,84 +424,47 @@
   }
 
   function updateDevToolsUI() {
-    const listContainer = document.getElementById('animators-list');
-    if (!listContainer) return;
+    const configContainer = document.getElementById('config-container');
+    const selectedInfo = document.getElementById('selected-info');
+    if (!configContainer || !selectedInfo) return;
 
-    listContainer.innerHTML = '';
-
-    // Filter by selected list
-    const entriesToShow = Array.from(animatorRegistry.entries()).filter(([id, animator]) => {
-      const sourceList = animator.paperElement.getAttribute('data-source-list');
-      return sourceList === selectedListId;
-    });
-
-    // Sort by ID for consistent ordering
-    const sortedEntries = entriesToShow.sort((a, b) => {
-      const numA = parseInt(a[0].replace('paper-', ''));
-      const numB = parseInt(b[0].replace('paper-', ''));
-      return numA - numB;
-    });
-
-    if (sortedEntries.length === 0) {
-      listContainer.innerHTML = `
+    if (!selectedAnimatorId) {
+      selectedInfo.textContent = 'No paper selected';
+      configContainer.innerHTML = `
         <div style="padding: 16px; text-align: center; color: #9ca3af; font-size: 12px;">
-          No papers found for list "${selectedListId}"
+          Click any paper element to configure it
         </div>
       `;
       return;
     }
 
-    sortedEntries.forEach(([id, animator]) => {
-      const card = createAnimatorCard(id, animator);
-      listContainer.appendChild(card);
-    });
+    const animator = animatorRegistry.get(selectedAnimatorId);
+    if (!animator) {
+      selectedInfo.textContent = 'Selected paper not found';
+      configContainer.innerHTML = '';
+      return;
+    }
+
+    const groupName = animator.groupName || 'none';
+    selectedInfo.innerHTML = `
+      <div style="font-weight: 600; color: #f9fafb;">Selected: ${selectedAnimatorId}</div>
+      <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Group: ${groupName}</div>
+    `;
+
+    const card = createAnimatorCard(selectedAnimatorId, animator);
+    configContainer.innerHTML = '';
+    configContainer.appendChild(card);
   }
 
   function createAnimatorCard(id, animator) {
     const card = document.createElement('div');
     card.className = 'animator-card';
-    card.setAttribute('data-animator-id', id);
     card.style.cssText = `
       background: #374151;
       border-radius: 6px;
-      margin-bottom: 8px;
       padding: 12px;
-      border: 2px solid ${
-        selectedAnimatorId === id ? '#3b82f6' : 'transparent'
-      };
-      cursor: pointer;
-      transition: border-color 0.2s;
+      border: 2px solid #3b82f6;
     `;
-
-    card.addEventListener('click', () => {
-      selectAnimator(id);
-    });
-
-    // Header with title and select button
-    const cardHeader = document.createElement('div');
-    cardHeader.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    `;
-    cardHeader.innerHTML = `
-      <div style="font-weight: 600; color: #f9fafb; font-size: 13px;">
-        ${id}
-      </div>
-      <button class="select-btn" style="
-        padding: 4px 8px;
-        background: ${selectedAnimatorId === id ? '#3b82f6' : '#4b5563'};
-        color: white;
-        border: none;
-        border-radius: 3px;
-        cursor: pointer;
-        font-size: 11px;
-      ">
-        ${selectedAnimatorId === id ? 'Selected' : 'Select'}
-      </button>
-    `;
-    card.appendChild(cardHeader);
 
     // Animation selector
     const animations = window.PaperAnimator?.getAnimations() || [];
@@ -614,7 +543,7 @@
           border-radius: 3px; color: #f3f4f6; font-size: 12px;">
       </label>
       <div style="font-size: 10px; color: #6b7280; font-style: italic;">
-        Click "Select" then drag the paper to adjust position
+        Drag the paper to adjust position
       </div>
     `;
     card.appendChild(positionSection);
@@ -692,23 +621,14 @@
     const startKeyframeInput = card.querySelector('.start-keyframe');
     const endKeyframeInput = card.querySelector('.end-keyframe');
 
-    // Stop click propagation on animation selector to prevent card selection
-    animationSelector.addEventListener('click', e => {
-      e.stopPropagation();
-    });
-
     // Animation selector change
     animationSelector.addEventListener('change', e => {
-      e.stopPropagation();
       const newAnimationIndex = parseInt(animationSelector.value);
       const currentConfig = window.PaperAnimator.getConfig(id);
 
-      // Create a fresh config with only the properties we want to keep
-      // Don't carry over any animation-specific properties that might interfere
       const updatedConfig = {
         animationIndex: newAnimationIndex,
-        startKeyframe: 0, // Reset to start from beginning
-        // Only preserve positioning/timing overrides if they exist
+        startKeyframe: 0,
         offsetX: currentConfig.offsetX,
         offsetY: currentConfig.offsetY,
         rotation: currentConfig.rotation,
@@ -717,15 +637,10 @@
         endKeyframe: currentConfig.endKeyframe,
       };
 
-      // Clear the old override completely and set the new one
-      // This ensures no animation-specific properties bleed through
       window.PaperAnimator.clearConfig(id);
       window.PaperAnimator.setConfig(id, updatedConfig);
-
-      // Update local map for UI
       savedConfigs.set(id, updatedConfig);
 
-      // Restart the animator to apply new animation
       if (window.PaperRenderer) {
         window.PaperRenderer.restartAnimator(id);
       }
@@ -777,15 +692,7 @@
       saveConfig(id, animator);
     });
 
-    card.querySelector('.select-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      selectAnimator(id);
-    });
-
     card.querySelector('.restart-btn').addEventListener('click', e => {
-      e.stopPropagation();
-
-      // Trigger restart for this specific animator
       if (window.PaperRenderer) {
         window.PaperRenderer.restartAnimator(id);
       }
@@ -817,40 +724,152 @@
       window.PaperAnimator.setConfig(id, config);
     }
 
-    // Also keep in local map for UI updates
     savedConfigs.set(id, config);
     console.log('[PaperDevTools] Saved config:', id, config);
+  }
+
+  function updateHighlight() {
+    if (!selectedAnimatorId) return;
+
+    const animator = animatorRegistry.get(selectedAnimatorId);
+    if (!animator) return;
+
+    const svg = document.getElementById('paper-selection-highlight');
+    if (!svg) return;
+
+    const wrapper = animator.paperElement.closest('.paper-component-wrapper');
+    if (!wrapper) return;
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const slicePoints = animator.slicePoints || [];
+
+    if (slicePoints.length === 0) return;
+
+    // Update SVG position
+    svg.style.top = `${wrapperRect.top}px`;
+    svg.style.left = `${wrapperRect.left}px`;
+
+    // Get current offset from animator
+    const offsetX = animator.offsetX || 0;
+    const offsetY = animator.offsetY || 0;
+
+    // Build SVG path from current slice points with offset applied
+    const leftPoints = slicePoints.map(s => ({
+      x: s.left.x + offsetX,
+      y: s.left.y + offsetY,
+    }));
+    const rightPoints = slicePoints.map(s => ({
+      x: s.right.x + offsetX,
+      y: s.right.y + offsetY,
+    }));
+
+    let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
+
+    for (let i = 1; i < leftPoints.length; i++) {
+      pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
+    }
+
+    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${rightPoints[rightPoints.length - 1].y}`;
+
+    for (let i = rightPoints.length - 2; i >= 0; i--) {
+      pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
+    }
+
+    pathData += ' Z';
+
+    // Update path
+    const path = svg.querySelector('path');
+    if (path) {
+      path.setAttribute('d', pathData);
+    }
+
+    // Continue the loop
+    highlightUpdateLoop = requestAnimationFrame(updateHighlight);
   }
 
   function selectAnimator(id) {
     const previousId = selectedAnimatorId;
     selectedAnimatorId = id;
 
-    // Update all cards
-    const cards = document.querySelectorAll('.animator-card');
-    cards.forEach(card => {
-      const cardId = card.getAttribute('data-animator-id');
-      if (cardId === id) {
-        card.style.borderColor = '#3b82f6';
-        const btn = card.querySelector('.select-btn');
-        btn.textContent = 'Selected';
-        btn.style.background = '#3b82f6';
-      } else {
-        card.style.borderColor = 'transparent';
-        const btn = card.querySelector('.select-btn');
-        btn.textContent = 'Select';
-        btn.style.background = '#4b5563';
-      }
-    });
+    // Stop previous update loop
+    if (highlightUpdateLoop) {
+      cancelAnimationFrame(highlightUpdateLoop);
+      highlightUpdateLoop = null;
+    }
 
-    // Remove outline from previous paper element
+    // Remove previous highlight overlay
     if (previousId !== null) {
-      const prevAnimator = animatorRegistry.get(previousId);
-      if (prevAnimator) {
-        prevAnimator.paperElement.style.outline = '';
-        prevAnimator.paperElement.style.outlineOffset = '';
+      const oldHighlight = document.getElementById('paper-selection-highlight');
+      if (oldHighlight) {
+        oldHighlight.remove();
       }
     }
+
+    // Create new highlight overlay using SVG path from bezier curves
+    const animator = animatorRegistry.get(id);
+    if (animator) {
+      // Remove any existing highlight
+      const oldHighlight = document.getElementById('paper-selection-highlight');
+      if (oldHighlight) {
+        oldHighlight.remove();
+      }
+
+      const wrapper = animator.paperElement.closest('.paper-component-wrapper');
+      if (!wrapper) return;
+
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const slicePoints = animator.slicePoints || [];
+
+      if (slicePoints.length === 0) return;
+
+      // Create SVG element
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.id = 'paper-selection-highlight';
+      svg.style.cssText = `
+        position: fixed;
+        top: ${wrapperRect.top}px;
+        left: ${wrapperRect.left}px;
+        width: ${wrapperRect.width}px;
+        height: ${wrapperRect.height}px;
+        pointer-events: none;
+        z-index: 10001;
+        overflow: visible;
+      `;
+
+      // Build initial SVG path
+      const leftPoints = slicePoints.map(s => s.left);
+      const rightPoints = slicePoints.map(s => s.right);
+
+      let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
+
+      for (let i = 1; i < leftPoints.length; i++) {
+        pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
+      }
+
+      pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${rightPoints[rightPoints.length - 1].y}`;
+
+      for (let i = rightPoints.length - 2; i >= 0; i--) {
+        pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
+      }
+
+      pathData += ' Z';
+
+      // Create path element
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', '#3b82f6');
+      path.setAttribute('stroke-width', '3');
+      path.setAttribute('filter', 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))');
+
+      svg.appendChild(path);
+      document.body.appendChild(svg);
+
+      // Start update loop
+      highlightUpdateLoop = requestAnimationFrame(updateHighlight);
+    }
+
+    updateDevToolsUI();
   }
 
   function setupDragListeners() {
@@ -864,15 +883,10 @@
         e.stopPropagation();
         dragJustEnded = false;
       }
-    }, true); // Use capture phase to intercept before link handling
+    }, true);
 
     document.addEventListener('mousedown', e => {
-      // Use elementFromPoint to check what's actually at the mouse position
       const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-
-      if (elementAtPoint.classList.contains('paper-element')) {
-        return;
-      }
 
       hasDragged = false;
       dragJustEnded = false;
@@ -893,10 +907,8 @@
 
       // If we clicked on a paper element
       if (clickedPaperId !== null) {
-        // Select it if not already selected
-        if (selectedAnimatorId !== clickedPaperId) {
-          selectAnimator(clickedPaperId);
-        }
+        // Select it
+        selectAnimator(clickedPaperId);
 
         // Start dragging
         const animator = animatorRegistry.get(clickedPaperId);
@@ -920,7 +932,7 @@
       const deltaX = e.clientX - dragStartX;
       const deltaY = e.clientY - dragStartY;
 
-      // Mark that we've actually dragged (moved the mouse)
+      // Mark that we've actually dragged
       if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
         hasDragged = true;
       }
@@ -931,9 +943,7 @@
       animator.updateOffsets(newOffsetX, newOffsetY);
 
       // Update the UI
-      const card = document.querySelector(
-        `[data-animator-id="${selectedAnimatorId}"]`,
-      );
+      const card = document.querySelector('.animator-card');
       if (card && card._updateOffsets) {
         card._updateOffsets(newOffsetX, newOffsetY);
       }
@@ -944,14 +954,12 @@
         const animator = animatorRegistry.get(selectedAnimatorId);
         if (animator) {
           animator.paperElement.style.cursor = 'grab';
-          // Save config after dragging
           saveConfig(selectedAnimatorId, animator);
         }
 
         // If we dragged, prevent clicks on links
         if (hasDragged) {
           dragJustEnded = true;
-          // Reset after a short delay to allow normal clicks again
           setTimeout(() => {
             dragJustEnded = false;
           }, 100);
@@ -961,7 +969,6 @@
     });
 
     // Set cursor for selected paper when hovering over it
-    // We need to use mousemove to continuously check elementFromPoint
     let lastCursorState = false;
     document.addEventListener('mousemove', e => {
       if (selectedAnimatorId === null || isDragging) return;
@@ -970,15 +977,12 @@
       if (!animator) return;
 
       const paperElement = animator.paperElement;
-
-      // Use elementFromPoint to check what's actually at the mouse position
       const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
       const isOverPaper =
         elementAtPoint &&
         (paperElement.contains(elementAtPoint) ||
           paperElement === elementAtPoint);
 
-      // Only update cursor if state changed (performance optimization)
       if (isOverPaper !== lastCursorState) {
         paperElement.style.cursor = isOverPaper ? 'grab' : '';
         lastCursorState = isOverPaper;

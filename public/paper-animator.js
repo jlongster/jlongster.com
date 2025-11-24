@@ -191,10 +191,33 @@
 
       console.log('[PaperAnimator] Initializing paper:', paperId);
 
-      // Get config from centralized source
-      // Check if this paper has a source list specified
-      const sourceListId = paperElement.getAttribute('data-source-list');
-      const config = window.PaperAnimator.getConfig(paperId, sourceListId);
+      // Get group name if this paper belongs to a group
+      const paperGroup = paperElement.getAttribute('data-paper-group') || null;
+
+      // First, try to read config from data attributes (set by Paper component)
+      const hasDataAttributes = paperElement.hasAttribute('data-animation-index');
+      let config;
+
+      if (hasDataAttributes) {
+        // Use data attributes directly
+        config = {
+          animationIndex: parseInt(paperElement.getAttribute('data-animation-index')) || 0,
+          offsetX: parseFloat(paperElement.getAttribute('data-offset-x')) || 0,
+          offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
+          rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
+          scale: parseFloat(paperElement.getAttribute('data-scale')) || 1,
+          startDelay: parseInt(paperElement.getAttribute('data-start-delay')) || 0,
+          startKeyframe: parseInt(paperElement.getAttribute('data-start-keyframe')) || 0,
+          endKeyframe: parseInt(paperElement.getAttribute('data-end-keyframe')) || 59,
+        };
+
+        // Save this config so it persists across restarts
+        window.PaperAnimator.setConfig(paperId, config);
+      } else {
+        // Fall back to centralized config source
+        const sourceListId = paperElement.getAttribute('data-source-list');
+        config = window.PaperAnimator.getConfig(paperId, sourceListId);
+      }
 
       // Use animationIndex from config, or fall back to cycling
       const animationIndex =
@@ -243,6 +266,9 @@
 
           // Ensure animationIndex is set on the animator for DevTools
           animator.animationIndex = animationIndex;
+
+          // Store group name if present
+          animator.groupName = paperGroup;
 
           // Register in our local registry
           animatorRegistry.set(paperId, animator);
@@ -695,7 +721,7 @@
       this.scale *= this.globalScale;
 
       // If this is a rectangle keyframe, render as single DOM node
-      if (isRectangle) {
+      if (isRectangle && false) {
         this.renderAsRectangle(leftCurvePoints, rightCurvePoints);
       } else {
         // Switch back to slice mode if we were in rectangle mode

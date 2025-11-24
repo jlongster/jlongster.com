@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+
+.playfair-display-regular {
+  font-family: "Playfair Display", serif;
+  font-optical-sizing: auto;
+  font-weight: normal;
+  font-style: normal;
+}
+
+.playfair-display-bold {
+  font-family: "Playfair Display", serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+
 @font-face {
   font-family: 'LoveLexie';
   src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
@@ -220,6 +236,18 @@ h4 {
   line-height: 1.2em;
 }
 
+p {
+  margin: 1.5em 0;
+}
+
+p:first-of-type {
+  margin-top: 0;
+}
+
+p:last-of-type {
+  margin-bottom: 0;
+}
+
 header {
   margin-bottom: 10px;
   padding-top: 20px;
@@ -293,10 +321,6 @@ pre {
   @apply flex h-screen justify-center items-center flex-col bg-center bg-cover;
 }
 
-.intro p, .newsletter p {
-  margin: 1.5em 0;
-}
-
 .newsletter main {
   overflow: visible
 }
@@ -307,5 +331,17 @@ pre {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
   }
 }
