@@ -19,6 +19,15 @@
   let offsetX = 0;            // Global X offset for animation (px)
   let offsetY = 0;            // Global Y offset for animation (px)
 
+  // SVG Shape creation variables
+  let shapeOverlay = null;        // Separate overlay for shape controls
+  let shapeLeftCurvePoints = [];  // 4 control points for shape left bezier
+  let shapeRightCurvePoints = []; // 4 control points for shape right bezier
+  let shapeGeneratedPoints = [];  // Generated points along both curves
+  let shapePointColors = [];      // Color for each generated point
+  let selectedShapePoint = null;  // Currently selected point for coloring
+  let shapeSVGElement = null;     // The SVG shape element
+
   // Animation state
   let keyframes = Array(totalKeyframes).fill(null);
   let scaleKeyframes = Array(totalKeyframes).fill(null); // Separate timeline for scale
@@ -49,6 +58,26 @@
     { x: 250, y: 300, element: null },
   ];
 
+  // Initialize shape bezier control points (in their own coordinate space)
+  shapeLeftCurvePoints = [
+    { x: 50, y: 50, element: null },
+    { x: 50, y: 150, element: null },
+    { x: 50, y: 250, element: null },
+    { x: 50, y: 350, element: null },
+  ];
+
+  shapeRightCurvePoints = [
+    { x: 350, y: 50, element: null },
+    { x: 350, y: 150, element: null },
+    { x: 350, y: 250, element: null },
+    { x: 350, y: 350, element: null },
+  ];
+
+  // Initialize colors for slices (null means unset, will be interpolated)
+  for (let i = 0; i < 9; i++) {
+    shapePointColors[i] = null;
+  }
+
   function init() {
     paperElement = document.querySelector('.paper-element');
     if (!paperElement) {
@@ -67,6 +96,7 @@
     });
 
     createOverlay();
+    createShapeOverlay();
     createTimelineUI();
     calculateSlicePoints();
     // Don't apply transforms on init - let paper render normally
@@ -121,7 +151,7 @@
 
     overlay.appendChild(svg);
 
-    // Create control points
+    // Create control points for paper element only
     leftCurvePoints.forEach((point, index) => {
       const dot = createControlPoint(point, 'left', index);
       overlay.appendChild(dot);
@@ -138,6 +168,57 @@
 
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', stopDrag);
+  }
+
+  function createShapeOverlay() {
+    // Create separate overlay container for shape
+    shapeOverlay = document.createElement('div');
+    shapeOverlay.style.cssText = `
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      pointer-events: none;
+      z-index: 50;
+      overflow: visible;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    `;
+
+    // Create SVG for shape curves and shapes
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.style.cssText = `
+      position: absolute;
+      top: -200px;
+      left: -200px;
+      width: 800px;
+      height: 800px;
+      pointer-events: none;
+      overflow: visible;
+    `;
+    svg.setAttribute('width', '800');
+    svg.setAttribute('height', '800');
+    svg.setAttribute('viewBox', '-200 -200 800 800');
+    svg.id = 'shape-svg';
+
+    shapeOverlay.appendChild(svg);
+
+    // Create shape control points
+    shapeLeftCurvePoints.forEach((point, index) => {
+      const dot = createControlPoint(point, 'shape-left', index);
+      shapeOverlay.appendChild(dot);
+    });
+
+    shapeRightCurvePoints.forEach((point, index) => {
+      const dot = createControlPoint(point, 'shape-right', index);
+      shapeOverlay.appendChild(dot);
+    });
+
+    updateShapeControlPointPositions();
+    drawShapeCurves();
+    generateShapePoints();
+    drawSVGShape();
+    document.body.appendChild(shapeOverlay);
   }
 
   function createTimelineUI() {
@@ -345,6 +426,50 @@
       playerModeBtn.style.background = playerMode ? '#10b981' : '#8b5cf6';
     };
 
+    // Shape point color picker
+    const colorPickerLabel = document.createElement('label');
+    colorPickerLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #374151;
+    `;
+    colorPickerLabel.innerHTML = `
+      Color:
+      <input type="color" id="shape-point-color-picker" value="#ffffff"
+        style="width: 40px; height: 24px; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer;">
+    `;
+    const colorPicker = colorPickerLabel.querySelector('#shape-point-color-picker');
+    colorPicker.addEventListener('input', (e) => {
+      const alpha = parseFloat(document.getElementById('shape-point-alpha-picker')?.value || 1);
+      setShapePointColor(e.target.value, alpha);
+    });
+
+    // Shape point opacity slider
+    const opacityLabel = document.createElement('label');
+    opacityLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #374151;
+    `;
+    opacityLabel.innerHTML = `
+      Opacity:
+      <input type="range" id="shape-point-alpha-picker" value="1" min="0" max="1" step="0.01"
+        style="width: 60px; cursor: pointer;">
+      <span id="opacity-value" style="min-width: 30px;">100%</span>
+    `;
+    const alphaPicker = opacityLabel.querySelector('#shape-point-alpha-picker');
+    const opacityValue = opacityLabel.querySelector('#opacity-value');
+    alphaPicker.addEventListener('input', (e) => {
+      const alpha = parseFloat(e.target.value);
+      opacityValue.textContent = `${Math.round(alpha * 100)}%`;
+      const color = document.getElementById('shape-point-color-picker')?.value || '#ffffff';
+      setShapePointColor(color, alpha);
+    });
+
     // Time per keyframe input
     const timePerKeyframeLabel = document.createElement('label');
     timePerKeyframeLabel.style.cssText = `
@@ -484,6 +609,8 @@
     controls.appendChild(importButton);
     controls.appendChild(transparencyBtn);
     controls.appendChild(playerModeBtn);
+    controls.appendChild(colorPickerLabel);
+    controls.appendChild(opacityLabel);
     controls.appendChild(timePerKeyframeLabel);
     controls.appendChild(playbackFPSLabel);
     controls.appendChild(scaleLabel);
@@ -1132,15 +1259,22 @@
 
   function createControlPoint(point, side, index) {
     const dot = document.createElement('div');
+    let bgColor;
+    if (side === 'left') bgColor = '#ef4444';
+    else if (side === 'right') bgColor = '#3b82f6';
+    else if (side === 'shape-left') bgColor = '#10b981';
+    else if (side === 'shape-right') bgColor = '#f59e0b';
+
     dot.style.cssText = `
       position: absolute;
       width: 14px;
       height: 14px;
-      background: ${side === 'left' ? '#ef4444' : '#3b82f6'};
+      background: ${bgColor};
       border: 2px solid white;
       border-radius: 50%;
       cursor: move;
       pointer-events: all;
+      z-index: 10001;
       transform: translate(-50%, -50%);
     `;
     dot.dataset.side = side;
@@ -1163,11 +1297,24 @@
     });
   }
 
+  function updateShapeControlPointPositions() {
+    shapeLeftCurvePoints.forEach(point => {
+      point.element.style.left = point.x + 'px';
+      point.element.style.top = point.y + 'px';
+    });
+
+    shapeRightCurvePoints.forEach(point => {
+      point.element.style.left = point.x + 'px';
+      point.element.style.top = point.y + 'px';
+    });
+  }
+
   function drawCurves() {
     const svg = document.getElementById('tool-svg');
     if (!svg) return;
 
-    const existing = svg.querySelectorAll('path, polygon, line');
+    // Remove existing curve elements
+    const existing = svg.querySelectorAll('path, line, polygon');
     existing.forEach(el => el.remove());
 
     drawControlHandles(svg, leftCurvePoints, '#ef4444');
@@ -1182,6 +1329,25 @@
     drawSliceOutlines(svg);
   }
 
+  function drawShapeCurves() {
+    const svg = document.getElementById('shape-svg');
+    if (!svg) return;
+
+    // Remove existing curve elements but NOT the shape slices
+    const existing = svg.querySelectorAll('path, line');
+    existing.forEach(el => el.remove());
+
+    // Draw shape bezier curves
+    drawControlHandles(svg, shapeLeftCurvePoints, '#10b981');
+    drawControlHandles(svg, shapeRightCurvePoints, '#f59e0b');
+
+    const shapeLeftPath = createBezierPath(shapeLeftCurvePoints, '#10b981');
+    svg.appendChild(shapeLeftPath);
+
+    const shapeRightPath = createBezierPath(shapeRightCurvePoints, '#f59e0b');
+    svg.appendChild(shapeRightPath);
+  }
+
   function drawControlHandles(svg, points, color) {
     const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line1.setAttribute('x1', points[0].x);
@@ -1192,6 +1358,7 @@
     line1.setAttribute('stroke-width', '1');
     line1.setAttribute('stroke-dasharray', '4,4');
     line1.setAttribute('opacity', '0.4');
+    line1.style.pointerEvents = 'none'; // Don't block marker clicks
     svg.appendChild(line1);
 
     const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1203,6 +1370,7 @@
     line2.setAttribute('stroke-width', '1');
     line2.setAttribute('stroke-dasharray', '4,4');
     line2.setAttribute('opacity', '0.4');
+    line2.style.pointerEvents = 'none'; // Don't block marker clicks
     svg.appendChild(line2);
   }
 
@@ -1215,6 +1383,7 @@
     path.setAttribute('stroke', color);
     path.setAttribute('stroke-width', '2');
     path.setAttribute('opacity', '0.6');
+    path.style.pointerEvents = 'none'; // Don't block marker clicks
 
     return path;
   }
@@ -1227,11 +1396,344 @@
       polygon.setAttribute('fill', 'none');
       polygon.setAttribute('stroke', 'rgba(100, 100, 100, 0.2)');
       polygon.setAttribute('stroke-width', '1');
+      polygon.style.pointerEvents = 'none'; // Don't block marker clicks
 
       const points = `${corners.tl.x},${corners.tl.y} ${corners.tr.x},${corners.tr.y} ${corners.br.x},${corners.br.y} ${corners.bl.x},${corners.bl.y}`;
       polygon.setAttribute('points', points);
 
       svg.appendChild(polygon);
+    }
+  }
+
+  function generateShapePoints() {
+    shapeGeneratedPoints = [];
+    const numPointsPerCurve = 10;
+
+    // Generate points along left curve (top to bottom)
+    for (let i = 0; i < numPointsPerCurve; i++) {
+      const t = i / (numPointsPerCurve - 1);
+      const x = cubicBezier(
+        shapeLeftCurvePoints[0].x,
+        shapeLeftCurvePoints[1].x,
+        shapeLeftCurvePoints[2].x,
+        shapeLeftCurvePoints[3].x,
+        t
+      );
+      const y = cubicBezier(
+        shapeLeftCurvePoints[0].y,
+        shapeLeftCurvePoints[1].y,
+        shapeLeftCurvePoints[2].y,
+        shapeLeftCurvePoints[3].y,
+        t
+      );
+      shapeGeneratedPoints.push({ x, y, index: i });
+    }
+
+    // Generate points along right curve (bottom to top for proper winding)
+    for (let i = numPointsPerCurve - 1; i >= 0; i--) {
+      const t = i / (numPointsPerCurve - 1);
+      const x = cubicBezier(
+        shapeRightCurvePoints[0].x,
+        shapeRightCurvePoints[1].x,
+        shapeRightCurvePoints[2].x,
+        shapeRightCurvePoints[3].x,
+        t
+      );
+      const y = cubicBezier(
+        shapeRightCurvePoints[0].y,
+        shapeRightCurvePoints[1].y,
+        shapeRightCurvePoints[2].y,
+        shapeRightCurvePoints[3].y,
+        t
+      );
+      shapeGeneratedPoints.push({ x, y, index: numPointsPerCurve + (numPointsPerCurve - 1 - i) });
+    }
+  }
+
+  function getInterpolatedColor(index) {
+    // If this index has a color set, return it
+    if (shapePointColors[index] !== null) {
+      return shapePointColors[index];
+    }
+
+    // Find the nearest set color before this index
+    let beforeIndex = -1;
+    let beforeColor = null;
+    for (let i = index - 1; i >= 0; i--) {
+      if (shapePointColors[i] !== null) {
+        beforeIndex = i;
+        beforeColor = shapePointColors[i];
+        break;
+      }
+    }
+
+    // Find the nearest set color after this index
+    let afterIndex = -1;
+    let afterColor = null;
+    for (let i = index + 1; i < shapePointColors.length; i++) {
+      if (shapePointColors[i] !== null) {
+        afterIndex = i;
+        afterColor = shapePointColors[i];
+        break;
+      }
+    }
+
+    // If no colors are set at all, return default gray
+    if (beforeColor === null && afterColor === null) {
+      return '#e0e0e0';
+    }
+
+    // If only before color exists, use that
+    if (afterColor === null) {
+      return beforeColor;
+    }
+
+    // If only after color exists, use that
+    if (beforeColor === null) {
+      return afterColor;
+    }
+
+    // Interpolate between before and after colors
+    const t = (index - beforeIndex) / (afterIndex - beforeIndex);
+    return interpolateColors(beforeColor, afterColor, t);
+  }
+
+  function parseColor(color) {
+    // Parse rgba(r, g, b, a) format
+    if (color.startsWith('rgba')) {
+      const matches = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+      if (matches) {
+        return {
+          r: parseInt(matches[1]),
+          g: parseInt(matches[2]),
+          b: parseInt(matches[3]),
+          a: parseFloat(matches[4])
+        };
+      }
+    }
+    // Parse hex format (assume full opacity)
+    if (color.startsWith('#')) {
+      return {
+        r: parseInt(color.slice(1, 3), 16),
+        g: parseInt(color.slice(3, 5), 16),
+        b: parseInt(color.slice(5, 7), 16),
+        a: 1
+      };
+    }
+    // Default
+    return { r: 224, g: 224, b: 224, a: 1 };
+  }
+
+  function interpolateColors(color1, color2, t) {
+    const c1 = parseColor(color1);
+    const c2 = parseColor(color2);
+
+    // Interpolate each channel including alpha
+    const r = Math.round(c1.r + (c2.r - c1.r) * t);
+    const g = Math.round(c1.g + (c2.g - c1.g) * t);
+    const b = Math.round(c1.b + (c2.b - c1.b) * t);
+    const a = c1.a + (c2.a - c1.a) * t;
+
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  function drawSVGShape() {
+    const svg = document.getElementById('shape-svg');
+    if (!svg) return;
+
+    // Remove existing shape elements and gradients
+    const existingShapes = svg.querySelectorAll('.shape-slice');
+    existingShapes.forEach(shape => shape.remove());
+    const existingDefs = svg.querySelector('defs');
+    if (existingDefs) existingDefs.remove();
+
+    if (shapeGeneratedPoints.length === 0) return;
+
+    const numPointsPerCurve = 10;
+    const numSlices = numPointsPerCurve - 1; // 9 slices
+
+    // Get left and right points separately
+    const leftPoints = shapeGeneratedPoints.slice(0, numPointsPerCurve);
+    const rightPoints = shapeGeneratedPoints.slice(numPointsPerCurve, numPointsPerCurve * 2).reverse();
+
+    // Create defs element for gradient
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    svg.appendChild(defs);
+
+    // Create a single gradient that spans the entire shape
+    // Calculate Y bounds of the shape
+    const allYs = [...leftPoints, ...rightPoints].map(p => p.y);
+    const minY = Math.min(...allYs);
+    const maxY = Math.max(...allYs);
+
+    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    gradient.setAttribute('id', 'shape-gradient');
+    gradient.setAttribute('x1', '0%');
+    gradient.setAttribute('y1', minY);
+    gradient.setAttribute('x2', '0%');
+    gradient.setAttribute('y2', maxY);
+    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+
+    // Add color stops for each point based on their Y position
+    for (let i = 0; i < numPointsPerCurve; i++) {
+      const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      const sliceIndex = Math.min(i, shapePointColors.length - 1);
+
+      // Calculate Y position as a percentage of the total range
+      const pointY = (leftPoints[i].y + rightPoints[i].y) / 2;
+      const offset = ((pointY - minY) / (maxY - minY)) * 100;
+
+      stop.setAttribute('offset', `${offset}%`);
+      stop.setAttribute('stop-color', getInterpolatedColor(sliceIndex));
+      gradient.appendChild(stop);
+    }
+
+    defs.appendChild(gradient);
+
+    // Draw each slice with the shared gradient
+    for (let i = 0; i < numSlices; i++) {
+      const tl = leftPoints[i];
+      const tr = rightPoints[i];
+      const br = rightPoints[i + 1];
+      const bl = leftPoints[i + 1];
+
+      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const pointsStr = `${tl.x},${tl.y} ${tr.x},${tr.y} ${br.x},${br.y} ${bl.x},${bl.y}`;
+      polygon.setAttribute('points', pointsStr);
+      polygon.setAttribute('fill', 'url(#shape-gradient)');
+      polygon.setAttribute('stroke', 'none');
+      polygon.setAttribute('class', 'shape-slice');
+      polygon.style.pointerEvents = 'none';
+
+      svg.appendChild(polygon);
+    }
+
+    // Draw point markers AFTER shapes so they're on top
+    drawShapePointMarkers();
+  }
+
+  function drawShapePointMarkers() {
+    if (!shapeOverlay) return;
+
+    // Remove existing markers (now HTML divs, not SVG)
+    const existingMarkers = shapeOverlay.querySelectorAll('.shape-point-marker');
+    existingMarkers.forEach(marker => marker.remove());
+
+    const numPointsPerCurve = 10;
+
+    // Get left and right points separately
+    const leftPoints = shapeGeneratedPoints.slice(0, numPointsPerCurve);
+    const rightPoints = shapeGeneratedPoints.slice(numPointsPerCurve, numPointsPerCurve * 2).reverse();
+
+    // Create markers for each pair of points (representing slices)
+    for (let i = 0; i < numPointsPerCurve; i++) {
+      const leftPoint = leftPoints[i];
+      const rightPoint = rightPoints[i];
+
+      const sliceIndex = Math.min(i, 8); // Max slice index is 8 (9 slices total)
+      const isSelected = selectedShapePoint === i;
+      const fillColor = getInterpolatedColor(sliceIndex);
+
+      // Left marker (HTML div)
+      const leftMarker = document.createElement('div');
+      leftMarker.style.cssText = `
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: ${fillColor};
+        border: ${isSelected ? '3px' : '2px'} solid ${isSelected ? '#000' : '#666'};
+        cursor: pointer;
+        pointer-events: all;
+        z-index: 10000;
+        transform: translate(-50%, -50%);
+        left: ${leftPoint.x}px;
+        top: ${leftPoint.y}px;
+      `;
+      leftMarker.className = 'shape-point-marker';
+      leftMarker.dataset.sliceIndex = i;
+
+      leftMarker.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShapePoint(i);
+      });
+
+      shapeOverlay.appendChild(leftMarker);
+
+      // Right marker (HTML div)
+      const rightMarker = document.createElement('div');
+      rightMarker.style.cssText = `
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: ${fillColor};
+        border: ${isSelected ? '3px' : '2px'} solid ${isSelected ? '#000' : '#666'};
+        cursor: pointer;
+        pointer-events: all;
+        z-index: 10000;
+        transform: translate(-50%, -50%);
+        left: ${rightPoint.x}px;
+        top: ${rightPoint.y}px;
+      `;
+      rightMarker.className = 'shape-point-marker';
+      rightMarker.dataset.sliceIndex = i;
+
+      rightMarker.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShapePoint(i);
+      });
+
+      shapeOverlay.appendChild(rightMarker);
+    }
+  }
+
+  function selectShapePoint(index) {
+    selectedShapePoint = index;
+    drawShapePointMarkers();
+    updateColorPicker();
+  }
+
+  function updateColorPicker() {
+    const colorInput = document.getElementById('shape-point-color-picker');
+    const alphaInput = document.getElementById('shape-point-alpha-picker');
+    const opacityValue = document.getElementById('opacity-value');
+
+    if (colorInput && selectedShapePoint !== null) {
+      // Map point index to slice index
+      const sliceIndex = Math.min(selectedShapePoint, 8);
+      // Get the actual color (either set or interpolated)
+      const color = getInterpolatedColor(sliceIndex);
+      const parsed = parseColor(color);
+
+      // Set color picker (hex value)
+      const hexColor = `#${parsed.r.toString(16).padStart(2, '0')}${parsed.g.toString(16).padStart(2, '0')}${parsed.b.toString(16).padStart(2, '0')}`;
+      colorInput.value = hexColor;
+
+      // Set alpha slider
+      if (alphaInput) {
+        alphaInput.value = parsed.a;
+      }
+      if (opacityValue) {
+        opacityValue.textContent = `${Math.round(parsed.a * 100)}%`;
+      }
+    }
+  }
+
+  function setShapePointColor(hexColor, alpha = 1) {
+    if (selectedShapePoint !== null) {
+      // Map point index to slice index
+      // Points 0-8 map to slices 0-8
+      // Point 9 (last point) also maps to slice 8
+      const sliceIndex = Math.min(selectedShapePoint, 8);
+
+      // Convert hex to rgba
+      const r = parseInt(hexColor.slice(1, 3), 16);
+      const g = parseInt(hexColor.slice(3, 5), 16);
+      const b = parseInt(hexColor.slice(5, 7), 16);
+
+      shapePointColors[sliceIndex] = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      drawSVGShape();
     }
   }
 
@@ -1344,38 +1846,75 @@
   function onDrag(e) {
     if (!dragging) return;
 
-    if (dragging.type === 'controlPoint') {
-      const rect = overlay.getBoundingClientRect();
+    // Capture dragging state to avoid race conditions
+    const currentDrag = {
+      type: dragging.type,
+      side: dragging.side,
+      index: dragging.index,
+      startX: dragging.startX,
+      startY: dragging.startY,
+      initialLeftPoints: dragging.initialLeftPoints,
+      initialRightPoints: dragging.initialRightPoints
+    };
+
+    if (currentDrag.type === 'controlPoint') {
+      // Get the correct overlay based on which control point is being dragged
+      const currentOverlay = (currentDrag.side === 'shape-left' || currentDrag.side === 'shape-right')
+        ? shapeOverlay
+        : overlay;
+
+      if (!currentOverlay) return;
+
+      const rect = currentOverlay.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      const points = dragging.side === 'left' ? leftCurvePoints : rightCurvePoints;
-      points[dragging.index].x = x;
-      points[dragging.index].y = y;
+      let points;
+      if (currentDrag.side === 'left') points = leftCurvePoints;
+      else if (currentDrag.side === 'right') points = rightCurvePoints;
+      else if (currentDrag.side === 'shape-left') points = shapeLeftCurvePoints;
+      else if (currentDrag.side === 'shape-right') points = shapeRightCurvePoints;
+
+      if (!points) return;
+
+      points[currentDrag.index].x = x;
+      points[currentDrag.index].y = y;
 
       if (!updateScheduled) {
         updateScheduled = true;
         requestAnimationFrame(() => {
-          updateControlPointPositions();
-          calculateSlicePoints();
-          drawCurves();
-          updateAllTransforms();
+          // Update paper control points
+          if (currentDrag.side === 'left' || currentDrag.side === 'right') {
+            updateControlPointPositions();
+            calculateSlicePoints();
+            drawCurves();
+            updateAllTransforms();
+          }
+
+          // Update shape control points
+          if (currentDrag.side === 'shape-left' || currentDrag.side === 'shape-right') {
+            updateShapeControlPointPositions();
+            drawShapeCurves();
+            generateShapePoints();
+            drawSVGShape();
+          }
+
           updateScheduled = false;
         });
       }
-    } else if (dragging.type === 'wholeElement') {
-      const deltaX = e.clientX - dragging.startX;
-      const deltaY = e.clientY - dragging.startY;
+    } else if (currentDrag.type === 'wholeElement') {
+      const deltaX = e.clientX - currentDrag.startX;
+      const deltaY = e.clientY - currentDrag.startY;
 
       // Update all control points - overlay stays in same position
       leftCurvePoints.forEach((p, i) => {
-        p.x = dragging.initialLeftPoints[i].x + deltaX;
-        p.y = dragging.initialLeftPoints[i].y + deltaY;
+        p.x = currentDrag.initialLeftPoints[i].x + deltaX;
+        p.y = currentDrag.initialLeftPoints[i].y + deltaY;
       });
 
       rightCurvePoints.forEach((p, i) => {
-        p.x = dragging.initialRightPoints[i].x + deltaX;
-        p.y = dragging.initialRightPoints[i].y + deltaY;
+        p.x = currentDrag.initialRightPoints[i].x + deltaX;
+        p.y = currentDrag.initialRightPoints[i].y + deltaY;
       });
 
       if (!updateScheduled) {
@@ -1611,6 +2150,24 @@
       if (overlay) {
         overlay.style.display = 'none';
       }
+      // Hide shape control points, curves, and point markers
+      if (shapeOverlay) {
+        const shapeControlPoints = shapeOverlay.querySelectorAll('[data-side^="shape-"]');
+        shapeControlPoints.forEach(point => {
+          point.style.display = 'none';
+        });
+        const shapePointMarkers = shapeOverlay.querySelectorAll('.shape-point-marker');
+        shapePointMarkers.forEach(marker => {
+          marker.style.display = 'none';
+        });
+        const shapeSvg = document.getElementById('shape-svg');
+        if (shapeSvg) {
+          const curves = shapeSvg.querySelectorAll('path, line');
+          curves.forEach(curve => {
+            curve.style.display = 'none';
+          });
+        }
+      }
       // Change cursor on slices
       for (let i = 0; i < numSlices; i++) {
         const slice = document.querySelector(`.paper-slice-${i}`);
@@ -1622,6 +2179,24 @@
       // Show overlay (control points and bezier curves)
       if (overlay) {
         overlay.style.display = 'block';
+      }
+      // Show shape control points, curves, and point markers
+      if (shapeOverlay) {
+        const shapeControlPoints = shapeOverlay.querySelectorAll('[data-side^="shape-"]');
+        shapeControlPoints.forEach(point => {
+          point.style.display = 'block';
+        });
+        const shapePointMarkers = shapeOverlay.querySelectorAll('.shape-point-marker');
+        shapePointMarkers.forEach(marker => {
+          marker.style.display = 'block';
+        });
+        const shapeSvg = document.getElementById('shape-svg');
+        if (shapeSvg) {
+          const curves = shapeSvg.querySelectorAll('path, line');
+          curves.forEach(curve => {
+            curve.style.display = 'block';
+          });
+        }
       }
       // Re-enable move cursor on slices
       for (let i = 0; i < numSlices; i++) {
