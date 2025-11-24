@@ -31,16 +31,22 @@
   // Animation state
   let keyframes = Array(totalKeyframes).fill(null);
   let scaleKeyframes = Array(totalKeyframes).fill(null); // Separate timeline for scale
+  let shadowKeyframes = Array(totalKeyframes).fill(null); // Separate timeline for shadow
   let currentKeyframe = 0;
   let currentScaleKeyframe = 0; // Current position in scale timeline
+  let currentShadowKeyframe = 0; // Current position in shadow timeline
   let currentPlaybackFrame = 0; // Current frame in playback (can be fractional for interpolation)
   let isPlaying = false;
   let animationInterval = null;
-  let playerMode = false; // Toggle to hide controls and show only animation
+  let paperPlayerMode = false; // Toggle to hide paper controls
+  let shadowPlayerMode = false; // Toggle to hide shadow controls
+  let shadowBlurEnabled = false; // Toggle for shadow blur
+  let shadowBlurAmount = 5; // Blur amount in pixels
 
   // UI elements
   let timelineContainer = null;
   let scaleTimelineContainer = null;
+  let shadowTimelineContainer = null;
   let playButton = null;
 
   // Initialize bezier control points
@@ -406,10 +412,10 @@
       transparencyBtn.style.background = isTransparent ? '#ef4444' : '#6b7280';
     };
 
-    // Player mode toggle button
-    const playerModeBtn = document.createElement('button');
-    playerModeBtn.textContent = 'Editor';
-    playerModeBtn.style.cssText = `
+    // Paper player mode toggle button
+    const paperPlayerModeBtn = document.createElement('button');
+    paperPlayerModeBtn.textContent = 'Paper: Edit';
+    paperPlayerModeBtn.style.cssText = `
       padding: 4px 10px;
       background: #8b5cf6;
       color: white;
@@ -419,12 +425,77 @@
       font-weight: 500;
       font-size: 12px;
     `;
-    playerModeBtn.onclick = () => {
-      playerMode = !playerMode;
-      togglePlayerMode();
-      playerModeBtn.textContent = playerMode ? 'Player' : 'Editor';
-      playerModeBtn.style.background = playerMode ? '#10b981' : '#8b5cf6';
+    paperPlayerModeBtn.onclick = () => {
+      paperPlayerMode = !paperPlayerMode;
+      togglePaperPlayerMode();
+      paperPlayerModeBtn.textContent = paperPlayerMode ? 'Paper: View' : 'Paper: Edit';
+      paperPlayerModeBtn.style.background = paperPlayerMode ? '#10b981' : '#8b5cf6';
     };
+
+    // Shadow player mode toggle button
+    const shadowPlayerModeBtn = document.createElement('button');
+    shadowPlayerModeBtn.textContent = 'Shadow: Edit';
+    shadowPlayerModeBtn.style.cssText = `
+      padding: 4px 10px;
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 12px;
+    `;
+    shadowPlayerModeBtn.onclick = () => {
+      shadowPlayerMode = !shadowPlayerMode;
+      toggleShadowPlayerMode();
+      shadowPlayerModeBtn.textContent = shadowPlayerMode ? 'Shadow: View' : 'Shadow: Edit';
+      shadowPlayerModeBtn.style.background = shadowPlayerMode ? '#10b981' : '#8b5cf6';
+    };
+
+    // Shadow blur toggle
+    const shadowBlurBtn = document.createElement('button');
+    shadowBlurBtn.textContent = 'Blur: Off';
+    shadowBlurBtn.style.cssText = `
+      padding: 4px 10px;
+      background: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 12px;
+    `;
+    shadowBlurBtn.onclick = () => {
+      shadowBlurEnabled = !shadowBlurEnabled;
+      applyShadowBlur();
+      shadowBlurBtn.textContent = shadowBlurEnabled ? 'Blur: On' : 'Blur: Off';
+      shadowBlurBtn.style.background = shadowBlurEnabled ? '#10b981' : '#6b7280';
+    };
+
+    // Shadow blur amount slider
+    const blurAmountLabel = document.createElement('label');
+    blurAmountLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #374151;
+    `;
+    blurAmountLabel.innerHTML = `
+      Blur:
+      <input type="range" id="shadow-blur-amount" value="5" min="0" max="20" step="0.5"
+        style="width: 60px; cursor: pointer;">
+      <span id="blur-amount-value" style="min-width: 30px;">5px</span>
+    `;
+    const blurSlider = blurAmountLabel.querySelector('#shadow-blur-amount');
+    const blurValue = blurAmountLabel.querySelector('#blur-amount-value');
+    blurSlider.addEventListener('input', (e) => {
+      shadowBlurAmount = parseFloat(e.target.value);
+      blurValue.textContent = `${shadowBlurAmount}px`;
+      if (shadowBlurEnabled) {
+        applyShadowBlur();
+      }
+    });
 
     // Shape point color picker
     const colorPickerLabel = document.createElement('label');
@@ -608,7 +679,10 @@
     controls.appendChild(exportButton);
     controls.appendChild(importButton);
     controls.appendChild(transparencyBtn);
-    controls.appendChild(playerModeBtn);
+    controls.appendChild(paperPlayerModeBtn);
+    controls.appendChild(shadowPlayerModeBtn);
+    controls.appendChild(shadowBlurBtn);
+    controls.appendChild(blurAmountLabel);
     controls.appendChild(colorPickerLabel);
     controls.appendChild(opacityLabel);
     controls.appendChild(timePerKeyframeLabel);
@@ -620,7 +694,7 @@
 
     expandedContainer.appendChild(controls);
 
-    // Timeline track
+    // Unified Timeline track
     const timeline = document.createElement('div');
     timeline.style.cssText = `
       display: flex;
@@ -632,140 +706,306 @@
 
     // Create keyframe slots
     for (let i = 0; i < totalKeyframes; i++) {
+      const slotContainer = document.createElement('div');
+      slotContainer.style.cssText = `
+        position: relative;
+        width: 10px;
+        height: 24px;
+        cursor: pointer;
+      `;
+
       const slot = document.createElement('div');
       slot.dataset.frame = i;
       slot.style.cssText = `
-        width: 10px;
-        height: 24px;
+        width: 100%;
+        height: 100%;
         background: #9ca3af;
-        cursor: pointer;
         border-radius: 2px;
         transition: all 0.1s;
       `;
-      slot.onclick = () => selectKeyframe(i);
-      timeline.appendChild(slot);
+
+      // Container for markers
+      const markers = document.createElement('div');
+      markers.className = 'keyframe-markers';
+      markers.style.cssText = `
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        pointer-events: none;
+      `;
+
+      // Position marker (red)
+      const posMarker = document.createElement('div');
+      posMarker.className = 'marker-position';
+      posMarker.style.cssText = `
+        flex: 1;
+        background: #ef4444;
+        border-radius: 1px;
+        opacity: 0;
+        transition: opacity 0.1s;
+      `;
+
+      // Scale marker (purple)
+      const scaleMarker = document.createElement('div');
+      scaleMarker.className = 'marker-scale';
+      scaleMarker.style.cssText = `
+        flex: 1;
+        background: #8b5cf6;
+        border-radius: 1px;
+        opacity: 0;
+        transition: opacity 0.1s;
+      `;
+
+      // Shadow marker (green)
+      const shadowMarker = document.createElement('div');
+      shadowMarker.className = 'marker-shadow';
+      shadowMarker.style.cssText = `
+        flex: 1;
+        background: #10b981;
+        border-radius: 1px;
+        opacity: 0;
+        transition: opacity 0.1s;
+      `;
+
+      markers.appendChild(posMarker);
+      markers.appendChild(scaleMarker);
+      markers.appendChild(shadowMarker);
+
+      slotContainer.appendChild(slot);
+      slotContainer.appendChild(markers);
+      slotContainer.onclick = () => selectUnifiedKeyframe(i);
+      timeline.appendChild(slotContainer);
     }
 
     expandedContainer.appendChild(timeline);
 
-    timelineContainer.appendChild(collapsedControls);
-    timelineContainer.appendChild(expandedContainer);
-
-    // Scale Timeline (in expanded container)
-    const scaleTimelineLabel = document.createElement('div');
-    scaleTimelineLabel.style.cssText = `
+    // Keyframe save/clear controls for each type
+    const keyframeControlsLabel = document.createElement('div');
+    keyframeControlsLabel.style.cssText = `
       margin-top: 8px;
       margin-bottom: 3px;
       font-size: 11px;
       font-weight: 600;
       color: #374151;
     `;
-    scaleTimelineLabel.textContent = 'Scale Timeline';
-    expandedContainer.appendChild(scaleTimelineLabel);
+    keyframeControlsLabel.textContent = 'Keyframe Controls';
+    expandedContainer.appendChild(keyframeControlsLabel);
 
-    const scaleControls = document.createElement('div');
-    scaleControls.style.cssText = `
+    const keyframeControls = document.createElement('div');
+    keyframeControls.style.cssText = `
       display: flex;
-      gap: 6px;
+      gap: 8px;
       margin-bottom: 4px;
       align-items: center;
+      flex-wrap: wrap;
+    `;
+
+    // Position controls
+    const positionGroup = document.createElement('div');
+    positionGroup.style.cssText = `
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 4px;
+    `;
+
+    const posLabel = document.createElement('span');
+    posLabel.textContent = 'Position:';
+    posLabel.style.cssText = `
+      font-size: 11px;
+      color: #ef4444;
+      font-weight: 500;
+    `;
+
+    const savePositionButton = document.createElement('button');
+    savePositionButton.textContent = 'Save';
+    savePositionButton.style.cssText = `
+      padding: 3px 8px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+    `;
+    savePositionButton.onclick = saveCurrentKeyframe;
+
+    const clearPositionButton = document.createElement('button');
+    clearPositionButton.textContent = 'Clear';
+    clearPositionButton.style.cssText = `
+      padding: 3px 8px;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+    `;
+    clearPositionButton.onclick = clearCurrentKeyframe;
+
+    positionGroup.appendChild(posLabel);
+    positionGroup.appendChild(savePositionButton);
+    positionGroup.appendChild(clearPositionButton);
+
+    // Scale controls
+    const scaleGroup = document.createElement('div');
+    scaleGroup.style.cssText = `
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 8px;
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 4px;
+    `;
+
+    const scaleKFLabel = document.createElement('span');
+    scaleKFLabel.textContent = 'Scale:';
+    scaleKFLabel.style.cssText = `
+      font-size: 11px;
+      color: #8b5cf6;
+      font-weight: 500;
     `;
 
     const saveScaleButton = document.createElement('button');
     saveScaleButton.textContent = 'Save';
     saveScaleButton.style.cssText = `
-      padding: 4px 10px;
-      background: #10b981;
+      padding: 3px 8px;
+      background: #8b5cf6;
       color: white;
       border: none;
       border-radius: 3px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
     `;
     saveScaleButton.onclick = saveCurrentScaleKeyframe;
 
     const clearScaleButton = document.createElement('button');
     clearScaleButton.textContent = 'Clear';
     clearScaleButton.style.cssText = `
-      padding: 4px 10px;
-      background: #ef4444;
+      padding: 3px 8px;
+      background: #7c3aed;
       color: white;
       border: none;
       border-radius: 3px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
     `;
     clearScaleButton.onclick = clearCurrentScaleKeyframe;
 
-    const scaleFrameDisplay = document.createElement('span');
-    scaleFrameDisplay.id = 'scale-frame-display';
-    scaleFrameDisplay.style.cssText = `
+    scaleGroup.appendChild(scaleKFLabel);
+    scaleGroup.appendChild(saveScaleButton);
+    scaleGroup.appendChild(clearScaleButton);
+
+    // Shadow controls
+    const shadowGroup = document.createElement('div');
+    shadowGroup.style.cssText = `
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 4px;
+    `;
+
+    const shadowLabel = document.createElement('span');
+    shadowLabel.textContent = 'Shadow:';
+    shadowLabel.style.cssText = `
+      font-size: 11px;
+      color: #10b981;
       font-weight: 500;
-      color: #374151;
+    `;
+
+    const saveShadowButton = document.createElement('button');
+    saveShadowButton.textContent = 'Save';
+    saveShadowButton.style.cssText = `
+      padding: 3px 8px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
       font-size: 11px;
     `;
-    scaleFrameDisplay.textContent = `Scale KF: ${currentScaleKeyframe + 1}/${totalKeyframes}`;
+    saveShadowButton.onclick = saveCurrentShadowKeyframe;
 
-    scaleControls.appendChild(saveScaleButton);
-    scaleControls.appendChild(clearScaleButton);
-    scaleControls.appendChild(scaleFrameDisplay);
-    expandedContainer.appendChild(scaleControls);
-
-    const scaleTimeline = document.createElement('div');
-    scaleTimeline.style.cssText = `
-      display: flex;
-      gap: 1px;
-      background: #e5e7eb;
-      padding: 3px;
+    const clearShadowButton = document.createElement('button');
+    clearShadowButton.textContent = 'Clear';
+    clearShadowButton.style.cssText = `
+      padding: 3px 8px;
+      background: #059669;
+      color: white;
+      border: none;
       border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
     `;
+    clearShadowButton.onclick = clearCurrentShadowKeyframe;
 
-    // Create scale keyframe slots
-    for (let i = 0; i < totalKeyframes; i++) {
-      const slot = document.createElement('div');
-      slot.dataset.scaleFrame = i;
-      slot.style.cssText = `
-        width: 10px;
-        height: 24px;
-        background: #9ca3af;
-        cursor: pointer;
-        border-radius: 2px;
-        transition: all 0.1s;
-      `;
-      slot.onclick = () => selectScaleKeyframe(i);
-      scaleTimeline.appendChild(slot);
-    }
+    shadowGroup.appendChild(shadowLabel);
+    shadowGroup.appendChild(saveShadowButton);
+    shadowGroup.appendChild(clearShadowButton);
 
-    expandedContainer.appendChild(scaleTimeline);
-    scaleTimelineContainer = scaleTimeline;
+    keyframeControls.appendChild(positionGroup);
+    keyframeControls.appendChild(scaleGroup);
+    keyframeControls.appendChild(shadowGroup);
+
+    expandedContainer.appendChild(keyframeControls);
+
+    timelineContainer.appendChild(collapsedControls);
+    timelineContainer.appendChild(expandedContainer);
 
     document.body.appendChild(timelineContainer);
 
     updateTimelineUI();
-    updateScaleTimelineUI();
   }
 
   function updateTimelineUI() {
     const slots = timelineContainer.querySelectorAll('[data-frame]');
     slots.forEach((slot, i) => {
       const isActive = i === currentKeyframe;
-      const hasKeyframe = keyframes[i] !== null;
+      const hasPosition = keyframes[i] !== null;
+      const hasScale = scaleKeyframes[i] !== null;
+      const hasShadow = shadowKeyframes[i] !== null;
+      const hasAny = hasPosition || hasScale || hasShadow;
 
+      // Update slot background
       if (isActive) {
         slot.style.background = '#3b82f6';
         slot.style.transform = 'scaleY(1.2)';
-      } else if (hasKeyframe) {
-        slot.style.background = '#10b981';
+      } else if (hasAny) {
+        slot.style.background = '#d1d5db';
         slot.style.transform = 'scaleY(1)';
       } else {
         slot.style.background = '#9ca3af';
         slot.style.transform = 'scaleY(1)';
       }
+
+      // Update markers visibility
+      const markers = slot.parentElement.querySelector('.keyframe-markers');
+      if (markers) {
+        const posMarker = markers.querySelector('.marker-position');
+        const scaleMarker = markers.querySelector('.marker-scale');
+        const shadowMarker = markers.querySelector('.marker-shadow');
+
+        if (posMarker) posMarker.style.opacity = hasPosition ? '1' : '0';
+        if (scaleMarker) scaleMarker.style.opacity = hasScale ? '1' : '0';
+        if (shadowMarker) shadowMarker.style.opacity = hasShadow ? '1' : '0';
+      }
     });
 
     const frameDisplay = document.getElementById('frame-display');
     if (frameDisplay) {
-      frameDisplay.textContent = `Keyframe: ${currentKeyframe + 1} of ${totalKeyframes}`;
+      const hasPos = keyframes[currentKeyframe] !== null ? 'P' : '-';
+      const hasScl = scaleKeyframes[currentKeyframe] !== null ? 'S' : '-';
+      const hasShd = shadowKeyframes[currentKeyframe] !== null ? 'W' : '-';
+      frameDisplay.textContent = `KF: ${currentKeyframe + 1}/${totalKeyframes} [${hasPos}${hasScl}${hasShd}]`;
     }
 
     // Update time display
@@ -774,7 +1014,7 @@
       // Find last keyframe with data
       let lastKeyframeIndex = -1;
       for (let i = totalKeyframes - 1; i >= 0; i--) {
-        if (keyframes[i]) {
+        if (keyframes[i] || scaleKeyframes[i] || shadowKeyframes[i]) {
           lastKeyframeIndex = i;
           break;
         }
@@ -797,49 +1037,18 @@
     }
   }
 
-  function updateScaleTimelineUI() {
-    const slots = scaleTimelineContainer.querySelectorAll('[data-scale-frame]');
-    slots.forEach((slot, i) => {
-      const isActive = i === currentScaleKeyframe;
-      const hasKeyframe = scaleKeyframes[i] !== null;
-
-      if (isActive) {
-        slot.style.background = '#3b82f6';
-        slot.style.transform = 'scaleY(1.2)';
-      } else if (hasKeyframe) {
-        slot.style.background = '#10b981';
-        slot.style.transform = 'scaleY(1)';
-      } else {
-        slot.style.background = '#9ca3af';
-        slot.style.transform = 'scaleY(1)';
-      }
-    });
-
-    const scaleFrameDisplay = document.getElementById('scale-frame-display');
-    if (scaleFrameDisplay) {
-      scaleFrameDisplay.textContent = `Scale Keyframe: ${currentScaleKeyframe + 1} of ${totalKeyframes}`;
-    }
-  }
-
-  function selectKeyframe(index) {
+  function selectUnifiedKeyframe(index) {
     if (isPlaying) return;
 
     currentKeyframe = index;
+    currentScaleKeyframe = index;
+    currentShadowKeyframe = index;
 
-    // Load keyframe if it exists
+    // Load all keyframe types if they exist
     if (keyframes[index]) {
       loadKeyframe(index);
     }
 
-    updateTimelineUI();
-  }
-
-  function selectScaleKeyframe(index) {
-    if (isPlaying) return;
-
-    currentScaleKeyframe = index;
-
-    // Load scale keyframe if it exists
     if (scaleKeyframes[index] !== null) {
       scale = scaleKeyframes[index];
       const scaleInput = document.getElementById('scale-input');
@@ -849,36 +1058,90 @@
       updateAllTransforms();
     }
 
-    updateScaleTimelineUI();
+    if (shadowKeyframes[index] !== null) {
+      loadShadowKeyframe(index);
+    }
+
+    updateTimelineUI();
+  }
+
+  function selectKeyframe(index) {
+    selectUnifiedKeyframe(index);
+  }
+
+  function selectScaleKeyframe(index) {
+    selectUnifiedKeyframe(index);
+  }
+
+  function selectShadowKeyframe(index) {
+    selectUnifiedKeyframe(index);
   }
 
   function saveCurrentScaleKeyframe() {
     scaleKeyframes[currentScaleKeyframe] = scale;
-
-    // Automatically advance to next keyframe slot
-    currentScaleKeyframe = (currentScaleKeyframe + 1) % totalKeyframes;
-
-    // Load the next scale keyframe if it exists
-    if (scaleKeyframes[currentScaleKeyframe] !== null) {
-      scale = scaleKeyframes[currentScaleKeyframe];
-      const scaleInput = document.getElementById('scale-input');
-      if (scaleInput) scaleInput.value = scale;
-      calculateSlicePoints();
-      drawCurves();
-      updateAllTransforms();
-    }
-
-    updateScaleTimelineUI();
+    updateTimelineUI();
   }
 
   function clearCurrentScaleKeyframe() {
-    // Simply set the current scale keyframe to null (allow blank/interpolated keyframes)
     scaleKeyframes[currentScaleKeyframe] = null;
+    updateTimelineUI();
+  }
 
-    // Advance to next scale keyframe
-    currentScaleKeyframe = (currentScaleKeyframe + 1) % totalKeyframes;
+  function saveCurrentShadowKeyframe() {
+    // Save current shadow state
+    shadowKeyframes[currentShadowKeyframe] = {
+      leftCurve: shapeLeftCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      rightCurve: shapeRightCurvePoints.map(p => ({ x: p.x, y: p.y })),
+      colors: [...shapePointColors], // Copy the colors array
+      blurEnabled: shadowBlurEnabled,
+      blurAmount: shadowBlurAmount
+    };
+    updateTimelineUI();
+  }
 
-    updateScaleTimelineUI();
+  function clearCurrentShadowKeyframe() {
+    shadowKeyframes[currentShadowKeyframe] = null;
+    updateTimelineUI();
+  }
+
+  function loadShadowKeyframe(index) {
+    const kf = shadowKeyframes[index];
+    if (!kf) return;
+
+    // Restore shadow curve points
+    shapeLeftCurvePoints.forEach((p, i) => {
+      p.x = kf.leftCurve[i].x;
+      p.y = kf.leftCurve[i].y;
+    });
+
+    shapeRightCurvePoints.forEach((p, i) => {
+      p.x = kf.rightCurve[i].x;
+      p.y = kf.rightCurve[i].y;
+    });
+
+    // Restore colors
+    if (kf.colors) {
+      shapePointColors = [...kf.colors];
+    }
+
+    // Restore blur settings
+    if (kf.blurEnabled !== undefined) {
+      shadowBlurEnabled = kf.blurEnabled;
+    }
+    if (kf.blurAmount !== undefined) {
+      shadowBlurAmount = kf.blurAmount;
+      const blurSlider = document.getElementById('shadow-blur-amount');
+      const blurValue = document.getElementById('blur-amount-value');
+      if (blurSlider) blurSlider.value = shadowBlurAmount;
+      if (blurValue) blurValue.textContent = `${shadowBlurAmount}px`;
+    }
+
+    // Update visuals
+    updateShapeControlPointPositions();
+    drawShapeCurves();
+    generateShapePoints();
+    drawSVGShape();
+    applyShadowBlur();
   }
 
   function saveCurrentKeyframe() {
@@ -897,30 +1160,11 @@
     }
 
     keyframes[currentKeyframe] = newKeyframe;
-
-    // Automatically advance to next keyframe slot
-    currentKeyframe = (currentKeyframe + 1) % totalKeyframes;
-
-    // Load the next keyframe if it exists, otherwise keep current state
-    if (keyframes[currentKeyframe]) {
-      loadKeyframe(currentKeyframe);
-    }
-
     updateTimelineUI();
   }
 
   function clearCurrentKeyframe() {
-    // Simply set the current keyframe to null (allow blank/interpolated keyframes)
     keyframes[currentKeyframe] = null;
-
-    // Advance to next keyframe
-    currentKeyframe = (currentKeyframe + 1) % totalKeyframes;
-
-    // Load the next keyframe if it exists
-    if (keyframes[currentKeyframe]) {
-      loadKeyframe(currentKeyframe);
-    }
-
     updateTimelineUI();
   }
 
@@ -1118,6 +1362,30 @@
     return null; // No scale keyframes at all
   }
 
+  // Find the next non-null shadow keyframe after the given index
+  function findNextShadowKeyframe(startIndex) {
+    for (let i = startIndex; i < totalKeyframes; i++) {
+      if (shadowKeyframes[i] !== null) return i;
+    }
+    // If no keyframe found, wrap to beginning
+    for (let i = 0; i < startIndex; i++) {
+      if (shadowKeyframes[i] !== null) return i;
+    }
+    return null; // No shadow keyframes at all
+  }
+
+  // Find the previous non-null shadow keyframe before the given index
+  function findPreviousShadowKeyframe(startIndex) {
+    for (let i = startIndex; i >= 0; i--) {
+      if (shadowKeyframes[i] !== null) return i;
+    }
+    // If no keyframe found, wrap to end
+    for (let i = totalKeyframes - 1; i > startIndex; i--) {
+      if (shadowKeyframes[i] !== null) return i;
+    }
+    return null; // No shadow keyframes at all
+  }
+
   // Interpolate and apply a frame at a given keyframe position (can be fractional)
   function applyInterpolatedFrame(keyframePosition) {
     // Find the keyframes to interpolate between
@@ -1185,6 +1453,64 @@
       scale = lerp(lowerScale, upperScale, scaleT);
     }
 
+    // Interpolate shadow from shadow timeline
+    let lowerShadowIndex = findPreviousShadowKeyframe(lowerIndex);
+    let upperShadowIndex = findNextShadowKeyframe(upperIndex);
+
+    if (lowerShadowIndex !== null && upperShadowIndex !== null) {
+      const lowerShadow = shadowKeyframes[lowerShadowIndex];
+      const upperShadow = shadowKeyframes[upperShadowIndex];
+
+      let shadowT;
+      if (lowerShadowIndex === upperShadowIndex) {
+        shadowT = 0;
+      } else {
+        shadowT = (keyframePosition - lowerShadowIndex) / (upperShadowIndex - lowerShadowIndex);
+        shadowT = Math.max(0, Math.min(1, shadowT));
+      }
+
+      // Interpolate shadow curve points
+      shapeLeftCurvePoints.forEach((p, i) => {
+        p.x = lerp(lowerShadow.leftCurve[i].x, upperShadow.leftCurve[i].x, shadowT);
+        p.y = lerp(lowerShadow.leftCurve[i].y, upperShadow.leftCurve[i].y, shadowT);
+      });
+
+      shapeRightCurvePoints.forEach((p, i) => {
+        p.x = lerp(lowerShadow.rightCurve[i].x, upperShadow.rightCurve[i].x, shadowT);
+        p.y = lerp(lowerShadow.rightCurve[i].y, upperShadow.rightCurve[i].y, shadowT);
+      });
+
+      // Interpolate colors
+      if (lowerShadow.colors && upperShadow.colors) {
+        shapePointColors = lowerShadow.colors.map((lowerColor, i) => {
+          const upperColor = upperShadow.colors[i];
+          if (lowerColor === null || upperColor === null) {
+            return lowerColor || upperColor; // Use whichever is not null
+          }
+          return interpolateColors(lowerColor, upperColor, shadowT);
+        });
+      }
+
+      // Interpolate blur amount
+      if (lowerShadow.blurAmount !== undefined && upperShadow.blurAmount !== undefined) {
+        shadowBlurAmount = lerp(lowerShadow.blurAmount, upperShadow.blurAmount, shadowT);
+      }
+
+      // Use blur enabled from the nearest keyframe
+      if (shadowT < 0.5 && lowerShadow.blurEnabled !== undefined) {
+        shadowBlurEnabled = lowerShadow.blurEnabled;
+      } else if (upperShadow.blurEnabled !== undefined) {
+        shadowBlurEnabled = upperShadow.blurEnabled;
+      }
+
+      // Update shadow visuals
+      updateShapeControlPointPositions();
+      drawShapeCurves();
+      generateShapePoints();
+      drawSVGShape();
+      applyShadowBlur();
+    }
+
     // Update visuals
     updateControlPointPositions();
     calculateSlicePoints();
@@ -1241,8 +1567,8 @@
       // Update current keyframe for UI display (rounded to nearest)
       currentKeyframe = Math.round(keyframePosition) % totalKeyframes;
       currentScaleKeyframe = Math.round(keyframePosition) % totalKeyframes;
+      currentShadowKeyframe = Math.round(keyframePosition) % totalKeyframes;
       updateTimelineUI();
-      updateScaleTimelineUI();
     }, frameTime);
   }
 
@@ -1608,6 +1934,9 @@
       svg.appendChild(polygon);
     }
 
+    // Apply blur if enabled
+    applyShadowBlur();
+
     // Draw point markers AFTER shapes so they're on top
     drawShapePointMarkers();
   }
@@ -1820,7 +2149,16 @@
   }
 
   function startDrag(e) {
-    if (isPlaying || playerMode) return; // Don't allow dragging while playing or in player mode
+    // Don't allow dragging while playing
+    if (isPlaying) return;
+
+    // Don't allow dragging paper controls in paper player mode
+    const side = e.target.dataset.side;
+    if ((side === 'left' || side === 'right') && paperPlayerMode) return;
+
+    // Don't allow dragging shadow controls in shadow player mode
+    if ((side === 'shape-left' || side === 'shape-right') && shadowPlayerMode) return;
+
     e.preventDefault();
 
     dragging = {
@@ -1831,7 +2169,7 @@
   }
 
   function startWholeDrag(e) {
-    if (isPlaying || playerMode) return; // Don't allow dragging while playing or in player mode
+    if (isPlaying || paperPlayerMode) return; // Don't allow dragging while playing or in paper player mode
     e.preventDefault();
 
     dragging = {
@@ -2045,11 +2383,12 @@
 
   function exportAnimation() {
     const data = {
-      version: 1,
+      version: 2, // Increment version for shadow timeline support
       timePerKeyframe: timePerKeyframe,
       playbackFPS: playbackFPS,
       keyframes: keyframes,
       scaleKeyframes: scaleKeyframes,
+      shadowKeyframes: shadowKeyframes,
       offsetX: offsetX,
       offsetY: offsetY,
     };
@@ -2060,6 +2399,7 @@
       .filter(i => i !== null);
     console.log('[Export] Keyframes with isRectangle flag:', rectangleKeyframes);
     console.log('[Export] Total keyframes:', keyframes.filter(kf => kf !== null).length);
+    console.log('[Export] Total shadow keyframes:', shadowKeyframes.filter(kf => kf !== null).length);
 
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -2109,6 +2449,14 @@
           scaleKeyframes = Array(totalKeyframes).fill(null);
         }
 
+        // Restore shadow keyframes
+        if (data.shadowKeyframes) {
+          shadowKeyframes = data.shadowKeyframes;
+        } else {
+          // For backward compatibility, initialize empty shadow timeline
+          shadowKeyframes = Array(totalKeyframes).fill(null);
+        }
+
         // Restore offsets
         if (data.offsetX !== undefined) {
           offsetX = data.offsetX;
@@ -2125,12 +2473,15 @@
         // Reset to first keyframe and update display
         currentKeyframe = 0;
         currentScaleKeyframe = 0;
+        currentShadowKeyframe = 0;
         if (keyframes[0] && overlay) {
           loadKeyframe(0);
         }
+        if (shadowKeyframes[0]) {
+          loadShadowKeyframe(0);
+        }
         if (timelineContainer) {
           updateTimelineUI();
-          updateScaleTimelineUI();
         }
 
         // Clear file input so the same file can be imported again
@@ -2144,12 +2495,78 @@
     reader.readAsText(file);
   }
 
-  function togglePlayerMode() {
-    if (playerMode) {
-      // Hide overlay (control points and bezier curves)
+  function togglePaperPlayerMode() {
+    if (paperPlayerMode) {
+      // Hide paper overlay (control points and bezier curves)
       if (overlay) {
         overlay.style.display = 'none';
       }
+      // Change cursor on slices
+      for (let i = 0; i < numSlices; i++) {
+        const slice = document.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.cursor = 'default';
+        }
+      }
+    } else {
+      // Show paper overlay (control points and bezier curves)
+      if (overlay) {
+        overlay.style.display = 'block';
+      }
+      // Re-enable move cursor on slices
+      for (let i = 0; i < numSlices; i++) {
+        const slice = document.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.cursor = 'move';
+        }
+      }
+    }
+  }
+
+  function applyShadowBlur() {
+    const svg = document.getElementById('shape-svg');
+    if (!svg) return;
+
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      svg.appendChild(defs);
+    }
+
+    // Remove existing blur filter
+    const existingFilter = defs.querySelector('#shadow-blur-filter');
+    if (existingFilter) {
+      existingFilter.remove();
+    }
+
+    if (shadowBlurEnabled && shadowBlurAmount > 0) {
+      // Create blur filter
+      const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+      filter.setAttribute('id', 'shadow-blur-filter');
+
+      const blur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+      blur.setAttribute('in', 'SourceGraphic');
+      blur.setAttribute('stdDeviation', shadowBlurAmount);
+
+      filter.appendChild(blur);
+      defs.appendChild(filter);
+
+      // Apply filter to all shape slices
+      const slices = svg.querySelectorAll('.shape-slice');
+      slices.forEach(slice => {
+        slice.setAttribute('filter', 'url(#shadow-blur-filter)');
+      });
+    } else {
+      // Remove filter from all shape slices
+      const slices = svg.querySelectorAll('.shape-slice');
+      slices.forEach(slice => {
+        slice.removeAttribute('filter');
+      });
+    }
+  }
+
+  function toggleShadowPlayerMode() {
+    if (shadowPlayerMode) {
       // Hide shape control points, curves, and point markers
       if (shapeOverlay) {
         const shapeControlPoints = shapeOverlay.querySelectorAll('[data-side^="shape-"]');
@@ -2168,18 +2585,7 @@
           });
         }
       }
-      // Change cursor on slices
-      for (let i = 0; i < numSlices; i++) {
-        const slice = document.querySelector(`.paper-slice-${i}`);
-        if (slice) {
-          slice.style.cursor = 'default';
-        }
-      }
     } else {
-      // Show overlay (control points and bezier curves)
-      if (overlay) {
-        overlay.style.display = 'block';
-      }
       // Show shape control points, curves, and point markers
       if (shapeOverlay) {
         const shapeControlPoints = shapeOverlay.querySelectorAll('[data-side^="shape-"]');
@@ -2196,13 +2602,6 @@
           curves.forEach(curve => {
             curve.style.display = 'block';
           });
-        }
-      }
-      // Re-enable move cursor on slices
-      for (let i = 0; i < numSlices; i++) {
-        const slice = document.querySelector(`.paper-slice-${i}`);
-        if (slice) {
-          slice.style.cursor = 'move';
         }
       }
     }
