@@ -2,6 +2,7 @@
   "files": [
     "paper-animation-floating-new.json",
     "paper-animation-slide-in.json",
-    "paper-animation-hit.json"
+    "paper-animation-hit.json",
+    "paper-animation-small-flop.json"
   ]
 }

@@ -28,17 +28,22 @@
       border: 2px solid #3b82f6;
       border-radius: 8px;
       overflow: hidden;
-      z-index: 1;
+      z-index: 10000;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     `;
 
     // Video element
     video = document.createElement('video');
     video.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: calc(100% - 60px);
+      height: 100%;
       background: #000;
       display: block;
+      object-fit: contain;
+      z-index: 0;
     `;
     video.controls = false;
 
@@ -62,6 +67,10 @@
     // Controls container
     const controls = document.createElement('div');
     controls.style.cssText = `
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       height: 60px;
       background: #1f2937;
       display: flex;
@@ -69,6 +78,7 @@
       gap: 8px;
       padding: 0 12px;
       border-top: 1px solid #374151;
+      z-index: 2;
     `;
 
     // Play/Pause button
@@ -108,6 +118,26 @@
       timeDisplay.textContent = `${current} / ${duration}`;
     });
 
+    // Debug: log video state changes
+    video.addEventListener('pause', () => {
+      console.log('[VideoPlayer] Video paused', {
+        currentTime: video.currentTime,
+        src: video.src,
+        readyState: video.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        style: video.style.cssText
+      });
+    });
+
+    video.addEventListener('play', () => {
+      console.log('[VideoPlayer] Video playing', {
+        currentTime: video.currentTime,
+        src: video.src,
+        readyState: video.readyState
+      });
+    });
+
     // Lock/Unlock button
     const lockBtn = createButton('🔓 Unlock', () => {
       isLocked = !isLocked;
@@ -139,6 +169,7 @@
       background: #3b82f6;
       cursor: nwse-resize;
       border-radius: 0 0 6px 0;
+      z-index: 3;
     `;
     resizeHandle.addEventListener('mousedown', startResize);
 
