@@ -280,8 +280,89 @@
           if (window.PaperDevTools) {
             window.PaperDevTools.registerAnimator(paperId, animator);
           }
+
+          // Add hover animations
+          setupHoverAnimation(paperElement, animator);
         }, delay);
       }
+    });
+  }
+
+  function setupHoverAnimation(paperElement, animator) {
+    let isHovering = false;
+    let originalScale = animator.globalScale;
+    let bottomScaleTimeout = null;
+
+    // Enable transitions on all slices
+    const enableTransitions = () => {
+      for (let i = 0; i < numSlices; i++) {
+        const slice = paperElement.querySelector(`.paper-slice-${i}`);
+        if (slice) {
+          slice.style.transition = 'transform 200ms ease-out';
+        }
+      }
+    };
+
+    const animateTopAndBottomScale = (topTarget, bottomTarget, delay = 0) => {
+      // Animate top immediately
+      animator.topScale = topTarget;
+      animator.applyInterpolatedFrame(animator.currentKeyframePosition);
+
+      // Clear any pending bottom scale animation
+      if (bottomScaleTimeout) {
+        clearTimeout(bottomScaleTimeout);
+      }
+
+      // Animate bottom after delay
+      if (delay > 0) {
+        bottomScaleTimeout = setTimeout(() => {
+          animator.bottomScale = bottomTarget;
+          animator.applyInterpolatedFrame(animator.currentKeyframePosition);
+        }, delay);
+      } else {
+        animator.bottomScale = bottomTarget;
+        animator.applyInterpolatedFrame(animator.currentKeyframePosition);
+      }
+    };
+
+    paperElement.addEventListener('mouseenter', () => {
+      if (isHovering) return;
+      isHovering = true;
+
+      // Store the current scale as the original
+      originalScale = animator.globalScale;
+
+      // Reset z-index on all other paper elements first
+      document.querySelectorAll('.paper-element').forEach(el => {
+        if (el !== paperElement) {
+          el.style.zIndex = '';
+        }
+      });
+
+      // Bring to front
+      paperElement.style.zIndex = '1000';
+      paperElement.style.position = 'relative';
+
+      // Enable transitions
+      enableTransitions();
+
+      // Scale top immediately, bottom after 150ms
+      animateTopAndBottomScale(1.1, 1.1, 150);
+    });
+
+    paperElement.addEventListener('mouseleave', () => {
+      if (!isHovering) return;
+      isHovering = false;
+
+      // Restore original scale (top immediately, bottom after 150ms for smooth cascade back)
+      animateTopAndBottomScale(1, 1, 150);
+
+      // Reset z-index after animation completes
+      setTimeout(() => {
+        if (!isHovering) {
+          paperElement.style.zIndex = '';
+        }
+      }, 150 + 200); // delay + animation duration
     });
   }
 
@@ -370,6 +451,10 @@
       this.rotation = animationData.rotation || 0; // Rotation in degrees
       this.globalScale =
         animationData.scale !== undefined ? animationData.scale : 1; // Global scale multiplier
+
+      // Hover animation state - allows different scales for top and bottom
+      this.topScale = 1;
+      this.bottomScale = 1;
 
       // Rectangle mode (single DOM node rendering)
       this.isRectangleMode = false;
@@ -744,15 +829,43 @@
       const centerY =
         allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
 
-      const scaledLeftPoints = leftCurvePoints.map(p => ({
-        x: centerX + (p.x - centerX) * this.scale,
-        y: centerY + (p.y - centerY) * this.scale,
-      }));
+      // Find min and max Y for interpolating top/bottom scales
+      const minY = Math.min(...allPoints.map(p => p.y));
+      const maxY = Math.max(...allPoints.map(p => p.y));
+      const yRange = maxY - minY;
 
-      const scaledRightPoints = rightCurvePoints.map(p => ({
-        x: centerX + (p.x - centerX) * this.scale,
-        y: centerY + (p.y - centerY) * this.scale,
-      }));
+      // Ease-in-ease-out function for smooth interpolation
+      const easeInOutCubic = t => {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      };
+
+      const scaledLeftPoints = leftCurvePoints.map(p => {
+        // Interpolate scale based on Y position (0 = top, 1 = bottom)
+        const yProgress = yRange > 0 ? (p.y - minY) / yRange : 0;
+        const easedProgress = easeInOutCubic(yProgress);
+        const pointScale =
+          this.scale *
+          (this.topScale + (this.bottomScale - this.topScale) * easedProgress);
+
+        return {
+          x: centerX + (p.x - centerX) * pointScale,
+          y: centerY + (p.y - centerY) * pointScale,
+        };
+      });
+
+      const scaledRightPoints = rightCurvePoints.map(p => {
+        // Interpolate scale based on Y position (0 = top, 1 = bottom)
+        const yProgress = yRange > 0 ? (p.y - minY) / yRange : 0;
+        const easedProgress = easeInOutCubic(yProgress);
+        const pointScale =
+          this.scale *
+          (this.topScale + (this.bottomScale - this.topScale) * easedProgress);
+
+        return {
+          x: centerX + (p.x - centerX) * pointScale,
+          y: centerY + (p.y - centerY) * pointScale,
+        };
+      });
 
       for (let i = 0; i < numLines; i++) {
         const t = i / numSlices;
