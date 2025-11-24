@@ -908,6 +908,9 @@
     }
 
     updateAllTransforms() {
+      // Apply offset transform to parent paper-element
+      this.paperElement.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px)`;
+
       if (this.isRectangleMode) {
         this.updateRectangleTransform();
       } else {
@@ -938,20 +941,20 @@
         { x: this.paperWidth, y: this.paperHeight },
       ];
 
-      // Define destination corners using evaluated bezier points (with offset applied)
+      // Define destination corners using evaluated bezier points (offset handled by parent)
       const dst = [
-        { x: topLine.left.x + this.offsetX, y: topLine.left.y + this.offsetY },
+        { x: topLine.left.x, y: topLine.left.y },
         {
-          x: topLine.right.x + this.offsetX,
-          y: topLine.right.y + this.offsetY,
+          x: topLine.right.x,
+          y: topLine.right.y,
         },
         {
-          x: bottomLine.left.x + this.offsetX,
-          y: bottomLine.left.y + this.offsetY,
+          x: bottomLine.left.x,
+          y: bottomLine.left.y,
         },
         {
-          x: bottomLine.right.x + this.offsetX,
-          y: bottomLine.right.y + this.offsetY,
+          x: bottomLine.right.x,
+          y: bottomLine.right.y,
         },
       ];
 
@@ -980,12 +983,12 @@
         { x: this.paperWidth, y: startY + sliceHeight },
       ];
 
-      // Apply global offsets to destination corners
+      // Use corners directly (offset handled by parent element)
       const dst = [
-        { x: corners.tl.x + this.offsetX, y: corners.tl.y + this.offsetY },
-        { x: corners.tr.x + this.offsetX, y: corners.tr.y + this.offsetY },
-        { x: corners.bl.x + this.offsetX, y: corners.bl.y + this.offsetY },
-        { x: corners.br.x + this.offsetX, y: corners.br.y + this.offsetY },
+        { x: corners.tl.x, y: corners.tl.y },
+        { x: corners.tr.x, y: corners.tr.y },
+        { x: corners.bl.x, y: corners.bl.y },
+        { x: corners.br.x, y: corners.br.y },
       ];
 
       const matrix = this.getPerspectiveTransform(src, dst);

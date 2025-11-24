@@ -858,9 +858,10 @@
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', pathData);
       path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#3b82f6');
-      path.setAttribute('stroke-width', '3');
-      path.setAttribute('filter', 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))');
+      // DISABLED: Blue outline on selected paper
+      // path.setAttribute('stroke', '#3b82f6');
+      // path.setAttribute('stroke-width', '3');
+      // path.setAttribute('filter', 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))');
 
       svg.appendChild(path);
       document.body.appendChild(svg);
