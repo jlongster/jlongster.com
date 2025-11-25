@@ -2,6 +2,7 @@ export default function AnimationEditor() {
   return (
     <div className="min-h-screen bg-[#fcfbf9] p-8 overflow-visible">
       <script src="/paper-html-generator.js" />
+      <script src="/shadow-renderer.js" />
       <script src="/paper-position-tool.js" />
       <script src="/video-player.js" />
       <div

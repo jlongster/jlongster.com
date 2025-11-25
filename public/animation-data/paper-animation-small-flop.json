@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "timePerKeyframe": 0.1,
   "playbackFPS": 30,
   "keyframes": [
@@ -305,6 +305,218 @@
     null,
     null,
     null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "shadowKeyframes": [
+    {
+      "leftCurve": [
+        {
+          "x": -141.5,
+          "y": 36.5
+        },
+        {
+          "x": -147,
+          "y": 115
+        },
+        {
+          "x": -159.13333333333333,
+          "y": 171.36666666666667
+        },
+        {
+          "x": -159.3,
+          "y": 221.73333333333332
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 18.5,
+          "y": 37.5
+        },
+        {
+          "x": 17.533333333333335,
+          "y": 100.56666666666666
+        },
+        {
+          "x": 9.766666666666667,
+          "y": 160.53333333333333
+        },
+        {
+          "x": -26.666666666666668,
+          "y": 219.33333333333334
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "rgba(214, 214, 214, 1)"
+      ],
+      "blurEnabled": true,
+      "blurAmount": 16
+    },
+    null,
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -142.5,
+          "y": 24.5
+        },
+        {
+          "x": -147,
+          "y": 115
+        },
+        {
+          "x": -148.5,
+          "y": 167.5
+        },
+        {
+          "x": -156.5,
+          "y": 233.5
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 12.5,
+          "y": 27.5
+        },
+        {
+          "x": 18.5,
+          "y": 102.5
+        },
+        {
+          "x": 17.5,
+          "y": 161.5
+        },
+        {
+          "x": 17.5,
+          "y": 236.5
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "rgba(122, 122, 122, 1)"
+      ],
+      "blurEnabled": true,
+      "blurAmount": 5
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -142.5,
+          "y": 24.5
+        },
+        {
+          "x": -147,
+          "y": 115
+        },
+        {
+          "x": -148.5,
+          "y": 167.5
+        },
+        {
+          "x": -153.5,
+          "y": 227.5
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 14.5,
+          "y": 12.5
+        },
+        {
+          "x": 18.5,
+          "y": 102.5
+        },
+        {
+          "x": 17.5,
+          "y": 161.5
+        },
+        {
+          "x": 15.5,
+          "y": 234.5
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "rgba(122, 122, 122, 1)"
+      ],
+      "blurEnabled": true,
+      "blurAmount": 2
+    },
     null,
     null,
     null,

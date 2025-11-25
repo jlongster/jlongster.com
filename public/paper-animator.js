@@ -546,6 +546,7 @@
       this.timePerKeyframe = animationData.timePerKeyframe || 0.1;
       this.playbackFPS = animationData.playbackFPS || 30;
       this.scaleKeyframes = animationData.scaleKeyframes || [];
+      this.shadowKeyframes = animationData.shadowKeyframes || [];
 
       this.fadeInDuration = 100;
 
@@ -588,6 +589,12 @@
         this.applyRotationToKeyframes(animationData.keyframes || []),
       );
 
+      // Apply same transformations to shadow keyframes
+      // Note: Shadow keyframes use the same coordinate system as paper keyframes
+      this.shadowKeyframes = this.scaleShadowKeyframes_forDimensions(
+        this.applyRotationToShadowKeyframes(this.shadowKeyframes),
+      );
+
       // Total keyframes count
       this.totalKeyframes = Math.max(
         this.keyframes.length,
@@ -613,8 +620,30 @@
           ? animationData.endKeyframe
           : lastKeyframeIndex;
 
+      // Create shadow SVG element
+      this.createShadowElement();
+
       // Render the initial frame immediately to prevent flash
       this.renderInitialFrame();
+    }
+
+    createShadowElement() {
+      // Create SVG for shadow
+      this.shadowSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      this.shadowSVG.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+        overflow: visible;
+      `;
+      this.shadowSVG.setAttribute('viewBox', `0 0 ${this.paperWidth} ${this.paperHeight}`);
+
+      // Append to paper element
+      this.paperElement.appendChild(this.shadowSVG);
     }
 
     scaleKeyframes_forDimensions(keyframes) {
@@ -687,6 +716,65 @@
         x: rotatedX + centerX,
         y: rotatedY + centerY,
       };
+    }
+
+    scaleShadowKeyframes_forDimensions(keyframes) {
+      // Scale all shadow keyframe coordinates based on paper dimensions
+      // Shadow coordinates are saved in the animation editor's coordinate system
+      // which has a viewBox of '-200 -200 800 800', so we need to add 200 to normalize
+      // them to a 0-based system before scaling
+      const offsetX = 200;
+      const offsetY = 200;
+
+      return keyframes.map(keyframe => {
+        if (!keyframe) return keyframe;
+
+        return {
+          ...keyframe,
+          leftCurve: keyframe.leftCurve.map(point => ({
+            x: ((point.x + offsetX) / 250) * this.paperWidth,
+            y: ((point.y + offsetY) / 300) * this.paperHeight,
+          })),
+          rightCurve: keyframe.rightCurve.map(point => ({
+            x: ((point.x + offsetX) / 250) * this.paperWidth,
+            y: ((point.y + offsetY) / 300) * this.paperHeight,
+          })),
+        };
+      });
+    }
+
+    applyRotationToShadowKeyframes(keyframes) {
+      // Find the center point from the first shadow keyframe
+      const firstKeyframe = keyframes.find(kf => kf);
+      if (!firstKeyframe) return keyframes;
+
+      // Shadow coordinates are in the editor's coordinate system (-200 to 600)
+      // Calculate center from first keyframe's curves in that system
+      const allPoints = [
+        ...firstKeyframe.leftCurve,
+        ...firstKeyframe.rightCurve,
+      ];
+      const centerX =
+        allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+      const centerY =
+        allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+
+      const rotationRad = (this.rotation * Math.PI) / 180;
+
+      // Apply rotation to all shadow keyframes
+      return keyframes.map(keyframe => {
+        if (!keyframe) return keyframe;
+
+        return {
+          ...keyframe,
+          leftCurve: keyframe.leftCurve.map(point =>
+            this.transformPoint(point, centerX, centerY, rotationRad),
+          ),
+          rightCurve: keyframe.rightCurve.map(point =>
+            this.transformPoint(point, centerX, centerY, rotationRad),
+          ),
+        };
+      });
     }
 
     renderInitialFrame() {
@@ -919,6 +1007,9 @@
       // Apply global scale multiplier
       this.scale *= this.globalScale;
 
+      // Interpolate and render shadow if shadow keyframes exist
+      this.renderShadow(keyframePosition, lowerIndex, upperIndex);
+
       // If this is a rectangle keyframe, render as single DOM node
       if (isRectangle && false) {
         this.renderAsRectangle(leftCurvePoints, rightCurvePoints);
@@ -930,6 +1021,80 @@
         // Apply transforms to all slices
         this.updateAllTransforms();
       }
+    }
+
+    renderShadow(keyframePosition, lowerIndex, upperIndex) {
+      if (!this.shadowSVG || this.shadowKeyframes.length === 0) return;
+
+      const lowerShadowIndex = this.findPreviousShadowKeyframe(lowerIndex);
+      const upperShadowIndex = this.findNextShadowKeyframe(upperIndex);
+
+      if (lowerShadowIndex === null || upperShadowIndex === null) {
+        // No shadow keyframes - clear shadow
+        this.shadowSVG.innerHTML = '';
+        return;
+      }
+
+      const lowerShadow = this.shadowKeyframes[lowerShadowIndex];
+      const upperShadow = this.shadowKeyframes[upperShadowIndex];
+
+      let shadowT;
+      if (lowerShadowIndex === upperShadowIndex) {
+        shadowT = 0;
+      } else {
+        shadowT = (keyframePosition - lowerShadowIndex) / (upperShadowIndex - lowerShadowIndex);
+        shadowT = Math.max(0, Math.min(1, shadowT));
+      }
+
+      // Interpolate shadow bezier curves
+      const leftCurve = lowerShadow.leftCurve.map((p, i) => ({
+        x: this.lerp(p.x, upperShadow.leftCurve[i].x, shadowT),
+        y: this.lerp(p.y, upperShadow.leftCurve[i].y, shadowT)
+      }));
+
+      const rightCurve = lowerShadow.rightCurve.map((p, i) => ({
+        x: this.lerp(p.x, upperShadow.rightCurve[i].x, shadowT),
+        y: this.lerp(p.y, upperShadow.rightCurve[i].y, shadowT)
+      }));
+
+      // Generate points along the curves using shared shadow renderer
+      const generatedPoints = window.ShadowRenderer.generateShapePoints(leftCurve, rightCurve, 10);
+
+      // Interpolate colors
+      const colors = lowerShadow.colors.map((lowerColor, i) => {
+        const upperColor = upperShadow.colors[i];
+        if (lowerColor === null || upperColor === null) {
+          return lowerColor || upperColor;
+        }
+        return this.interpolateColors(lowerColor, upperColor, shadowT);
+      });
+
+      // Interpolate blur
+      const blurAmount = lowerShadow.blurAmount !== undefined && upperShadow.blurAmount !== undefined
+        ? this.lerp(lowerShadow.blurAmount, upperShadow.blurAmount, shadowT)
+        : (lowerShadow.blurAmount || upperShadow.blurAmount || 0);
+
+      const blurEnabled = shadowT < 0.5 ? lowerShadow.blurEnabled : upperShadow.blurEnabled;
+
+      // Render the shadow shape
+      this.drawShadowShape(generatedPoints, colors, blurAmount, blurEnabled);
+    }
+
+    interpolateColors(color1, color2, t) {
+      // Use shared shadow renderer
+      return window.ShadowRenderer.interpolateColors(color1, color2, t);
+    }
+
+    drawShadowShape(generatedPoints, colors, blurAmount, blurEnabled) {
+      // Use shared shadow renderer with unique ID prefix
+      window.ShadowRenderer.drawSVGShape(
+        this.shadowSVG,
+        generatedPoints,
+        colors,
+        blurEnabled,
+        blurAmount,
+        `shadow-${this.id}`
+      );
     }
 
     calculateSlicePoints(leftCurvePoints, rightCurvePoints) {
@@ -1188,6 +1353,30 @@
           this.scaleKeyframes[i] !== null &&
           this.scaleKeyframes[i] !== undefined
         )
+          return i;
+      }
+      return null;
+    }
+
+    findNextShadowKeyframe(startIndex) {
+      for (let i = startIndex; i < this.shadowKeyframes.length; i++) {
+        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+          return i;
+      }
+      for (let i = 0; i < startIndex; i++) {
+        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+          return i;
+      }
+      return null;
+    }
+
+    findPreviousShadowKeyframe(startIndex) {
+      for (let i = startIndex; i >= 0; i--) {
+        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+          return i;
+      }
+      for (let i = this.shadowKeyframes.length - 1; i > startIndex; i--) {
+        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
           return i;
       }
       return null;

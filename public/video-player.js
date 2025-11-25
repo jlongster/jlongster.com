@@ -17,6 +17,7 @@
   function createVideoPlayer() {
     // Main container
     container = document.createElement('div');
+    container.id = 'video-player-container';
     container.style.cssText = `
       position: fixed;
       left: 50%;
@@ -30,6 +31,7 @@
       overflow: hidden;
       z-index: 10000;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: none;
     `;
 
     // Video element

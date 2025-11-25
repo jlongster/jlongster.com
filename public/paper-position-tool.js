@@ -121,6 +121,13 @@
     }
   }
 
+  function updateOverlayPosition() {
+    if (!overlay || !paperElement) return;
+    const rect = paperElement.getBoundingClientRect();
+    overlay.style.top = (rect.top + overlayOffsetY) + 'px';
+    overlay.style.left = (rect.left + overlayOffsetX) + 'px';
+  }
+
   function createOverlay() {
     // Create overlay container
     overlay = document.createElement('div');
@@ -133,11 +140,9 @@
       overflow: visible;
     `;
 
-    const rect = paperElement.getBoundingClientRect();
-    overlay.style.top = rect.top + 'px';
-    overlay.style.left = rect.left + 'px';
     overlayOffsetX = 0;
     overlayOffsetY = 0;
+    updateOverlayPosition();
 
     // Create SVG for curves and outlines
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -184,7 +189,7 @@
       width: 400px;
       height: 400px;
       pointer-events: none;
-      z-index: 50;
+      z-index: 10002;
       overflow: visible;
       top: 50%;
       left: 50%;
@@ -194,20 +199,23 @@
     // Create SVG for shape curves and shapes
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.style.cssText = `
-      position: absolute;
-      top: -200px;
-      left: -200px;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       width: 800px;
       height: 800px;
       pointer-events: none;
       overflow: visible;
+      z-index: 50;
     `;
     svg.setAttribute('width', '800');
     svg.setAttribute('height', '800');
     svg.setAttribute('viewBox', '-200 -200 800 800');
     svg.id = 'shape-svg';
 
-    shapeOverlay.appendChild(svg);
+    // Append SVG directly to body so it can have independent z-index
+    document.body.appendChild(svg);
 
     // Create shape control points
     shapeLeftCurvePoints.forEach((point, index) => {
@@ -261,7 +269,16 @@
       display: block;
     `;
 
-    // Controls row
+    // View/Display controls row (Paper/Shadow toggles, blur, video)
+    const viewControls = document.createElement('div');
+    viewControls.style.cssText = `
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    `;
+
+    // Main editing controls row
     const controls = document.createElement('div');
     controls.style.cssText = `
       display: flex;
@@ -467,9 +484,38 @@
     `;
     shadowBlurBtn.onclick = () => {
       shadowBlurEnabled = !shadowBlurEnabled;
-      applyShadowBlur();
       shadowBlurBtn.textContent = shadowBlurEnabled ? 'Blur: On' : 'Blur: Off';
       shadowBlurBtn.style.background = shadowBlurEnabled ? '#10b981' : '#6b7280';
+      // Redraw shadow to apply/remove blur
+      drawSVGShape();
+    };
+
+    // Video player toggle
+    let videoPlayerVisible = false; // Default: hidden
+    const videoPlayerBtn = document.createElement('button');
+    videoPlayerBtn.textContent = 'Video: Hide';
+    videoPlayerBtn.style.cssText = `
+      padding: 4px 10px;
+      background: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 12px;
+    `;
+
+    videoPlayerBtn.onclick = () => {
+      videoPlayerVisible = !videoPlayerVisible;
+      const videoPlayer = document.getElementById('video-player-container');
+
+      if (videoPlayer) {
+        videoPlayer.style.display = videoPlayerVisible ? 'block' : 'none';
+        videoPlayerBtn.textContent = videoPlayerVisible ? 'Video: Show' : 'Video: Hide';
+        videoPlayerBtn.style.background = videoPlayerVisible ? '#10b981' : '#6b7280';
+      } else {
+        console.warn('[Video Toggle] Could not find video player container');
+      }
     };
 
     // Shadow blur amount slider
@@ -492,9 +538,8 @@
     blurSlider.addEventListener('input', (e) => {
       shadowBlurAmount = parseFloat(e.target.value);
       blurValue.textContent = `${shadowBlurAmount}px`;
-      if (shadowBlurEnabled) {
-        applyShadowBlur();
-      }
+      // Redraw shadow to apply new blur amount
+      drawSVGShape();
     });
 
     // Shape point color picker
@@ -673,16 +718,20 @@
     collapsedControls.appendChild(frameDisplay);
 
     // Expanded controls: everything else
+    // Add buttons to view controls row
+    viewControls.appendChild(paperPlayerModeBtn);
+    viewControls.appendChild(shadowPlayerModeBtn);
+    viewControls.appendChild(shadowBlurBtn);
+    viewControls.appendChild(blurAmountLabel);
+    viewControls.appendChild(videoPlayerBtn);
+
+    // Add buttons to main editing controls row
     controls.appendChild(saveButton);
     controls.appendChild(clearButton);
     controls.appendChild(straightenButton);
     controls.appendChild(exportButton);
     controls.appendChild(importButton);
     controls.appendChild(transparencyBtn);
-    controls.appendChild(paperPlayerModeBtn);
-    controls.appendChild(shadowPlayerModeBtn);
-    controls.appendChild(shadowBlurBtn);
-    controls.appendChild(blurAmountLabel);
     controls.appendChild(colorPickerLabel);
     controls.appendChild(opacityLabel);
     controls.appendChild(timePerKeyframeLabel);
@@ -692,6 +741,7 @@
     controls.appendChild(offsetYLabel);
     controls.appendChild(timeDisplay);
 
+    expandedContainer.appendChild(viewControls);
     expandedContainer.appendChild(controls);
 
     // Unified Timeline track
@@ -1141,7 +1191,7 @@
     drawShapeCurves();
     generateShapePoints();
     drawSVGShape();
-    applyShadowBlur();
+    // applyShadowBlur(); // Don't call - permanent blur is applied in drawSVGShape()
   }
 
   function saveCurrentKeyframe() {
@@ -1306,6 +1356,7 @@
   function applyTransform() {
     // Transforms are now applied by modifying the destination points in updateSliceTransform
     // Just trigger a redraw
+    updateOverlayPosition();
     updateAllTransforms();
   }
 
@@ -1508,7 +1559,7 @@
       drawShapeCurves();
       generateShapePoints();
       drawSVGShape();
-      applyShadowBlur();
+      // applyShadowBlur(); // Don't call - permanent blur is applied in drawSVGShape()
     }
 
     // Update visuals
@@ -1663,15 +1714,18 @@
     const existing = svg.querySelectorAll('path, line');
     existing.forEach(el => el.remove());
 
-    // Draw shape bezier curves
-    drawControlHandles(svg, shapeLeftCurvePoints, '#10b981');
-    drawControlHandles(svg, shapeRightCurvePoints, '#f59e0b');
+    // Only draw curves if shadow player mode is off (edit mode)
+    if (!shadowPlayerMode) {
+      // Draw shape bezier curves
+      drawControlHandles(svg, shapeLeftCurvePoints, '#10b981');
+      drawControlHandles(svg, shapeRightCurvePoints, '#f59e0b');
 
-    const shapeLeftPath = createBezierPath(shapeLeftCurvePoints, '#10b981');
-    svg.appendChild(shapeLeftPath);
+      const shapeLeftPath = createBezierPath(shapeLeftCurvePoints, '#10b981');
+      svg.appendChild(shapeLeftPath);
 
-    const shapeRightPath = createBezierPath(shapeRightCurvePoints, '#f59e0b');
-    svg.appendChild(shapeRightPath);
+      const shapeRightPath = createBezierPath(shapeRightCurvePoints, '#f59e0b');
+      svg.appendChild(shapeRightPath);
+    }
   }
 
   function drawControlHandles(svg, points, color) {
@@ -1732,211 +1786,42 @@
   }
 
   function generateShapePoints() {
-    shapeGeneratedPoints = [];
-    const numPointsPerCurve = 10;
+    // Use shared shadow renderer
+    shapeGeneratedPoints = window.ShadowRenderer.generateShapePoints(
+      shapeLeftCurvePoints,
+      shapeRightCurvePoints,
+      10
+    );
+  }
 
-    // Generate points along left curve (top to bottom)
-    for (let i = 0; i < numPointsPerCurve; i++) {
-      const t = i / (numPointsPerCurve - 1);
-      const x = cubicBezier(
-        shapeLeftCurvePoints[0].x,
-        shapeLeftCurvePoints[1].x,
-        shapeLeftCurvePoints[2].x,
-        shapeLeftCurvePoints[3].x,
-        t
-      );
-      const y = cubicBezier(
-        shapeLeftCurvePoints[0].y,
-        shapeLeftCurvePoints[1].y,
-        shapeLeftCurvePoints[2].y,
-        shapeLeftCurvePoints[3].y,
-        t
-      );
-      shapeGeneratedPoints.push({ x, y, index: i });
-    }
-
-    // Generate points along right curve (bottom to top for proper winding)
-    for (let i = numPointsPerCurve - 1; i >= 0; i--) {
-      const t = i / (numPointsPerCurve - 1);
-      const x = cubicBezier(
-        shapeRightCurvePoints[0].x,
-        shapeRightCurvePoints[1].x,
-        shapeRightCurvePoints[2].x,
-        shapeRightCurvePoints[3].x,
-        t
-      );
-      const y = cubicBezier(
-        shapeRightCurvePoints[0].y,
-        shapeRightCurvePoints[1].y,
-        shapeRightCurvePoints[2].y,
-        shapeRightCurvePoints[3].y,
-        t
-      );
-      shapeGeneratedPoints.push({ x, y, index: numPointsPerCurve + (numPointsPerCurve - 1 - i) });
-    }
+  // Color interpolation functions moved to shared shadow-renderer.js
+  function interpolateColors(color1, color2, t) {
+    return window.ShadowRenderer.interpolateColors(color1, color2, t);
   }
 
   function getInterpolatedColor(index) {
-    // If this index has a color set, return it
-    if (shapePointColors[index] !== null) {
-      return shapePointColors[index];
-    }
-
-    // Find the nearest set color before this index
-    let beforeIndex = -1;
-    let beforeColor = null;
-    for (let i = index - 1; i >= 0; i--) {
-      if (shapePointColors[i] !== null) {
-        beforeIndex = i;
-        beforeColor = shapePointColors[i];
-        break;
-      }
-    }
-
-    // Find the nearest set color after this index
-    let afterIndex = -1;
-    let afterColor = null;
-    for (let i = index + 1; i < shapePointColors.length; i++) {
-      if (shapePointColors[i] !== null) {
-        afterIndex = i;
-        afterColor = shapePointColors[i];
-        break;
-      }
-    }
-
-    // If no colors are set at all, return default gray
-    if (beforeColor === null && afterColor === null) {
-      return '#e0e0e0';
-    }
-
-    // If only before color exists, use that
-    if (afterColor === null) {
-      return beforeColor;
-    }
-
-    // If only after color exists, use that
-    if (beforeColor === null) {
-      return afterColor;
-    }
-
-    // Interpolate between before and after colors
-    const t = (index - beforeIndex) / (afterIndex - beforeIndex);
-    return interpolateColors(beforeColor, afterColor, t);
-  }
-
-  function parseColor(color) {
-    // Parse rgba(r, g, b, a) format
-    if (color.startsWith('rgba')) {
-      const matches = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
-      if (matches) {
-        return {
-          r: parseInt(matches[1]),
-          g: parseInt(matches[2]),
-          b: parseInt(matches[3]),
-          a: parseFloat(matches[4])
-        };
-      }
-    }
-    // Parse hex format (assume full opacity)
-    if (color.startsWith('#')) {
-      return {
-        r: parseInt(color.slice(1, 3), 16),
-        g: parseInt(color.slice(3, 5), 16),
-        b: parseInt(color.slice(5, 7), 16),
-        a: 1
-      };
-    }
-    // Default
-    return { r: 224, g: 224, b: 224, a: 1 };
-  }
-
-  function interpolateColors(color1, color2, t) {
-    const c1 = parseColor(color1);
-    const c2 = parseColor(color2);
-
-    // Interpolate each channel including alpha
-    const r = Math.round(c1.r + (c2.r - c1.r) * t);
-    const g = Math.round(c1.g + (c2.g - c1.g) * t);
-    const b = Math.round(c1.b + (c2.b - c1.b) * t);
-    const a = c1.a + (c2.a - c1.a) * t;
-
-    return `rgba(${r}, ${g}, ${b}, ${a})`;
+    return window.ShadowRenderer.getInterpolatedColor(index, shapePointColors);
   }
 
   function drawSVGShape() {
     const svg = document.getElementById('shape-svg');
     if (!svg) return;
 
-    // Remove existing shape elements and gradients
-    const existingShapes = svg.querySelectorAll('.shape-slice');
-    existingShapes.forEach(shape => shape.remove());
-    const existingDefs = svg.querySelector('defs');
-    if (existingDefs) existingDefs.remove();
+    // Use shared shadow renderer
+    window.ShadowRenderer.drawSVGShape(
+      svg,
+      shapeGeneratedPoints,
+      shapePointColors,
+      shadowBlurEnabled,
+      shadowBlurAmount
+    );
 
-    if (shapeGeneratedPoints.length === 0) return;
-
-    const numPointsPerCurve = 10;
-    const numSlices = numPointsPerCurve - 1; // 9 slices
-
-    // Get left and right points separately
-    const leftPoints = shapeGeneratedPoints.slice(0, numPointsPerCurve);
-    const rightPoints = shapeGeneratedPoints.slice(numPointsPerCurve, numPointsPerCurve * 2).reverse();
-
-    // Create defs element for gradient
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    svg.appendChild(defs);
-
-    // Create a single gradient that spans the entire shape
-    // Calculate Y bounds of the shape
-    const allYs = [...leftPoints, ...rightPoints].map(p => p.y);
-    const minY = Math.min(...allYs);
-    const maxY = Math.max(...allYs);
-
-    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-    gradient.setAttribute('id', 'shape-gradient');
-    gradient.setAttribute('x1', '0%');
-    gradient.setAttribute('y1', minY);
-    gradient.setAttribute('x2', '0%');
-    gradient.setAttribute('y2', maxY);
-    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
-
-    // Add color stops for each point based on their Y position
-    for (let i = 0; i < numPointsPerCurve; i++) {
-      const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      const sliceIndex = Math.min(i, shapePointColors.length - 1);
-
-      // Calculate Y position as a percentage of the total range
-      const pointY = (leftPoints[i].y + rightPoints[i].y) / 2;
-      const offset = ((pointY - minY) / (maxY - minY)) * 100;
-
-      stop.setAttribute('offset', `${offset}%`);
-      stop.setAttribute('stop-color', getInterpolatedColor(sliceIndex));
-      gradient.appendChild(stop);
+    // Add drag listener to polygon
+    const polygon = svg.querySelector('.shape-slice');
+    if (polygon) {
+      polygon.style.cursor = 'move';
+      polygon.addEventListener('mousedown', startShadowWholeDrag);
     }
-
-    defs.appendChild(gradient);
-
-    // Create a single shape following the outline of both curves
-    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-
-    // Build points string: left curve (top to bottom) + right curve (bottom to top)
-    const allPoints = [...leftPoints, ...rightPoints.reverse()];
-    const pointsStr = allPoints.map(p => `${p.x},${p.y}`).join(' ');
-
-    polygon.setAttribute('points', pointsStr);
-    polygon.setAttribute('fill', 'url(#shape-gradient)');
-    polygon.setAttribute('stroke', 'none');
-    polygon.setAttribute('class', 'shape-slice');
-    polygon.style.pointerEvents = 'all';
-    polygon.style.cursor = 'move';
-
-    // Add drag listener
-    polygon.addEventListener('mousedown', startShadowWholeDrag);
-
-    svg.appendChild(polygon);
-
-    // Apply blur if enabled
-    applyShadowBlur();
 
     // Draw point markers AFTER shapes so they're on top
     drawShapePointMarkers();
@@ -2585,9 +2470,15 @@
     }
 
     if (shadowBlurEnabled && shadowBlurAmount > 0) {
-      // Create blur filter
+      // Create blur filter with extended region to allow blur beyond bounds
       const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
       filter.setAttribute('id', 'shadow-blur-filter');
+
+      // Extend filter region beyond shape bounds (50% in each direction)
+      filter.setAttribute('x', '-50%');
+      filter.setAttribute('y', '-50%');
+      filter.setAttribute('width', '200%');
+      filter.setAttribute('height', '200%');
 
       const blur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
       blur.setAttribute('in', 'SourceGraphic');
