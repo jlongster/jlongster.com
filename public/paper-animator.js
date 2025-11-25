@@ -134,6 +134,10 @@
       });
       return result;
     },
+    initializePaperElements: function () {
+      // Expose initializePaperElements for external use (e.g., PaperRenderer restart)
+      initializePaperElements();
+    },
   };
 
   async function init() {
@@ -720,11 +724,11 @@
 
     scaleShadowKeyframes_forDimensions(keyframes) {
       // Scale all shadow keyframe coordinates based on paper dimensions
-      // Shadow coordinates are saved in the animation editor's coordinate system
-      // which has a viewBox of '-200 -200 800 800', so we need to add 200 to normalize
-      // them to a 0-based system before scaling
-      const offsetX = 200;
-      const offsetY = 200;
+      // Same scaling approach as regular keyframes - no offset needed
+      // Also apply globalScale to match the paper's scaling
+      // Apply fixed offset to align shadows with paper position
+      const shadowOffsetX = -180;
+      const shadowOffsetY = 70;
 
       return keyframes.map(keyframe => {
         if (!keyframe) return keyframe;
@@ -732,12 +736,12 @@
         return {
           ...keyframe,
           leftCurve: keyframe.leftCurve.map(point => ({
-            x: ((point.x + offsetX) / 250) * this.paperWidth,
-            y: ((point.y + offsetY) / 300) * this.paperHeight,
+            x: (point.x / 250) * this.paperWidth * this.globalScale + shadowOffsetX,
+            y: (point.y / 300) * this.paperHeight * this.globalScale + shadowOffsetY,
           })),
           rightCurve: keyframe.rightCurve.map(point => ({
-            x: ((point.x + offsetX) / 250) * this.paperWidth,
-            y: ((point.y + offsetY) / 300) * this.paperHeight,
+            x: (point.x / 250) * this.paperWidth * this.globalScale + shadowOffsetX,
+            y: (point.y / 300) * this.paperHeight * this.globalScale + shadowOffsetY,
           })),
         };
       });

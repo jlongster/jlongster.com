@@ -28,15 +28,23 @@ function PostsList({
   className,
   animationConfigs,
   groupName,
+  style,
 }: {
   posts: any[];
   id?: string;
   className?: string;
   animationConfigs?: any[];
   groupName?: string;
+  style: any;
 }) {
   return (
-    <div id={id} className={className} data-paper-group={groupName}>
+    <div
+      id={id}
+      className={className}
+      data-paper-group={groupName}
+      data-paper-scroll-animate
+      style={style}
+    >
       {posts.map((post: any, index: number) => {
         const animationConfig = animationConfigs?.[index];
         const paperStyle = post.gif ? 'image' : 'text';
@@ -273,6 +281,7 @@ export default function Index() {
           posts={experiments}
           id="experiments"
           groupName="experiments"
+          style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
           animationConfigs={[
             {
               animationIndex: 3,
@@ -316,8 +325,6 @@ export default function Index() {
             },
           ]}
         />
-
-        <div style={{ height: 1000 }} />
 
         {/* Semantic list of all posts - will be scraped by JS
             NEVER apply display: none here, it should always be an inline script tag below*/}

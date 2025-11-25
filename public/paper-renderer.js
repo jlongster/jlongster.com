@@ -233,6 +233,15 @@
       } else {
         parent.appendChild(newWrapper);
       }
+
+      // Trigger re-initialization of the paper animator
+      // The MutationObserver should catch this, but we can also trigger it explicitly
+      if (window.PaperAnimator && window.PaperAnimator.initializePaperElements) {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          window.PaperAnimator.initializePaperElements();
+        }, 10);
+      }
     },
   };
 
