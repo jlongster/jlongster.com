@@ -1916,27 +1916,24 @@
 
     defs.appendChild(gradient);
 
-    // Draw each slice with the shared gradient
-    for (let i = 0; i < numSlices; i++) {
-      const tl = leftPoints[i];
-      const tr = rightPoints[i];
-      const br = rightPoints[i + 1];
-      const bl = leftPoints[i + 1];
+    // Create a single shape following the outline of both curves
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
 
-      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      const pointsStr = `${tl.x},${tl.y} ${tr.x},${tr.y} ${br.x},${br.y} ${bl.x},${bl.y}`;
-      polygon.setAttribute('points', pointsStr);
-      polygon.setAttribute('fill', 'url(#shape-gradient)');
-      polygon.setAttribute('stroke', 'none');
-      polygon.setAttribute('class', 'shape-slice');
-      polygon.style.pointerEvents = 'all';
-      polygon.style.cursor = 'move';
+    // Build points string: left curve (top to bottom) + right curve (bottom to top)
+    const allPoints = [...leftPoints, ...rightPoints.reverse()];
+    const pointsStr = allPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-      // Add drag listener
-      polygon.addEventListener('mousedown', startShadowWholeDrag);
+    polygon.setAttribute('points', pointsStr);
+    polygon.setAttribute('fill', 'url(#shape-gradient)');
+    polygon.setAttribute('stroke', 'none');
+    polygon.setAttribute('class', 'shape-slice');
+    polygon.style.pointerEvents = 'all';
+    polygon.style.cursor = 'move';
 
-      svg.appendChild(polygon);
-    }
+    // Add drag listener
+    polygon.addEventListener('mousedown', startShadowWholeDrag);
+
+    svg.appendChild(polygon);
 
     // Apply blur if enabled
     applyShadowBlur();
@@ -1967,6 +1964,9 @@
       const isSelected = selectedShapePoint === i;
       const fillColor = getInterpolatedColor(sliceIndex);
 
+      // Check if markers should be visible based on player mode
+      const markerDisplay = shadowPlayerMode ? 'none' : 'block';
+
       // Left marker (HTML div)
       const leftMarker = document.createElement('div');
       leftMarker.style.cssText = `
@@ -1982,6 +1982,7 @@
         transform: translate(-50%, -50%);
         left: ${leftPoint.x}px;
         top: ${leftPoint.y}px;
+        display: ${markerDisplay};
       `;
       leftMarker.className = 'shape-point-marker';
       leftMarker.dataset.sliceIndex = i;
@@ -2008,6 +2009,7 @@
         transform: translate(-50%, -50%);
         left: ${rightPoint.x}px;
         top: ${rightPoint.y}px;
+        display: ${markerDisplay};
       `;
       rightMarker.className = 'shape-point-marker';
       rightMarker.dataset.sliceIndex = i;
