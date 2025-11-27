@@ -821,6 +821,12 @@
         clearInterval(this.animationInterval);
         this.animationInterval = null;
       }
+
+      // Clean up shadow SVG element
+      if (this.shadowSVG && this.shadowSVG.parentNode) {
+        this.shadowSVG.parentNode.removeChild(this.shadowSVG);
+        this.shadowSVG = null;
+      }
     }
 
     pause() {
