@@ -42,6 +42,7 @@
   let shadowPlayerMode = false; // Toggle to hide shadow controls
   let shadowBlurEnabled = false; // Toggle for shadow blur
   let shadowBlurAmount = 5; // Blur amount in pixels
+  let loopAnimation = true; // Whether to loop/repeat animation when it ends
 
   // UI elements
   let timelineContainer = null;
@@ -325,6 +326,30 @@
       font-size: 12px;
     `;
     playButton.onclick = togglePlay;
+
+    // Loop animation checkbox
+    const loopCheckbox = document.createElement('input');
+    loopCheckbox.type = 'checkbox';
+    loopCheckbox.id = 'loop-checkbox';
+    loopCheckbox.checked = loopAnimation;
+    loopCheckbox.style.cssText = `
+      margin-left: 8px;
+      cursor: pointer;
+    `;
+    loopCheckbox.onchange = (e) => {
+      loopAnimation = e.target.checked;
+    };
+
+    const loopLabel = document.createElement('label');
+    loopLabel.htmlFor = 'loop-checkbox';
+    loopLabel.textContent = 'Loop';
+    loopLabel.style.cssText = `
+      margin-left: 4px;
+      font-size: 12px;
+      color: #374151;
+      cursor: pointer;
+      user-select: none;
+    `;
 
     // Save keyframe button
     const saveButton = document.createElement('button');
@@ -712,9 +737,11 @@
     `;
     frameDisplay.textContent = `KF: ${currentKeyframe + 1}/${totalKeyframes}`;
 
-    // Collapsed controls: only play button and frame display
+    // Collapsed controls: only play button, loop checkbox, and frame display
     collapsedControls.appendChild(collapseButton);
     collapsedControls.appendChild(playButton);
+    collapsedControls.appendChild(loopCheckbox);
+    collapsedControls.appendChild(loopLabel);
     collapsedControls.appendChild(frameDisplay);
 
     // Expanded controls: everything else
@@ -1094,23 +1121,17 @@
     currentScaleKeyframe = index;
     currentShadowKeyframe = index;
 
-    // Load all keyframe types if they exist
-    if (keyframes[index]) {
-      loadKeyframe(index);
-    }
+    // Use the same interpolation logic as playback
+    applyInterpolatedFrame(index);
 
-    if (scaleKeyframes[index] !== null) {
-      scale = scaleKeyframes[index];
-      const scaleInput = document.getElementById('scale-input');
-      if (scaleInput) scaleInput.value = scale;
-      calculateSlicePoints();
-      drawCurves();
-      updateAllTransforms();
-    }
+    // Update UI controls with interpolated values
+    const scaleInput = document.getElementById('scale-input');
+    if (scaleInput) scaleInput.value = scale;
 
-    if (shadowKeyframes[index] !== null) {
-      loadShadowKeyframe(index);
-    }
+    const blurToggle = document.getElementById('blur-toggle');
+    const blurSlider = document.getElementById('blur-slider');
+    if (blurToggle) blurToggle.checked = shadowBlurEnabled;
+    if (blurSlider) blurSlider.value = shadowBlurAmount;
 
     updateTimelineUI();
   }
@@ -1439,6 +1460,20 @@
 
   // Interpolate and apply a frame at a given keyframe position (can be fractional)
   function applyInterpolatedFrame(keyframePosition) {
+    // Find the last keyframe with data
+    let lastKeyframeIndex = -1;
+    for (let i = totalKeyframes - 1; i >= 0; i--) {
+      if (keyframes[i]) {
+        lastKeyframeIndex = i;
+        break;
+      }
+    }
+
+    // Clamp keyframePosition to not exceed the last keyframe
+    if (lastKeyframeIndex >= 0 && keyframePosition >= lastKeyframeIndex) {
+      keyframePosition = lastKeyframeIndex;
+    }
+
     // Find the keyframes to interpolate between
     const lowerIndex = Math.floor(keyframePosition);
     const upperIndex = Math.ceil(keyframePosition);
@@ -1449,6 +1484,12 @@
 
     if (lowerKeyframeIndex === null || upperKeyframeIndex === null) {
       return; // No keyframes to interpolate
+    }
+
+    // If we're at or past the last keyframe, don't wrap around
+    if (lastKeyframeIndex >= 0 && lowerKeyframeIndex >= lastKeyframeIndex) {
+      upperKeyframeIndex = lastKeyframeIndex;
+      lowerKeyframeIndex = lastKeyframeIndex;
     }
 
     const lowerKf = keyframes[lowerKeyframeIndex];
@@ -1489,6 +1530,21 @@
     let lowerScaleIndex = findPreviousScaleKeyframe(lowerIndex);
     let upperScaleIndex = findNextScaleKeyframe(upperIndex);
 
+    // Find the last scale keyframe
+    let lastScaleKeyframeIndex = -1;
+    for (let i = totalKeyframes - 1; i >= 0; i--) {
+      if (scaleKeyframes[i] !== null) {
+        lastScaleKeyframeIndex = i;
+        break;
+      }
+    }
+
+    // If we're at or past the last scale keyframe, don't wrap around
+    if (lastScaleKeyframeIndex >= 0 && lowerScaleIndex >= lastScaleKeyframeIndex) {
+      upperScaleIndex = lastScaleKeyframeIndex;
+      lowerScaleIndex = lastScaleKeyframeIndex;
+    }
+
     if (lowerScaleIndex !== null && upperScaleIndex !== null) {
       const lowerScale = scaleKeyframes[lowerScaleIndex];
       const upperScale = scaleKeyframes[upperScaleIndex];
@@ -1507,6 +1563,21 @@
     // Interpolate shadow from shadow timeline
     let lowerShadowIndex = findPreviousShadowKeyframe(lowerIndex);
     let upperShadowIndex = findNextShadowKeyframe(upperIndex);
+
+    // Find the last shadow keyframe
+    let lastShadowKeyframeIndex = -1;
+    for (let i = totalKeyframes - 1; i >= 0; i--) {
+      if (shadowKeyframes[i] !== null) {
+        lastShadowKeyframeIndex = i;
+        break;
+      }
+    }
+
+    // If we're at or past the last shadow keyframe, don't wrap around
+    if (lastShadowKeyframeIndex >= 0 && lowerShadowIndex >= lastShadowKeyframeIndex) {
+      upperShadowIndex = lastShadowKeyframeIndex;
+      lowerShadowIndex = lastShadowKeyframeIndex;
+    }
 
     if (lowerShadowIndex !== null && upperShadowIndex !== null) {
       const lowerShadow = shadowKeyframes[lowerShadowIndex];
@@ -1605,10 +1676,22 @@
       // Calculate total animation time
       const totalAnimationTime = lastKeyframeIndex >= 0 ? (lastKeyframeIndex + 1) * timePerKeyframe : 0;
 
-      // If we've passed the end of the animation, loop back to start
+      // If we've passed the end of the animation
       if (totalAnimationTime > 0 && currentTime >= totalAnimationTime) {
-        currentPlaybackFrame = 0;
-        applyInterpolatedFrame(0);
+        if (loopAnimation) {
+          // Loop back to start
+          currentPlaybackFrame = 0;
+          applyInterpolatedFrame(0);
+        } else {
+          // Stop at the end
+          stopAnimation();
+          // Show final frame
+          applyInterpolatedFrame(lastKeyframeIndex);
+          currentKeyframe = lastKeyframeIndex;
+          currentScaleKeyframe = lastKeyframeIndex;
+          currentShadowKeyframe = lastKeyframeIndex;
+          updateTimelineUI();
+        }
       } else {
         // Apply interpolated frame
         applyInterpolatedFrame(keyframePosition);
@@ -2564,6 +2647,27 @@
       init();
     }
   }
+
+  // Add global keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Spacebar - toggle play/pause
+    if (e.code === 'Space' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      e.preventDefault();
+      togglePlay();
+    }
+
+    // Ctrl+Shift+R (or Cmd+Shift+R on Mac) - start playing
+    if (e.code === 'KeyR' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+      e.preventDefault();
+      if (!isPlaying) {
+        startAnimation();
+      }
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', autoInit);
