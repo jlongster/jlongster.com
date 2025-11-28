@@ -67,7 +67,7 @@
     return `
       <div
         class="uncolored-links paper-element block relative text-black no-underline"
-        style=""
+        style="visibility: hidden;"
       >
         ${slices}
       </div>
@@ -196,21 +196,16 @@
       const contentDiv = paperElement.querySelector('.paper-slice > div');
       const htmlContent = contentDiv ? contentDiv.innerHTML : '';
 
-      // Remove old wrapper
-      const parent = wrapper.parentElement;
-      const nextSibling = wrapper.nextSibling;
-      wrapper.remove();
-
-      // Create new wrapper with the same content
-      const newWrapper = document.createElement('div');
-      newWrapper.className = 'paper-component-wrapper';
-      newWrapper.style.cssText = 'position: relative;';
+      // Clear the wrapper's content and regenerate
+      wrapper.innerHTML = '';
+      wrapper.className = 'paper-component-wrapper';
+      wrapper.style.cssText = 'position: relative;';
 
       // Generate the Paper HTML structure using helper function
-      newWrapper.innerHTML = createPaperHTML(htmlContent, paperStyle);
+      wrapper.innerHTML = createPaperHTML(htmlContent, paperStyle);
 
       // Mark the paper element with animation config and ID
-      const newPaperElement = newWrapper.querySelector('.paper-element');
+      const newPaperElement = wrapper.querySelector('.paper-element');
       if (newPaperElement) {
         setPaperAttributes(newPaperElement, {
           id,
@@ -225,13 +220,6 @@
           startKeyframe,
           endKeyframe,
         });
-      }
-
-      // Insert at the same position
-      if (nextSibling) {
-        parent.insertBefore(newWrapper, nextSibling);
-      } else {
-        parent.appendChild(newWrapper);
       }
 
       // Don't manually trigger initialization - let the MutationObserver handle it
@@ -286,16 +274,16 @@
         scale,
       });
 
-      // Create a wrapper for the paper element
-      const wrapper = document.createElement('div');
-      wrapper.className = 'paper-component-wrapper';
-      wrapper.style.cssText = 'position: relative;';
+      // Clear the component's content and set it up as the wrapper
+      component.innerHTML = '';
+      component.className = 'paper-component-wrapper';
+      component.style.cssText = 'position: relative;';
 
-      // Generate the Paper HTML structure using helper function
-      wrapper.innerHTML = createPaperHTML(htmlContent, paperStyle);
+      // Generate the Paper HTML structure using helper function and append as child
+      component.innerHTML = createPaperHTML(htmlContent, paperStyle);
 
       // Mark the paper element with animation config
-      const paperElement = wrapper.querySelector('.paper-element');
+      const paperElement = component.querySelector('.paper-element');
       if (paperElement) {
         setPaperAttributes(paperElement, {
           paperStyle,
@@ -310,9 +298,6 @@
           endKeyframe,
         });
       }
-
-      // Replace the component with the wrapper
-      component.parentNode.replaceChild(wrapper, component);
     });
 
     console.log('[PaperRenderer] Initialization complete');

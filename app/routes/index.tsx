@@ -140,8 +140,8 @@ export default function Index() {
     <>
       <script src="/paper-devtools.js" />
       <script src="/shadow-renderer.js" />
-      <script src="/paper-animator.js" />
-      <script src="/paper-renderer.js" />
+      <script src="/paper-animator.js?v=7" />
+      <script src="/paper-renderer.js?v=3" />
 
       <div id="scroll-container" className="overflow-hidden bg-[#fcfbf9]">
         <div
@@ -375,14 +375,14 @@ export default function Index() {
           ]}
           />*/}
         {/* Paper animation disabled - uncomment to re-enable */}
-        {/*<script
+        <script
           dangerouslySetInnerHTML={{
             __html:
-              'for(let el of document.querySelectorAll(".posts-list")) { el.style.display = "none" }',
+              'for(let el of document.querySelectorAll(".paper-component")) { el.style.display = "none" }',
           }}
         />
 
-        <div
+        {/*<div
           className="p-8 overflow-visible grid"
           data-block-id="0"
           data-posts-list="content-posts"

@@ -254,14 +254,16 @@
         // Get delay from animation data or config
         const delay = animationData.startDelay || 0;
 
-        // Hide the element initially
-        paperElement.style.opacity = '0';
+        // Check if this is an image paper
+        const paperStyle = paperElement.getAttribute('data-paper-style');
+        const isImagePaper = paperStyle === 'image';
+
+        // Disable pointer events initially
         paperElement.style.pointerEvents = 'none';
 
         // Schedule mounting and initialization
         setTimeout(() => {
-          // Show the element
-          paperElement.style.opacity = '';
+          // Re-enable pointer events (visibility will be set when first frame renders)
           paperElement.style.pointerEvents = '';
 
           // Create animator and start
@@ -278,7 +280,34 @@
           animatorRegistry.set(paperId, animator);
 
           paperElement.setAttribute('data-animator-initialized', 'true');
-          animator.start();
+
+          // Check if this is an image paper - if so, wait for images to load
+          if (isImagePaper) {
+            // Find the first slice (all slices have identical content)
+            const firstSlice = paperElement.querySelector('.paper-slice-0');
+            // Get only the FIRST image in the first slice
+            const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
+
+            if (firstImage) {
+              // If the image is already loaded, start immediately
+              if (firstImage.complete && firstImage.naturalHeight !== 0) {
+                animator.start();
+              } else {
+                // Otherwise, wait for the load event
+                const startWhenLoaded = () => {
+                  animator.start();
+                };
+                firstImage.addEventListener('load', startWhenLoaded);
+                firstImage.addEventListener('error', startWhenLoaded);
+              }
+            } else {
+              // No image found, start immediately
+              animator.start();
+            }
+          } else {
+            // Not an image paper, start immediately
+            animator.start();
+          }
 
           // Register with DevTools
           if (window.PaperDevTools) {
@@ -372,6 +401,9 @@
     };
 
     const createScaledOutline = () => {
+      // Hover shadow disabled
+      return;
+
       // Create SVG element
       scaledOutlineSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       scaledOutlineSVG.id = `paper-scaled-shadow-${animator.id}`;
@@ -407,8 +439,8 @@
 
       // Create path element with fill to cast shadow
       scaledOutlinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      scaledOutlinePath.setAttribute('fill', 'none'); // Temporarily visible to debug
-      scaledOutlinePath.setAttribute('stroke', 'rgba(0, 0, 0, 0.1)');
+      scaledOutlinePath.setAttribute('fill', 'rgba(0, 0, 0, 0.1)'); // Must have fill for Chrome to render shadow
+      scaledOutlinePath.setAttribute('stroke', 'none');
       scaledOutlinePath.setAttribute('filter', `url(#shadow-filter-${animator.id})`);
 
       scaledOutlineSVG.appendChild(scaledOutlinePath);
@@ -646,6 +678,8 @@
       `;
       this.shadowSVG.setAttribute('viewBox', `0 0 ${this.paperWidth} ${this.paperHeight}`);
 
+      console.log('[PaperAnimator]', this.id, 'Creating shadow SVG');
+
       // Append to paper element
       this.paperElement.appendChild(this.shadowSVG);
     }
@@ -797,6 +831,9 @@
 
       // Render the initial keyframe immediately
       this.applyInterpolatedFrame(this.currentKeyframePosition);
+
+      // Make the paper element visible now that first frame is rendered
+      this.paperElement.style.visibility = 'visible';
 
       // Calculate frame time and increment per frame
       const frameTime = 1000 / this.playbackFPS;
@@ -1096,6 +1133,7 @@
     }
 
     drawShadowShape(generatedPoints, colors, blurAmount, blurEnabled) {
+      console.log('[PaperAnimator]', this.id, 'Drawing shadow shape, points:', generatedPoints.length);
       // Use shared shadow renderer with unique ID prefix
       window.ShadowRenderer.drawSVGShape(
         this.shadowSVG,
