@@ -922,7 +922,7 @@
     switchToRealGif() {
       // Find all img elements with data-gif attribute in this paper
       const images = this.paperElement.querySelectorAll('img[data-gif]');
-      [[...images][3]].forEach(img => {
+      images.forEach(img => {
         const realGifUrl = img.getAttribute('data-gif');
         const currentSrc = img.getAttribute('src');
 
