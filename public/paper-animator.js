@@ -328,16 +328,21 @@
             const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
 
             if (firstImage) {
+              const handleImageLoaded = () => {
+                // Start the animation
+                animator.start();
+
+                // Switch to real gif immediately after poster loads
+                animator.switchToRealGif();
+              };
+
               // If the image is already loaded, start immediately
               if (firstImage.complete && firstImage.naturalHeight !== 0) {
-                animator.start();
+                handleImageLoaded();
               } else {
                 // Otherwise, wait for the load event
-                const startWhenLoaded = () => {
-                  animator.start();
-                };
-                firstImage.addEventListener('load', startWhenLoaded);
-                firstImage.addEventListener('error', startWhenLoaded);
+                firstImage.addEventListener('load', handleImageLoaded);
+                firstImage.addEventListener('error', handleImageLoaded);
               }
             } else {
               // No image found, start immediately
@@ -904,9 +909,6 @@
 
         // Render final keyframe
         this.applyInterpolatedFrame(this.endKeyframe);
-
-        // Switch from gif poster to real gif if needed
-        this.switchToRealGif();
 
         this.stop();
       } else {
