@@ -327,27 +327,30 @@
             // Get only the FIRST image in the first slice
             const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
 
-            if (firstImage) {
-              const handleImageLoaded = () => {
-                // Start the animation
-                animator.start();
+            animator.start();
+            animator.switchToRealGif();
 
-                // Switch to real gif immediately after poster loads
-                animator.switchToRealGif();
-              };
+            // if (firstImage) {
+            //   const handleImageLoaded = () => {
+            //     // Start the animation
+            //     animator.start();
 
-              // If the image is already loaded, start immediately
-              if (firstImage.complete && firstImage.naturalHeight !== 0) {
-                handleImageLoaded();
-              } else {
-                // Otherwise, wait for the load event
-                firstImage.addEventListener('load', handleImageLoaded);
-                firstImage.addEventListener('error', handleImageLoaded);
-              }
-            } else {
-              // No image found, start immediately
-              animator.start();
-            }
+            //     // Switch to real gif immediately after poster loads
+            //     animator.switchToRealGif();
+            //   };
+
+            //   // If the image is already loaded, start immediately
+            //   if (firstImage.complete && firstImage.naturalHeight !== 0) {
+            //     handleImageLoaded();
+            //   } else {
+            //     // Otherwise, wait for the load event
+            //     firstImage.addEventListener('load', handleImageLoaded);
+            //     firstImage.addEventListener('error', handleImageLoaded);
+            //   }
+            // } else {
+            //   // No image found, start immediately
+            //   animator.start();
+            // }
           } else {
             // Not an image paper, start immediately
             animator.start();
@@ -919,12 +922,20 @@
     switchToRealGif() {
       // Find all img elements with data-gif attribute in this paper
       const images = this.paperElement.querySelectorAll('img[data-gif]');
-      images.forEach(img => {
+      [[...images][3]].forEach(img => {
         const realGifUrl = img.getAttribute('data-gif');
         const currentSrc = img.getAttribute('src');
 
         // Only switch if we're currently showing the poster (not already the real gif)
         if (realGifUrl && currentSrc !== realGifUrl) {
+          // Add load event listener to log when gif is loaded
+          const handleGifLoad = () => {
+            console.log('[PaperAnimator]', this.id, 'Real gif loaded:', realGifUrl);
+            img.removeEventListener('load', handleGifLoad);
+          };
+          img.addEventListener('load', handleGifLoad);
+
+          img.setAttribute('decoding', 'sync');
           img.setAttribute('src', realGifUrl);
         }
       });
