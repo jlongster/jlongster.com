@@ -211,15 +211,6 @@
     const allPoints = [...leftPoints, ...rightPoints.reverse()];
     const pointsStr = allPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-    console.log('[ShadowRenderer] Drawing shadow polygon:', {
-      pointCount: allPoints.length,
-      firstPoint: allPoints[0],
-      lastPoint: allPoints[allPoints.length - 1],
-      gradientId,
-      minY,
-      maxY
-    });
-
     polygon.setAttribute('points', pointsStr);
     polygon.setAttribute('fill', `url(#${gradientId})`);
     polygon.setAttribute('stroke', 'none');

@@ -7,6 +7,10 @@
   let isPaused = false;
   let nextId = 0;
 
+  // Global animation loop
+  let globalAnimationLoopRunning = false;
+  let lastFrameTime = 0;
+
   // Map to store per-paper-id config overrides (paperId -> config)
   const configOverrides = new Map();
 
@@ -15,6 +19,41 @@
 
   // Active list ID for infinite scroll (set by paper-renderer)
   let activeListId = null;
+
+  // Global animation loop using requestAnimationFrame
+  function globalAnimationLoop(currentTime) {
+    if (!globalAnimationLoopRunning) return;
+
+    // Calculate delta time in seconds
+    const deltaTime = lastFrameTime ? (currentTime - lastFrameTime) / 1000 : 0;
+    lastFrameTime = currentTime;
+
+    // Update all active animators
+    if (!isPaused) {
+      animatorRegistry.forEach(animator => {
+        if (animator.isAnimating) {
+          animator.update(deltaTime);
+        }
+      });
+    }
+
+    // Continue the loop
+    requestAnimationFrame(globalAnimationLoop);
+  }
+
+  function startGlobalAnimationLoop() {
+    if (!globalAnimationLoopRunning) {
+      globalAnimationLoopRunning = true;
+      lastFrameTime = 0;
+      requestAnimationFrame(globalAnimationLoop);
+      console.log('[PaperAnimator] Global animation loop started');
+    }
+  }
+
+  function stopGlobalAnimationLoop() {
+    globalAnimationLoopRunning = false;
+    console.log('[PaperAnimator] Global animation loop stopped');
+  }
 
   // Default fallback config if none provided
   const defaultConfig = {
@@ -560,7 +599,7 @@
 
   function togglePause() {
     isPaused = !isPaused;
-    paperAnimators.forEach(animator => {
+    animatorRegistry.forEach(animator => {
       if (isPaused) {
         animator.pause();
       } else {
@@ -610,6 +649,9 @@
       // Rectangle mode (single DOM node rendering)
       this.isRectangleMode = false;
       this.rectangleElement = null;
+
+      // Animation state
+      this.isAnimating = false;
 
       // Timing configuration - now in keyframe indices
       this.startDelay = animationData.startDelay || 0;
@@ -822,6 +864,7 @@
     start() {
       // Start at the start keyframe
       this.currentKeyframePosition = this.startKeyframe;
+      this.isAnimating = true;
 
       // Apply fade-in effect if configured
       if (this.fadeInDuration > 0) {
@@ -834,26 +877,34 @@
       // Make the paper element visible now that first frame is rendered
       this.paperElement.style.visibility = 'visible';
 
-      // Calculate frame time and increment per frame
-      const frameTime = 1000 / this.playbackFPS;
-      const keyframeIncrement = 1 / (this.timePerKeyframe * this.playbackFPS);
+      // Ensure global animation loop is running
+      startGlobalAnimationLoop();
+    }
 
-      this.animationInterval = setInterval(() => {
-        this.currentKeyframePosition += keyframeIncrement;
+    update(deltaTime) {
+      if (!this.isAnimating) return;
 
-        // Stop animation when it reaches the end keyframe
-        if (this.currentKeyframePosition >= this.endKeyframe) {
-          // Render final keyframe
-          this.applyInterpolatedFrame(this.endKeyframe);
+      // Calculate keyframe increment based on delta time
+      // keyframeIncrement = 1 / (this.timePerKeyframe * this.playbackFPS)
+      // But we want to advance based on actual time passed:
+      // keyframes per second = 1 / this.timePerKeyframe
+      const keyframesPerSecond = 1 / this.timePerKeyframe;
+      const keyframeIncrement = keyframesPerSecond * deltaTime;
 
-          // Switch from gif poster to real gif if needed
-          this.switchToRealGif();
+      this.currentKeyframePosition += keyframeIncrement;
 
-          this.stop();
-        } else {
-          this.applyInterpolatedFrame(this.currentKeyframePosition);
-        }
-      }, frameTime);
+      // Stop animation when it reaches the end keyframe
+      if (this.currentKeyframePosition >= this.endKeyframe) {
+        // Render final keyframe
+        this.applyInterpolatedFrame(this.endKeyframe);
+
+        // Switch from gif poster to real gif if needed
+        this.switchToRealGif();
+
+        this.stop();
+      } else {
+        this.applyInterpolatedFrame(this.currentKeyframePosition);
+      }
     }
 
     switchToRealGif() {
@@ -872,28 +923,31 @@
     }
 
     stop() {
-      if (this.animationInterval) {
-        clearInterval(this.animationInterval);
-        this.animationInterval = null;
-      }
+      this.isAnimating = false;
 
       // Clean up shadow SVG element
       if (this.shadowSVG && this.shadowSVG.parentNode) {
         this.shadowSVG.parentNode.removeChild(this.shadowSVG);
         this.shadowSVG = null;
       }
-    }
 
-    pause() {
-      if (this.animationInterval) {
-        clearInterval(this.animationInterval);
-        this.animationInterval = null;
+      // Check if we should stop the global loop (no more active animators)
+      const hasActiveAnimators = Array.from(animatorRegistry.values()).some(
+        animator => animator.isAnimating
+      );
+      if (!hasActiveAnimators) {
+        stopGlobalAnimationLoop();
       }
     }
 
+    pause() {
+      this.isAnimating = false;
+    }
+
     resume() {
-      if (!this.animationInterval) {
-        this.start();
+      if (!this.isAnimating) {
+        this.isAnimating = true;
+        startGlobalAnimationLoop();
       }
     }
 
