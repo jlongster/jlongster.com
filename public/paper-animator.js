@@ -679,8 +679,6 @@
       `;
       this.shadowSVG.setAttribute('viewBox', `0 0 ${this.paperWidth} ${this.paperHeight}`);
 
-      console.log('[PaperAnimator]', this.id, 'Creating shadow SVG');
-
       // Append to paper element
       this.paperElement.appendChild(this.shadowSVG);
     }
@@ -847,11 +845,30 @@
         if (this.currentKeyframePosition >= this.endKeyframe) {
           // Render final keyframe
           this.applyInterpolatedFrame(this.endKeyframe);
+
+          // Switch from gif poster to real gif if needed
+          this.switchToRealGif();
+
           this.stop();
         } else {
           this.applyInterpolatedFrame(this.currentKeyframePosition);
         }
       }, frameTime);
+    }
+
+    switchToRealGif() {
+      // Find all img elements with data-gif attribute in this paper
+      const images = this.paperElement.querySelectorAll('img[data-gif]');
+      images.forEach(img => {
+        const realGifUrl = img.getAttribute('data-gif');
+        const currentSrc = img.getAttribute('src');
+
+        // Only switch if we're currently showing the poster (not already the real gif)
+        if (realGifUrl && currentSrc !== realGifUrl) {
+          console.log('[PaperAnimator]', this.id, 'Switching to real gif:', realGifUrl);
+          img.setAttribute('src', realGifUrl);
+        }
+      });
     }
 
     stop() {
@@ -1134,7 +1151,6 @@
     }
 
     drawShadowShape(generatedPoints, colors, blurAmount, blurEnabled) {
-      console.log('[PaperAnimator]', this.id, 'Drawing shadow shape, points:', generatedPoints.length);
       // Use shared shadow renderer with unique ID prefix
       window.ShadowRenderer.drawSVGShape(
         this.shadowSVG,

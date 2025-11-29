@@ -48,6 +48,8 @@ function PostsList({
       {posts.map((post: any, index: number) => {
         const animationConfig = animationConfigs?.[index];
         const paperStyle = post.gif ? 'image' : 'text';
+        // Use gif-poster if available, otherwise use the gif directly
+        const imgSrc = post['gif-poster'] || post.gif;
 
         return (
           <Paper
@@ -58,8 +60,10 @@ function PostsList({
             {post.gif ? (
               <>
                 <img
-                  src={post.gif}
+                  src={imgSrc}
+                  data-gif={post.gif}
                   className="w-full h-full object-cover"
+                  fetchpriority="high"
                   alt=""
                 />
                 <img

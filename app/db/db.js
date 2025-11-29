@@ -36,6 +36,7 @@ export function write(url, attrs, blocks) {
     ':post/pinned': attrs['pinned'] || false,
     ':post/theme': attrs['theme'] || '',
     ':post/gif': attrs['gif'] || '',
+    ':post/gif-poster': attrs['gif-poster'] || '',
     ':post/notes': attrs['notes'] || '',
     ':post/development': !!attrs.development,
     ':post/abstract': attrs['abstract'] || '',
