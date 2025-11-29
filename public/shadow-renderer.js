@@ -183,10 +183,10 @@
     const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
     gradient.setAttribute('id', gradientId);
     gradient.setAttribute('x1', '0%');
-    gradient.setAttribute('y1', minY);
+    gradient.setAttribute('y1', '0%');
     gradient.setAttribute('x2', '0%');
-    gradient.setAttribute('y2', maxY);
-    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+    gradient.setAttribute('y2', '100%');
+    // Use default objectBoundingBox for better browser compatibility
 
     // Add color stops for each point based on their Y position
     for (let i = 0; i < numPointsPerCurve; i++) {
@@ -210,6 +210,15 @@
     // Build points string: left curve (top to bottom) + right curve (bottom to top)
     const allPoints = [...leftPoints, ...rightPoints.reverse()];
     const pointsStr = allPoints.map(p => `${p.x},${p.y}`).join(' ');
+
+    console.log('[ShadowRenderer] Drawing shadow polygon:', {
+      pointCount: allPoints.length,
+      firstPoint: allPoints[0],
+      lastPoint: allPoints[allPoints.length - 1],
+      gradientId,
+      minY,
+      maxY
+    });
 
     polygon.setAttribute('points', pointsStr);
     polygon.setAttribute('fill', `url(#${gradientId})`);

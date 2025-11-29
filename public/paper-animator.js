@@ -675,6 +675,7 @@
         pointer-events: none;
         z-index: -1;
         overflow: visible;
+        border: 1px solid transparent;
       `;
       this.shadowSVG.setAttribute('viewBox', `0 0 ${this.paperWidth} ${this.paperHeight}`);
 

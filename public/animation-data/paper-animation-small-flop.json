@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "timePerKeyframe": 0.2,
+  "timePerKeyframe": 0.1,
   "playbackFPS": 30,
   "keyframes": [
     {
