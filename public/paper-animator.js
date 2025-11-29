@@ -693,10 +693,14 @@
           break;
         }
       }
-      this.endKeyframe =
-        animationData.endKeyframe !== undefined
-          ? animationData.endKeyframe
-          : lastKeyframeIndex;
+
+      // Use configured endKeyframe only if it's explicitly set and different from default
+      // Otherwise, auto-detect the last keyframe with actual position data
+      if (animationData.endKeyframe !== undefined && animationData.endKeyframe !== 59) {
+        this.endKeyframe = animationData.endKeyframe;
+      } else {
+        this.endKeyframe = lastKeyframeIndex >= 0 ? lastKeyframeIndex : 59;
+      }
 
       // Create shadow SVG element
       this.createShadowElement();
@@ -895,6 +899,9 @@
 
       // Stop animation when it reaches the end keyframe
       if (this.currentKeyframePosition >= this.endKeyframe) {
+        // Clamp to exact end keyframe
+        this.currentKeyframePosition = this.endKeyframe;
+
         // Render final keyframe
         this.applyInterpolatedFrame(this.endKeyframe);
 
@@ -916,7 +923,6 @@
 
         // Only switch if we're currently showing the poster (not already the real gif)
         if (realGifUrl && currentSrc !== realGifUrl) {
-          console.log('[PaperAnimator]', this.id, 'Switching to real gif:', realGifUrl);
           img.setAttribute('src', realGifUrl);
         }
       });
