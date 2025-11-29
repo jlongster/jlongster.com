@@ -320,37 +320,44 @@
 
           paperElement.setAttribute('data-animator-initialized', 'true');
 
-          // Check if this is an image paper - if so, wait for images to load
+          // Check if this is an image paper - if so, wait for images/videos to load
           if (isImagePaper) {
             // Find the first slice (all slices have identical content)
             const firstSlice = paperElement.querySelector('.paper-slice-0');
-            // Get only the FIRST image in the first slice
+            // Check for video or image
+            const firstVideo = firstSlice ? firstSlice.querySelector('video') : null;
             const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
 
-            animator.start();
-            animator.switchToRealGif();
+            if (firstVideo) {
+              // Video codepath - wait for video to be ready to play
+              const handleVideoReady = () => {
+                console.log('[PaperAnimator]', paperId, 'Video ready, starting animation');
 
-            // if (firstImage) {
-            //   const handleImageLoaded = () => {
-            //     // Start the animation
-            //     animator.start();
+                // Sync all videos to time 0 (one per slice)
+                const allVideos = paperElement.querySelectorAll('video');
+                allVideos.forEach(video => {
+                  video.currentTime = 0;
+                });
 
-            //     // Switch to real gif immediately after poster loads
-            //     animator.switchToRealGif();
-            //   };
+                animator.start();
+                // Videos will autoplay thanks to autoplay attribute
+              };
 
-            //   // If the image is already loaded, start immediately
-            //   if (firstImage.complete && firstImage.naturalHeight !== 0) {
-            //     handleImageLoaded();
-            //   } else {
-            //     // Otherwise, wait for the load event
-            //     firstImage.addEventListener('load', handleImageLoaded);
-            //     firstImage.addEventListener('error', handleImageLoaded);
-            //   }
-            // } else {
-            //   // No image found, start immediately
-            //   animator.start();
-            // }
+              // Check if video can play through without buffering
+              if (firstVideo.readyState >= 3) { // HAVE_FUTURE_DATA or better
+                handleVideoReady();
+              } else {
+                console.log('[PaperAnimator]', paperId, 'Waiting for video to be ready');
+                firstVideo.addEventListener('canplay', handleVideoReady, { once: true });
+              }
+            } else if (firstImage) {
+              // Image codepath
+              animator.start();
+              animator.switchToRealGif();
+            } else {
+              // No image or video found, start immediately
+              animator.start();
+            }
           } else {
             // Not an image paper, start immediately
             animator.start();

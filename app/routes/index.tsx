@@ -48,6 +48,7 @@ function PostsList({
       {posts.map((post: any, index: number) => {
         const animationConfig = animationConfigs?.[index];
         const paperStyle = post.gif ? 'image' : 'text';
+        const isVideo = post.gif?.endsWith('.mp4');
         // Use gif-poster if available, otherwise use the gif directly
         const imgSrc = post['gif-poster'] || post.gif;
 
@@ -59,13 +60,24 @@ function PostsList({
           >
             {post.gif ? (
               <>
-                <img
-                  src={imgSrc}
-                  data-gif={post.gif}
-                  className="w-full h-full object-cover"
-                  fetchpriority="high"
-                  alt=""
-                />
+                {isVideo ? (
+                  <video
+                    src={post.gif}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={imgSrc}
+                    data-gif={post.gif}
+                    className="w-full h-full object-cover"
+                    fetchpriority="high"
+                    alt=""
+                  />
+                )}
                 <img
                   src={`https://d3ui957tjb5bqd.cloudfront.net/op/font-preview/291939758/2/14?s=%7B%22size%22%3A48%2C%22text%22%3A%22${post.title}%22%2C%22retina%22%3Atrue%7D`}
                   style={{ height: 18, marginTop: 13, marginLeft: 10 }}
