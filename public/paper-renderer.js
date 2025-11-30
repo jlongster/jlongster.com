@@ -15,7 +15,26 @@
              line-height: 0`
         : `padding: 20px`;
 
+    // Check if content contains a video element
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const hasVideo = tempDiv.querySelector('video') !== null;
+
     // Paper content that will be repeated in each slice
+    // Replace video with canvas if video exists (for slice rendering)
+    let sliceContent = htmlContent;
+    if (hasVideo) {
+      sliceContent = htmlContent.replace(
+        /<video([^>]*)>.*?<\/video>/gs,
+        (match, attrs) => {
+          // Extract className from video attributes
+          const classMatch = attrs.match(/class="([^"]*)"/);
+          const className = classMatch ? classMatch[1] : '';
+          return `<canvas class="${className} paper-video-canvas"></canvas>`;
+        }
+      );
+    }
+
     const paperContent = `
       <div
         style="
@@ -32,7 +51,7 @@
         "
         class="bg-transparent"
       >
-        ${htmlContent}
+        ${sliceContent}
       </div>
     `;
 
@@ -64,11 +83,20 @@
       `;
     }).join('');
 
+    // If video exists, include hidden video element as source
+    console.log('xxx', hasVideo)
+    const hiddenVideo = hasVideo ? `
+      <div style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; overflow: hidden;">
+        ${htmlContent}
+      </div>
+    ` : '';
+
     return `
       <div
         class="uncolored-links paper-element block relative text-black no-underline"
         style="visibility: hidden;"
       >
+        ${hiddenVideo}
         ${slices}
       </div>
     `;

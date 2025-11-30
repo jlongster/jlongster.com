@@ -325,39 +325,54 @@
             // Find the first slice (all slices have identical content)
             const firstSlice = paperElement.querySelector('.paper-slice-0');
             // Check for video or image
-            const firstVideo = firstSlice ? firstSlice.querySelector('video') : null;
+            // Video is now in hidden div (not in slices), so search entire paperElement
+            const firstVideo = paperElement.querySelector('video');
             const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
 
             if (firstVideo) {
-              // Video codepath - setup canvas rendering
+              // Video codepath - render video to all slice canvases
               const handleVideoReady = () => {
                 console.log('[PaperAnimator]', paperId, 'Video ready, starting animation');
+                console.log('[PaperAnimator]', paperId, 'First video:', firstVideo);
+                console.log('[PaperAnimator]', paperId, 'First video src:', firstVideo.src);
 
-                // Create canvas for rendering video
-                const canvas = document.createElement('canvas');
-                canvas.style.cssText = `
-                  position: fixed;
-                  top: 20px;
-                  right: 20px;
-                  width: 300px;
-                  height: auto;
-                  z-index: 9999;
-                  border: 2px solid red;
-                  background: black;
-                `;
-                document.body.appendChild(canvas);
-                const ctx = canvas.getContext('2d');
+                // Get all canvas elements in all slices
+                const canvases = paperElement.querySelectorAll('.paper-video-canvas');
+                console.log('[PaperAnimator]', paperId, 'Found', canvases.length, 'canvases for video rendering');
+                console.log('[PaperAnimator]', paperId, 'Canvases:', canvases);
+
+                if (canvases.length === 0) {
+                  console.error('[PaperAnimator]', paperId, 'No canvases found! Cannot render video.');
+                  return;
+                }
+
+                const contexts = Array.from(canvases).map(canvas => canvas.getContext('2d'));
 
                 const startDrawing = () => {
-                  // Start video rendering loop
+                  console.log('[PaperAnimator]', paperId, 'Starting video render to canvases');
+                  console.log('[PaperAnimator]', paperId, 'Video dimensions:', firstVideo.videoWidth, 'x', firstVideo.videoHeight);
+                  console.log('[PaperAnimator]', paperId, 'Video paused:', firstVideo.paused, 'ended:', firstVideo.ended);
+
+                  let frameCount = 0;
+
+                  // Start video rendering loop - render to all canvases
                   function draw() {
                     if (!firstVideo.paused && !firstVideo.ended) {
                       if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
-                        canvas.width = firstVideo.videoWidth;
-                        canvas.height = firstVideo.videoHeight;
-                        ctx.drawImage(firstVideo, 0, 0);
+                        frameCount++;
+                        if (frameCount % 60 === 0) {
+                          console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames');
+                        }
+                        // Update all canvases with the same video frame
+                        canvases.forEach(canvas => {
+                          canvas.width = firstVideo.videoWidth;
+                          canvas.height = firstVideo.videoHeight;
+                          canvas.getContext('2d').drawImage(firstVideo, 0, 0);
+                        });
                       }
                       requestAnimationFrame(draw);
+                    } else {
+                      console.log('[PaperAnimator]', paperId, 'Draw loop stopped. paused:', firstVideo.paused, 'ended:', firstVideo.ended);
                     }
                   }
 
