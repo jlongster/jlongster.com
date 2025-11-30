@@ -15,21 +15,26 @@
              line-height: 0`
         : `padding: 20px`;
 
-    // Check if content contains a video element
+    // Check if content contains a video placeholder
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
-    const hasVideo = tempDiv.querySelector('video') !== null;
+    const videoPlaceholder = tempDiv.querySelector('[data-video-src]');
+    const hasVideo = videoPlaceholder !== null;
+
+    console.log('[PaperRenderer] Creating paper HTML, hasVideo:', hasVideo);
 
     // Paper content that will be repeated in each slice
-    // Replace video with canvas if video exists (for slice rendering)
+    // Replace video placeholder with canvas for slices
     let sliceContent = htmlContent;
     if (hasVideo) {
+      console.log('[PaperRenderer] Replacing video placeholder with canvas in slices');
       sliceContent = htmlContent.replace(
-        /<video([^>]*)>.*?<\/video>/gs,
+        /<div([^>]*data-video-src="[^"]*"[^>]*)><\/div>/g,
         (match, attrs) => {
-          // Extract className from video attributes
+          // Extract className from div attributes
           const classMatch = attrs.match(/class="([^"]*)"/);
           const className = classMatch ? classMatch[1] : '';
+          console.log('[PaperRenderer] Replaced video placeholder with canvas, className:', className);
           return `<canvas class="${className} paper-video-canvas"></canvas>`;
         }
       );
@@ -83,13 +88,19 @@
       `;
     }).join('');
 
-    // If video exists, include hidden video element as source
-    console.log('xxx', hasVideo)
-    const hiddenVideo = hasVideo ? `
-      <div style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; overflow: hidden;">
-        ${htmlContent}
-      </div>
-    ` : '';
+    // If video exists, create actual hidden video element from placeholder
+    const hiddenVideo = hasVideo && videoPlaceholder ? (() => {
+      const videoSrc = videoPlaceholder.getAttribute('data-video-src');
+      const className = videoPlaceholder.getAttribute('class') || '';
+
+      console.log('[PaperRenderer] Creating hidden video element, src:', videoSrc);
+
+      return `
+        <div style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; overflow: hidden;">
+          <video src="${videoSrc}" class="${className} paper-master-video" muted loop playsInline autoPlay></video>
+        </div>
+      `;
+    })() : '';
 
     return `
       <div

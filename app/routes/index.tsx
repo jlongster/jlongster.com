@@ -61,13 +61,9 @@ function PostsList({
             {post.gif ? (
               <>
                 {isVideo ? (
-                  <video
-                    src={post.gif}
+                  <div
                     className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
+                    data-video-src={post.gif}
                   />
                 ) : (
                   <img

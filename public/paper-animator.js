@@ -325,11 +325,15 @@
             // Find the first slice (all slices have identical content)
             const firstSlice = paperElement.querySelector('.paper-slice-0');
             // Check for video or image
-            // Video is now in hidden div (not in slices), so search entire paperElement
-            const firstVideo = paperElement.querySelector('video');
+            // Video is in hidden div with paper-master-video class
+            console.log('[PaperAnimator]', paperId, 'Looking for video in paperElement');
+            const firstVideo = paperElement.querySelector('.paper-master-video');
+            console.log('[PaperAnimator]', paperId, 'Found video:', firstVideo ? firstVideo.src : 'none');
+
             const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
 
             if (firstVideo) {
+              console.log('[PaperAnimator]', paperId, 'Using first video, src:', firstVideo.src);
               // Video codepath - render video to all slice canvases
               const handleVideoReady = () => {
                 console.log('[PaperAnimator]', paperId, 'Video ready, starting animation');
