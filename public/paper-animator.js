@@ -332,15 +332,8 @@
               // Video codepath - wait for video to be ready to play
               const handleVideoReady = () => {
                 console.log('[PaperAnimator]', paperId, 'Video ready, starting animation');
-
-                // Sync all videos to time 0 (one per slice)
-                const allVideos = paperElement.querySelectorAll('video');
-                allVideos.forEach(video => {
-                  video.currentTime = 0;
-                });
-
                 animator.start();
-                // Videos will autoplay thanks to autoplay attribute
+                // Videos will autoplay thanks to autoPlay attribute
               };
 
               // Check if video can play through without buffering
