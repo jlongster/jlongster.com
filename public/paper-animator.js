@@ -329,11 +329,58 @@
             const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
 
             if (firstVideo) {
-              // Video codepath - wait for video to be ready to play
+              // Video codepath - setup canvas rendering
               const handleVideoReady = () => {
                 console.log('[PaperAnimator]', paperId, 'Video ready, starting animation');
+
+                // Create canvas for rendering video
+                const canvas = document.createElement('canvas');
+                canvas.style.cssText = `
+                  position: fixed;
+                  top: 20px;
+                  right: 20px;
+                  width: 300px;
+                  height: auto;
+                  z-index: 9999;
+                  border: 2px solid red;
+                  background: black;
+                `;
+                document.body.appendChild(canvas);
+                const ctx = canvas.getContext('2d');
+
+                const startDrawing = () => {
+                  // Start video rendering loop
+                  function draw() {
+                    if (!firstVideo.paused && !firstVideo.ended) {
+                      if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                        canvas.width = firstVideo.videoWidth;
+                        canvas.height = firstVideo.videoHeight;
+                        ctx.drawImage(firstVideo, 0, 0);
+                      }
+                      requestAnimationFrame(draw);
+                    }
+                  }
+
+                  // Ensure video is playing (Safari may need explicit play())
+                  if (firstVideo.paused) {
+                    firstVideo.play().then(() => {
+                      draw();
+                    }).catch(err => {
+                      console.error('[PaperAnimator]', paperId, 'Video play failed:', err);
+                    });
+                  } else {
+                    draw();
+                  }
+                };
+
+                // Wait for metadata if needed (Safari)
+                if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                  startDrawing();
+                } else {
+                  firstVideo.addEventListener('loadedmetadata', startDrawing, { once: true });
+                }
+
                 animator.start();
-                // Videos will autoplay thanks to autoPlay attribute
               };
 
               // Check if video can play through without buffering
