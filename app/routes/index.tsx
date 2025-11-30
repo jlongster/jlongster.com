@@ -290,7 +290,7 @@ export default function Index() {
         </section>
 
         <PostsList
-          posts={experiments}
+          posts={experiments.slice(3, 4)}
           id="experiments"
           groupName="experiments"
           style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
