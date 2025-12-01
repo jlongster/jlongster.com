@@ -604,9 +604,108 @@
             window.PaperDevTools.registerAnimator(paperId, animator);
           }
 
+          // Setup drag interaction
+          setupDragInteraction(paperId, paperElement, animator);
+
         }, delay);
       }
     });
+  }
+
+  function setupDragInteraction(paperId, paperElement, animator) {
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartOffsetX = 0;
+    let dragStartOffsetY = 0;
+    let hasDragged = false;
+
+    const onMouseDown = (e) => {
+      // Don't start dragging if animation editor has disabled interactions
+      if (interactionsDisabled) {
+        return;
+      }
+
+      // Check if we clicked directly on the paper element or its children
+      const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+      if (!elementAtPoint || (!paperElement.contains(elementAtPoint) && paperElement !== elementAtPoint)) {
+        return;
+      }
+
+      // Start dragging
+      isDragging = true;
+      hasDragged = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragStartOffsetX = animator.offsetX;
+      dragStartOffsetY = animator.offsetY;
+
+      paperElement.style.cursor = 'grabbing';
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - dragStartX;
+      const deltaY = e.clientY - dragStartY;
+
+      // Mark that we've actually dragged
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+        hasDragged = true;
+      }
+
+      const newOffsetX = dragStartOffsetX + deltaX;
+      const newOffsetY = dragStartOffsetY + deltaY;
+
+      animator.updateOffsets(newOffsetX, newOffsetY);
+
+      // Update config override so DevTools can access it
+      const currentConfig = configOverrides.get(paperId) || {};
+      configOverrides.set(paperId, {
+        ...currentConfig,
+        offsetX: newOffsetX,
+        offsetY: newOffsetY,
+      });
+
+      // Notify DevTools if available
+      if (window.PaperDevTools && window.PaperDevTools.onConfigUpdate) {
+        window.PaperDevTools.onConfigUpdate(paperId);
+      }
+    };
+
+    const onMouseUp = () => {
+      if (!isDragging) return;
+
+      isDragging = false;
+      paperElement.style.cursor = 'grab';
+
+      // If we actually dragged, prevent click events briefly
+      if (hasDragged) {
+        const preventClick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          document.removeEventListener('click', preventClick, true);
+        };
+        document.addEventListener('click', preventClick, true);
+      }
+    };
+
+    // Add event listeners
+    paperElement.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    // Set initial cursor
+    paperElement.style.cursor = 'grab';
+
+    // Store cleanup function on animator for potential removal
+    animator._cleanupDrag = () => {
+      paperElement.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      paperElement.style.cursor = '';
+    };
   }
 
   function setupMutationObserver() {
