@@ -233,7 +233,23 @@
 
       // Get the HTML content from the first slice's content div
       const contentDiv = paperElement.querySelector('.paper-slice > div');
-      const htmlContent = contentDiv ? contentDiv.innerHTML : '';
+      let htmlContent = contentDiv ? contentDiv.innerHTML : '';
+
+      // If this paper has a video, we need to restore the original video placeholder
+      // because the slices currently have canvas elements, not the original div[data-video-src]
+      const masterVideo = paperElement.querySelector('.paper-master-video');
+      if (masterVideo) {
+        const videoSrc = masterVideo.getAttribute('src');
+        const videoClass = masterVideo.getAttribute('class').replace('paper-master-video', '').trim();
+
+        console.log('[PaperRenderer] Restoring video placeholder for restart, src:', videoSrc);
+
+        // Replace canvas elements with the original video placeholder
+        htmlContent = htmlContent.replace(
+          /<canvas[^>]*class="[^"]*paper-video-canvas[^"]*"[^>]*><\/canvas>/g,
+          `<div class="${videoClass}" data-video-src="${videoSrc}"></div>`
+        );
+      }
 
       // Clear the wrapper's content and regenerate
       wrapper.innerHTML = '';
