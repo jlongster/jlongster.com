@@ -1,0 +1,538 @@
+{
+  "version": 2,
+  "timePerKeyframe": 0.1,
+  "playbackFPS": 30,
+  "keyframes": [
+    {
+      "leftCurve": [
+        {
+          "x": -351.5,
+          "y": 119
+        },
+        {
+          "x": -352.5,
+          "y": 211
+        },
+        {
+          "x": -353.5,
+          "y": 272
+        },
+        {
+          "x": -356.5,
+          "y": 338
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -182.5,
+          "y": 116
+        },
+        {
+          "x": -179.5,
+          "y": 208
+        },
+        {
+          "x": -182.5,
+          "y": 272
+        },
+        {
+          "x": -180.5,
+          "y": 343
+        }
+      ],
+      "overlayOffsetX": 0,
+      "overlayOffsetY": 0
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -354,
+          "y": 115
+        },
+        {
+          "x": -354,
+          "y": 209
+        },
+        {
+          "x": -353.5,
+          "y": 272
+        },
+        {
+          "x": -356.5,
+          "y": 338
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -176,
+          "y": 107
+        },
+        {
+          "x": -185,
+          "y": 207
+        },
+        {
+          "x": -182.5,
+          "y": 272
+        },
+        {
+          "x": -180.5,
+          "y": 343
+        }
+      ],
+      "overlayOffsetX": 0,
+      "overlayOffsetY": 0
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -355,
+          "y": 111
+        },
+        {
+          "x": -354,
+          "y": 209
+        },
+        {
+          "x": -353.5,
+          "y": 272
+        },
+        {
+          "x": -362,
+          "y": 331
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -176,
+          "y": 107
+        },
+        {
+          "x": -185,
+          "y": 207
+        },
+        {
+          "x": -182.5,
+          "y": 272
+        },
+        {
+          "x": -179,
+          "y": 338
+        }
+      ],
+      "overlayOffsetX": 0,
+      "overlayOffsetY": 0
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -354,
+          "y": 106
+        },
+        {
+          "x": -356,
+          "y": 198
+        },
+        {
+          "x": -358,
+          "y": 265
+        },
+        {
+          "x": -362,
+          "y": 331
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -176,
+          "y": 107
+        },
+        {
+          "x": -178,
+          "y": 200
+        },
+        {
+          "x": -180,
+          "y": 273
+        },
+        {
+          "x": -179,
+          "y": 338
+        }
+      ],
+      "overlayOffsetX": 0,
+      "overlayOffsetY": 0
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -354,
+          "y": 106
+        },
+        {
+          "x": -356,
+          "y": 198
+        },
+        {
+          "x": -358,
+          "y": 265
+        },
+        {
+          "x": -362,
+          "y": 331
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -176,
+          "y": 107
+        },
+        {
+          "x": -180,
+          "y": 199
+        },
+        {
+          "x": -179,
+          "y": 269
+        },
+        {
+          "x": -181,
+          "y": 334
+        }
+      ],
+      "overlayOffsetX": 0,
+      "overlayOffsetY": 0
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "scaleKeyframes": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "shadowKeyframes": [
+    {
+      "leftCurve": [
+        {
+          "x": -343.5,
+          "y": 134.5
+        },
+        {
+          "x": -348,
+          "y": 225
+        },
+        {
+          "x": -349.5,
+          "y": 277.5
+        },
+        {
+          "x": -354.5,
+          "y": 337.5
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -186.5,
+          "y": 122.5
+        },
+        {
+          "x": -182.5,
+          "y": 212.5
+        },
+        {
+          "x": -183.5,
+          "y": 271.5
+        },
+        {
+          "x": -185.5,
+          "y": 344.5
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "rgba(225, 224, 223, 1)"
+      ],
+      "blurEnabled": true,
+      "blurAmount": 2
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -343.5,
+          "y": 134.5
+        },
+        {
+          "x": -348,
+          "y": 225
+        },
+        {
+          "x": -349.5,
+          "y": 277.5
+        },
+        {
+          "x": -354.5,
+          "y": 337.5
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -181,
+          "y": 142
+        },
+        {
+          "x": -182.5,
+          "y": 212.5
+        },
+        {
+          "x": -183.5,
+          "y": 271.5
+        },
+        {
+          "x": -185.5,
+          "y": 344.5
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "rgba(225, 224, 223, 1)"
+      ],
+      "blurEnabled": true,
+      "blurAmount": 2
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -343.5,
+          "y": 134.5
+        },
+        {
+          "x": -348,
+          "y": 225
+        },
+        {
+          "x": -349.5,
+          "y": 277.5
+        },
+        {
+          "x": -354,
+          "y": 335
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": -181,
+          "y": 142
+        },
+        {
+          "x": -182.5,
+          "y": 212.5
+        },
+        {
+          "x": -183.5,
+          "y": 271.5
+        },
+        {
+          "x": -184,
+          "y": 344
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "rgba(225, 224, 223, 1)"
+      ],
+      "blurEnabled": true,
+      "blurAmount": 6
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "offsetX": 0,
+  "offsetY": 0
+}

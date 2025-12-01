@@ -292,6 +292,10 @@
     const previewContainer = document.getElementById('animation-editor-preview');
     if (previewContainer) previewContainer.remove();
 
+    // Remove backdrop if it exists
+    const backdrop = document.getElementById('animation-editor-backdrop');
+    if (backdrop) backdrop.remove();
+
     // Clean up state
     editorPaperElement = null;
     instanceConfig = null;
@@ -404,13 +408,28 @@
   }
 
   function createNewAnimationPreview() {
+    // Create fullscreen overlay backdrop
+    const backdrop = document.createElement('div');
+    backdrop.id = 'animation-editor-backdrop';
+    backdrop.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: var(--color-bg);
+      opacity: 0.95;
+      z-index: 9997;
+    `;
+    document.body.appendChild(backdrop);
+
     // Create a centered preview paper element for new animations
     const previewContainer = document.createElement('div');
     previewContainer.id = 'animation-editor-preview';
     previewContainer.style.cssText = `
       position: fixed;
-      top: 100px;
-      left: 100px;
+      top: 200px;
+      left: ${window.innerWidth / 2}px;
       z-index: 9998;
     `;
 
@@ -757,27 +776,12 @@
       flex-wrap: wrap;
     `;
 
-    // Save keyframe button
-    const saveButton = document.createElement('button');
-    saveButton.textContent = 'Save';
-    saveButton.style.cssText = `
-      padding: 4px 10px;
-      background: #10b981;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-weight: 500;
-      font-size: 12px;
-    `;
-    saveButton.onclick = saveCurrentKeyframe;
-
-    // Clear keyframe button
+    // Clear all keyframe data button
     const clearButton = document.createElement('button');
     clearButton.textContent = 'Clear';
     clearButton.style.cssText = `
       padding: 4px 10px;
-      background: #ef4444;
+      background: #f59e0b;
       color: white;
       border: none;
       border-radius: 3px;
@@ -785,7 +789,37 @@
       font-weight: 500;
       font-size: 12px;
     `;
-    clearButton.onclick = clearCurrentKeyframe;
+    clearButton.onclick = () => {
+      // Clear all properties for current keyframe
+      keyframes[currentKeyframe] = null;
+      scaleKeyframes[currentScaleKeyframe] = null;
+      shadowKeyframes[currentShadowKeyframe] = null;
+      updateTimelineUI();
+    };
+
+    // Delete keyframe button (deletes and shifts remaining keyframes)
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Delete';
+    deleteButton.style.cssText = `
+      padding: 4px 10px;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 12px;
+    `;
+    deleteButton.onclick = () => {
+      // Delete and shift all keyframe types
+      keyframes.splice(currentKeyframe, 1);
+      keyframes.push(null);
+      scaleKeyframes.splice(currentScaleKeyframe, 1);
+      scaleKeyframes.push(null);
+      shadowKeyframes.splice(currentShadowKeyframe, 1);
+      shadowKeyframes.push(null);
+      updateTimelineUI();
+    };
 
     // Straighten button
     const straightenButton = document.createElement('button');
@@ -958,8 +992,8 @@
     `;
     timeDisplay.textContent = `Time: 0.00s / 0.00s`;
 
-    controls.appendChild(saveButton);
     controls.appendChild(clearButton);
+    controls.appendChild(deleteButton);
     controls.appendChild(straightenButton);
     controls.appendChild(exportButton);
     controls.appendChild(importButton);
@@ -1241,9 +1275,9 @@
     shapeOverlay = document.createElement('div');
     shapeOverlay.id = 'animation-editor-shape-overlay';
 
-    // For new animations, add 100px offset to match preview container position
-    const shapeTop = currentAnimationIndex === -1 ? top + 100 : top;
-    const shapeLeft = currentAnimationIndex === -1 ? left + 100 : left;
+    // For new animations, add offset to match preview container position
+    const shapeTop = currentAnimationIndex === -1 ? top + 200 : top;
+    const shapeLeft = currentAnimationIndex === -1 ? left + (window.innerWidth / 2) : left;
 
     shapeOverlay.style.cssText = `
       position: fixed;
@@ -1355,16 +1389,17 @@
       left = wrapperRect.left + config.offsetX;
     }
 
-    // For new animations, add 100px offset to match preview container position
-    const newAnimOffset = currentAnimationIndex === -1 ? 100 : 0;
+    // For new animations, add offset to match preview container position
+    const newAnimOffsetY = currentAnimationIndex === -1 ? 200 : 0;
+    const newAnimOffsetX = currentAnimationIndex === -1 ? (window.innerWidth / 2) : 0;
 
-    overlay.style.top = (top + overlayOffsetY + newAnimOffset) + 'px';
-    overlay.style.left = (left + overlayOffsetX + newAnimOffset) + 'px';
+    overlay.style.top = (top + overlayOffsetY + newAnimOffsetY) + 'px';
+    overlay.style.left = (left + overlayOffsetX + newAnimOffsetX) + 'px';
 
     // Position shape overlay at the same location as paper overlay
     if (shapeOverlay) {
-      shapeOverlay.style.top = (top + overlayOffsetY + newAnimOffset) + 'px';
-      shapeOverlay.style.left = (left + overlayOffsetX + newAnimOffset) + 'px';
+      shapeOverlay.style.top = (top + overlayOffsetY + newAnimOffsetY) + 'px';
+      shapeOverlay.style.left = (left + overlayOffsetX + newAnimOffsetX) + 'px';
     }
   }
 

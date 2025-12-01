@@ -113,6 +113,7 @@
       background: #1f2937;
       color: #f3f4f6;
       overflow-y: auto;
+      overscroll-behavior: contain;
       z-index: 10000;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 13px;
