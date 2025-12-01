@@ -156,6 +156,10 @@
     // Pause the animator while editing (but don't unregister - keep the paper visible)
     if (targetAnimator) {
       targetAnimator.pause();
+      // Hide the animator's shadow SVG while editing (we show our own editable shadow)
+      if (targetAnimator.shadowSVG) {
+        targetAnimator.shadowSVG.style.display = 'none';
+      }
     }
 
     // Elevate the paper wrapper's z-index so it appears above the shadow editor SVG
@@ -317,6 +321,10 @@
 
     // Restart the animator from the beginning - ensures it picks up any animation changes
     if (animatorToResume) {
+      // Restore the animator's shadow SVG visibility
+      if (animatorToResume.shadowSVG) {
+        animatorToResume.shadowSVG.style.display = '';
+      }
       animatorToResume.start();
     }
 
