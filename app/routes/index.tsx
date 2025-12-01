@@ -141,6 +141,7 @@ export default function Index() {
       <script src="/shadow-renderer.js" />
       <script src="/paper-animator.js?v=7" />
       <script src="/paper-renderer.js?v=3" />
+      <script src="/paper-animation-editor.js" />
 
       <div id="scroll-container" className="overflow-hidden bg-[#fcfbf9]">
         <div

@@ -7,6 +7,9 @@
   let isPaused = false;
   let nextId = 0;
 
+  // Flag to disable interactions when animation editor is open
+  let interactionsDisabled = false;
+
   // Global animation loop
   let globalAnimationLoopRunning = false;
   let lastFrameTime = 0;
@@ -176,6 +179,104 @@
     initializePaperElements: function () {
       // Expose initializePaperElements for external use (e.g., PaperRenderer restart)
       initializePaperElements();
+    },
+    updateAnimation: function (animationIndex, animationData) {
+      // Update animation data in memory
+      if (animationIndex >= 0 && animationIndex < animations.length) {
+        animations[animationIndex] = animationData;
+        console.log('[PaperAnimator] Animation updated:', animationIndex);
+
+        // Notify all animators using this animation to refresh
+        animatorRegistry.forEach((animator, id) => {
+          if (animator.animationIndex === animationIndex) {
+            console.log('[PaperAnimator] Refreshing animator:', id);
+            animator.refreshAnimationData(animationData);
+          }
+        });
+      }
+    },
+    addAnimation: function (animationData) {
+      // Add a new animation to the list
+      animations.push(animationData);
+      const newIndex = animations.length - 1;
+      console.log('[PaperAnimator] New animation added at index:', newIndex);
+      return newIndex;
+    },
+
+    // Utility functions for transforming keyframe data
+    // These are used by both the animator and the animation editor
+    utils: {
+      // Transform a single point by rotation around a center
+      transformPoint: function(point, centerX, centerY, rotationRad) {
+        const translatedX = point.x - centerX;
+        const translatedY = point.y - centerY;
+        const rotatedX = translatedX * Math.cos(rotationRad) - translatedY * Math.sin(rotationRad);
+        const rotatedY = translatedX * Math.sin(rotationRad) + translatedY * Math.cos(rotationRad);
+        return {
+          x: rotatedX + centerX,
+          y: rotatedY + centerY,
+        };
+      },
+
+      // Apply rotation to keyframe bezier curves
+      applyRotationToKeyframe: function(keyframe, rotation) {
+        if (!keyframe || rotation === 0) return keyframe;
+
+        const allPoints = [...keyframe.leftCurve, ...keyframe.rightCurve];
+        const centerX = allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+        const centerY = allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+        const rotationRad = (rotation * Math.PI) / 180;
+
+        return {
+          ...keyframe,
+          leftCurve: keyframe.leftCurve.map(point =>
+            this.transformPoint(point, centerX, centerY, rotationRad)
+          ),
+          rightCurve: keyframe.rightCurve.map(point =>
+            this.transformPoint(point, centerX, centerY, rotationRad)
+          ),
+        };
+      },
+
+      // Scale keyframe coordinates for paper dimensions and global scale
+      scaleKeyframeForDimensions: function(keyframe, paperWidth, paperHeight, globalScale) {
+        if (!keyframe) return keyframe;
+
+        const widthScale = paperWidth / 250;
+        const heightScale = paperHeight / 300;
+
+        return {
+          ...keyframe,
+          leftCurve: keyframe.leftCurve.map(point => ({
+            x: point.x * widthScale * globalScale,
+            y: point.y * heightScale * globalScale,
+          })),
+          rightCurve: keyframe.rightCurve.map(point => ({
+            x: point.x * widthScale * globalScale,
+            y: point.y * heightScale * globalScale,
+          })),
+        };
+      },
+
+      // Get the transform style for a paper element
+      getPaperTransform: function(offsetX, offsetY) {
+        return `translate(${offsetX}px, ${offsetY}px)`;
+      },
+    },
+
+    // Disable interactions (hover, etc.) - used by animation editor
+    disableInteractions: function() {
+      interactionsDisabled = true;
+    },
+
+    // Re-enable interactions
+    enableInteractions: function() {
+      interactionsDisabled = false;
+    },
+
+    // Check if interactions are disabled
+    areInteractionsDisabled: function() {
+      return interactionsDisabled;
     },
   };
 
@@ -654,7 +755,7 @@
     };
 
     paperElement.addEventListener('mouseenter', () => {
-      if (isHovering) return;
+      if (isHovering || interactionsDisabled) return;
       isHovering = true;
 
       // Store the current scale as the original
@@ -702,13 +803,16 @@
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if the added node is a paper element or contains paper elements
+            // Skip editor-controlled elements (they're managed by the animation editor)
             if (node.classList && node.classList.contains('paper-element')) {
-              hasNewPaperElements = true;
-              console.log(
-                '[PaperAnimator] MutationObserver detected paper element added',
-              );
+              if (!node.hasAttribute('data-editor-controlled')) {
+                hasNewPaperElements = true;
+                console.log(
+                  '[PaperAnimator] MutationObserver detected paper element added',
+                );
+              }
             } else if (node.querySelectorAll) {
-              const paperElements = node.querySelectorAll('.paper-element');
+              const paperElements = node.querySelectorAll('.paper-element:not([data-editor-controlled])');
               if (paperElements.length > 0) {
                 hasNewPaperElements = true;
                 console.log(
@@ -1100,6 +1204,47 @@
         this.isAnimating = true;
         startGlobalAnimationLoop();
       }
+    }
+
+    refreshAnimationData(newAnimationData) {
+      // Update the animation data and re-process keyframes
+      this.animationData = newAnimationData;
+
+      // Update timing settings
+      this.timePerKeyframe = newAnimationData.timePerKeyframe || 0.1;
+      this.playbackFPS = newAnimationData.playbackFPS || 30;
+      this.scaleKeyframes = newAnimationData.scaleKeyframes || [];
+
+      // Re-process keyframes with rotation and dimension scaling
+      this.keyframes = this.scaleKeyframes_forDimensions(
+        this.applyRotationToKeyframes(newAnimationData.keyframes || []),
+      );
+
+      // Re-process shadow keyframes
+      this.shadowKeyframes = this.scaleShadowKeyframes_forDimensions(
+        this.applyRotationToShadowKeyframes(newAnimationData.shadowKeyframes || []),
+      );
+
+      // Update total keyframes count
+      this.totalKeyframes = Math.max(
+        this.keyframes.length,
+        this.scaleKeyframes.length,
+      );
+
+      // Find the last keyframe with data for end keyframe
+      let lastKeyframeIndex = -1;
+      for (let i = this.keyframes.length - 1; i >= 0; i--) {
+        if (this.keyframes[i]) {
+          lastKeyframeIndex = i;
+          break;
+        }
+      }
+      this.endKeyframe = lastKeyframeIndex >= 0 ? lastKeyframeIndex : 59;
+
+      // Re-render the current frame with updated animation data
+      this.applyInterpolatedFrame(this.currentKeyframePosition);
+
+      console.log('[PaperAnimator] Refreshed animation data for', this.id);
     }
 
     updateOffsets(offsetX, offsetY) {

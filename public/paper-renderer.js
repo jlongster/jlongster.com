@@ -152,6 +152,7 @@
 
   // Expose API for devtools
   window.PaperRenderer = {
+    createPaperHTML: createPaperHTML,
     restartAll: function () {
       console.log('[PaperRenderer] Restarting all animations');
 

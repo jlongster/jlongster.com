@@ -11,8 +11,8 @@
   let dragOffsetY = 0;
   let highlightUpdateLoop = null;
 
-  // Load collapsed state from localStorage
-  let isCollapsed = true;
+  // Start with devtools open
+  let isCollapsed = false;
 
   console.log('[PaperDevTools] Script loaded');
 
@@ -179,6 +179,20 @@
       ">
         ↻ Restart All Animations
       </button>
+      <button id="new-animation-btn" style="
+        width: 100%;
+        padding: 8px;
+        background: #f59e0b;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 8px;
+      ">
+        + Create New Animation
+      </button>
       <div style="display: flex; gap: 6px;">
         <button id="export-config-btn" style="
           flex: 1;
@@ -263,6 +277,10 @@
       if (window.PaperRenderer) {
         window.PaperRenderer.restartAll();
       }
+    });
+
+    document.getElementById('new-animation-btn').addEventListener('click', () => {
+      openNewAnimationEditor();
     });
 
     document
@@ -593,8 +611,22 @@
     actions.style.cssText = `
       display: flex;
       gap: 6px;
+      flex-direction: column;
     `;
     actions.innerHTML = `
+      <button class="edit-animation-btn" style="
+        width: 100%;
+        padding: 8px;
+        background: #f59e0b;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+      ">
+        ✎ Edit Animation
+      </button>
       <button class="restart-btn" style="
         width: 100%;
         padding: 6px;
@@ -698,6 +730,10 @@
       }
     });
 
+    card.querySelector('.edit-animation-btn').addEventListener('click', e => {
+      openAnimationEditor(id, animator);
+    });
+
     // Auto-update offset inputs when dragging
     card._updateOffsets = function (x, y) {
       offsetXInput.value = x;
@@ -705,6 +741,69 @@
     };
 
     return card;
+  }
+
+  function openAnimationEditor(id, animator) {
+    if (!window.PaperAnimationEditor) {
+      console.error('[PaperDevTools] PaperAnimationEditor not loaded');
+      return;
+    }
+
+    const currentConfig = window.PaperAnimator?.getConfig(id) || {};
+    const animationIndex = currentConfig.animationIndex ?? 0;
+
+    // Hide devtools sidebar
+    const sidebar = document.getElementById('paper-devtools');
+    const collapseTab = document.getElementById('devtools-tab');
+    if (sidebar) sidebar.style.display = 'none';
+    if (collapseTab) collapseTab.style.display = 'none';
+
+    // Open the animation editor
+    window.PaperAnimationEditor.open(animationIndex, animator.paperElement, animator, {
+      onClose: () => {
+        // Restore devtools to its previous state
+        if (isCollapsed) {
+          // Was collapsed - show the tab
+          if (collapseTab) collapseTab.style.display = 'block';
+        } else {
+          // Was expanded - show the sidebar
+          if (sidebar) sidebar.style.display = 'block';
+        }
+      },
+      onAnimationChange: (animIndex, animationData) => {
+        console.log('[PaperDevTools] Animation changed:', animIndex, animationData);
+      }
+    });
+  }
+
+  function openNewAnimationEditor() {
+    if (!window.PaperAnimationEditor) {
+      console.error('[PaperDevTools] PaperAnimationEditor not loaded');
+      return;
+    }
+
+    // Hide devtools sidebar
+    const sidebar = document.getElementById('paper-devtools');
+    const collapseTab = document.getElementById('devtools-tab');
+    if (sidebar) sidebar.style.display = 'none';
+    if (collapseTab) collapseTab.style.display = 'none';
+
+    // Open the animation editor for new animation
+    window.PaperAnimationEditor.openNew({
+      onClose: () => {
+        // Restore devtools to its previous state
+        if (isCollapsed) {
+          // Was collapsed - show the tab
+          if (collapseTab) collapseTab.style.display = 'block';
+        } else {
+          // Was expanded - show the sidebar
+          if (sidebar) sidebar.style.display = 'block';
+        }
+      },
+      onAnimationChange: (animIndex, animationData) => {
+        console.log('[PaperDevTools] New animation created:', animationData);
+      }
+    });
   }
 
   function saveConfig(id, animator) {
@@ -910,6 +1009,11 @@
       if (clickedPaperId !== null) {
         // Select it
         selectAnimator(clickedPaperId);
+
+        // Don't start dragging if animation editor has disabled interactions
+        if (window.PaperAnimator?.areInteractionsDisabled()) {
+          return;
+        }
 
         // Start dragging
         const animator = animatorRegistry.get(clickedPaperId);
