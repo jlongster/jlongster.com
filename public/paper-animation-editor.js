@@ -150,12 +150,13 @@
     // Store the original wrapper (don't hide it - we'll overlay on top)
     originalPaperWrapper = paperElement.closest('.paper-component-wrapper');
 
-    // Get the instance config from the paper element
+    // Get the instance config from the animator (if available) or paper element attributes
+    // Use animator values to get current offset after dragging
     instanceConfig = {
-      offsetX: parseFloat(paperElement.getAttribute('data-offset-x')) || 0,
-      offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
-      rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
-      scale: parseFloat(paperElement.getAttribute('data-scale')) || 1,
+      offsetX: animator ? animator.offsetX : (parseFloat(paperElement.getAttribute('data-offset-x')) || 0),
+      offsetY: animator ? animator.offsetY : (parseFloat(paperElement.getAttribute('data-offset-y')) || 0),
+      rotation: animator ? animator.rotation : (parseFloat(paperElement.getAttribute('data-rotation')) || 0),
+      scale: animator ? animator.globalScale : (parseFloat(paperElement.getAttribute('data-scale')) || 1),
     };
 
     // Pause the animator while editing (but don't unregister - keep the paper visible)
