@@ -255,8 +255,7 @@
 
     stopAnimation();
 
-    // Notify animation change before closing (save any edits)
-    notifyAnimationChange();
+    // Note: close() does NOT save changes - use saveAndClose() to save
 
     // Remove UI elements
     if (editorContainer) {
@@ -316,14 +315,30 @@
     onAnimationChangeCallback = null;
     originalPaperWrapper = null;
 
-    // Resume the animator (it was just paused, not unregistered)
+    // Restart the animator from the beginning - ensures it picks up any animation changes
     if (animatorToResume) {
-      animatorToResume.resume();
+      animatorToResume.start();
     }
 
     if (closeCallback) {
       closeCallback();
     }
+  }
+
+  function saveAndClose() {
+    if (!isOpen) return;
+
+    // Save changes to global state before closing
+    notifyAnimationChange();
+
+    // Now close (which won't save again)
+    close();
+  }
+
+  // Deep copy a keyframe object
+  function deepCopyKeyframe(keyframe) {
+    if (!keyframe) return null;
+    return JSON.parse(JSON.stringify(keyframe));
   }
 
   function loadAnimationData(animationData) {
@@ -343,9 +358,9 @@
       offsetY = animationData.offsetY;
     }
 
-    // Load keyframes
+    // Load keyframes - deep copy to avoid mutating global state
     if (animationData.keyframes) {
-      keyframes = [...animationData.keyframes];
+      keyframes = animationData.keyframes.map(deepCopyKeyframe);
       // Ensure array is proper length
       while (keyframes.length < totalKeyframes) {
         keyframes.push(null);
@@ -353,14 +368,14 @@
     }
 
     if (animationData.scaleKeyframes) {
-      scaleKeyframes = [...animationData.scaleKeyframes];
+      scaleKeyframes = animationData.scaleKeyframes.map(deepCopyKeyframe);
       while (scaleKeyframes.length < totalKeyframes) {
         scaleKeyframes.push(null);
       }
     }
 
     if (animationData.shadowKeyframes) {
-      shadowKeyframes = [...animationData.shadowKeyframes];
+      shadowKeyframes = animationData.shadowKeyframes.map(deepCopyKeyframe);
       while (shadowKeyframes.length < totalKeyframes) {
         shadowKeyframes.push(null);
       }
@@ -442,10 +457,17 @@
       ? 'Creating New Animation'
       : `Editing Animation ${currentAnimationIndex + 1}`;
 
+    // Button container for close buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+      display: flex;
+      gap: 8px;
+    `;
+
     const closeButton = document.createElement('button');
     closeButton.style.cssText = `
-      padding: 8px 20px;
-      background: #ef4444;
+      padding: 8px 16px;
+      background: #6b7280;
       color: white;
       border: none;
       border-radius: 6px;
@@ -456,11 +478,31 @@
       align-items: center;
       gap: 6px;
     `;
-    closeButton.innerHTML = '✕ Close Animation Editor';
+    closeButton.innerHTML = '✕ Discard';
     closeButton.onclick = close;
 
+    const saveCloseButton = document.createElement('button');
+    saveCloseButton.style.cssText = `
+      padding: 8px 16px;
+      background: #22c55e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    `;
+    saveCloseButton.innerHTML = '✓ Save & Close';
+    saveCloseButton.onclick = saveAndClose;
+
+    buttonContainer.appendChild(closeButton);
+    buttonContainer.appendChild(saveCloseButton);
+
     header.appendChild(title);
-    header.appendChild(closeButton);
+    header.appendChild(buttonContainer);
     editorContainer.appendChild(header);
 
     // Main timeline container
@@ -841,7 +883,6 @@
     const timePerKeyframeInput = timePerKeyframeLabel.querySelector('#editor-time-per-keyframe');
     timePerKeyframeInput.addEventListener('change', (e) => {
       timePerKeyframe = parseFloat(e.target.value);
-      notifyAnimationChange();
       updateTimelineUI();
     });
 
@@ -862,7 +903,6 @@
     const playbackFPSInput = playbackFPSLabel.querySelector('#editor-playback-fps');
     playbackFPSInput.addEventListener('change', (e) => {
       playbackFPS = parseFloat(e.target.value);
-      notifyAnimationChange();
       if (isPlaying) {
         stopAnimation();
         startAnimation();
@@ -1278,6 +1318,8 @@
       const slice = targetPaperElement.querySelector(`.paper-slice-${i}`);
       if (slice) {
         slice.style.cursor = 'move';
+        // Remove any CSS transitions so dragging is instant
+        slice.style.transition = 'none';
         slice.addEventListener('mousedown', startWholeDrag);
       }
     }
@@ -1948,25 +1990,21 @@
     }
 
     keyframes[currentKeyframe] = newKeyframe;
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
   function clearCurrentKeyframe() {
     keyframes[currentKeyframe] = null;
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
   function saveCurrentScaleKeyframe() {
     scaleKeyframes[currentScaleKeyframe] = scale;
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
   function clearCurrentScaleKeyframe() {
     scaleKeyframes[currentScaleKeyframe] = null;
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
@@ -1978,13 +2016,11 @@
       blurEnabled: shadowBlurEnabled,
       blurAmount: shadowBlurAmount
     };
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
   function clearCurrentShadowKeyframe() {
     shadowKeyframes[currentShadowKeyframe] = null;
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
@@ -2127,7 +2163,6 @@
       isRectangle: true,
     };
 
-    notifyAnimationChange();
     updateTimelineUI();
   }
 
@@ -2582,7 +2617,6 @@
         loadShadowKeyframe(0);
       }
 
-      notifyAnimationChange();
       updateTimelineUI();
 
       if (e.target) {
@@ -2725,6 +2759,7 @@
     open: open,
     openNew: openNew,
     close: close,
+    saveAndClose: saveAndClose,
     isOpen: () => isOpen,
     getCurrentAnimationData: getCurrentAnimationData,
   };
