@@ -1252,8 +1252,8 @@
       paperHeight
     );
     shapeSvg.id = 'animation-editor-shape-svg';
-    // Make it visible (override z-index: -1 from createShadowSVG for editing)
-    shapeSvg.style.zIndex = '50';
+    // Keep z-index: -1 from createShadowSVG so shadow renders underneath paper
+    // (no need to override it for editing)
 
     // Create shape control points
     shapeLeftCurvePoints.forEach((point, index) => {
