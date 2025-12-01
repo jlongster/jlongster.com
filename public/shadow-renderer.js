@@ -275,12 +275,111 @@
     });
   }
 
+  // Scale shadow keyframes from baseline (0-250 x 0-300) to paper dimensions
+  // Uses the EXACT same coordinate system as paper rendering
+  function scaleShadowKeyframes(keyframes, paperWidth, paperHeight, globalScale = 1, rotation = 0) {
+    // First apply rotation if needed
+    let rotatedKeyframes = keyframes;
+    if (rotation !== 0) {
+      rotatedKeyframes = applyRotationToKeyframes(keyframes, rotation);
+    }
+
+    // Scale from baseline to paper dimensions - same as paper scaling
+    return rotatedKeyframes.map(keyframe => {
+      if (!keyframe) return keyframe;
+
+      return {
+        ...keyframe,
+        leftCurve: keyframe.leftCurve.map(point => ({
+          x: (point.x / 250) * paperWidth * globalScale,
+          y: (point.y / 300) * paperHeight * globalScale,
+        })),
+        rightCurve: keyframe.rightCurve.map(point => ({
+          x: (point.x / 250) * paperWidth * globalScale,
+          y: (point.y / 300) * paperHeight * globalScale,
+        })),
+      };
+    });
+  }
+
+  // Apply rotation transformation to keyframes
+  function applyRotationToKeyframes(keyframes, rotation) {
+    if (rotation === 0) return keyframes;
+
+    const firstKeyframe = keyframes.find(kf => kf);
+    if (!firstKeyframe) return keyframes;
+
+    // Calculate center from first keyframe's curves
+    const allPoints = [
+      ...firstKeyframe.leftCurve,
+      ...firstKeyframe.rightCurve,
+    ];
+    const centerX = allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+    const centerY = allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+
+    const rotationRad = (rotation * Math.PI) / 180;
+
+    // Apply rotation to all keyframes
+    return keyframes.map(keyframe => {
+      if (!keyframe) return keyframe;
+
+      return {
+        ...keyframe,
+        leftCurve: keyframe.leftCurve.map(point =>
+          rotatePoint(point, centerX, centerY, rotationRad)
+        ),
+        rightCurve: keyframe.rightCurve.map(point =>
+          rotatePoint(point, centerX, centerY, rotationRad)
+        ),
+      };
+    });
+  }
+
+  // Rotate a point around a center
+  function rotatePoint(point, centerX, centerY, rotationRad) {
+    // Translate to origin
+    const translatedX = point.x - centerX;
+    const translatedY = point.y - centerY;
+
+    // Rotate
+    const rotatedX = translatedX * Math.cos(rotationRad) - translatedY * Math.sin(rotationRad);
+    const rotatedY = translatedX * Math.sin(rotationRad) + translatedY * Math.cos(rotationRad);
+
+    // Translate back
+    return {
+      x: rotatedX + centerX,
+      y: rotatedY + centerY,
+    };
+  }
+
+  // Create and setup a shadow SVG element for a paper
+  function createShadowSVG(paperElement, paperWidth, paperHeight) {
+    const shadowSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    shadowSVG.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+      overflow: visible;
+      border: 1px solid transparent;
+    `;
+    shadowSVG.setAttribute('viewBox', `0 0 ${paperWidth} ${paperHeight}`);
+    paperElement.appendChild(shadowSVG);
+    return shadowSVG;
+  }
+
   // Export public API
   window.ShadowRenderer = {
     generateShapePoints,
     drawSVGShape,
     interpolateColors,
     parseColor,
-    getInterpolatedColor
+    getInterpolatedColor,
+    scaleShadowKeyframes,
+    applyRotationToKeyframes,
+    createShadowSVG
   };
 })();

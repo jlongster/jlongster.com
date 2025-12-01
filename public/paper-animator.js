@@ -910,11 +910,16 @@
         this.applyRotationToKeyframes(animationData.keyframes || []),
       );
 
-      // Apply same transformations to shadow keyframes
-      // Note: Shadow keyframes use the same coordinate system as paper keyframes
-      this.shadowKeyframes = this.scaleShadowKeyframes_forDimensions(
-        this.applyRotationToShadowKeyframes(this.shadowKeyframes),
-      );
+      // Apply same transformations to shadow keyframes using shared renderer
+      if (window.ShadowRenderer && window.ShadowRenderer.scaleShadowKeyframes) {
+        this.shadowKeyframes = window.ShadowRenderer.scaleShadowKeyframes(
+          this.shadowKeyframes,
+          this.paperWidth,
+          this.paperHeight,
+          this.globalScale,
+          this.rotation
+        );
+      }
 
       // Total keyframes count
       this.totalKeyframes = Math.max(
@@ -953,23 +958,14 @@
     }
 
     createShadowElement() {
-      // Create SVG for shadow
-      this.shadowSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      this.shadowSVG.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: -1;
-        overflow: visible;
-        border: 1px solid transparent;
-      `;
-      this.shadowSVG.setAttribute('viewBox', `0 0 ${this.paperWidth} ${this.paperHeight}`);
-
-      // Append to paper element
-      this.paperElement.appendChild(this.shadowSVG);
+      // Use shared shadow renderer to create shadow SVG
+      if (window.ShadowRenderer && window.ShadowRenderer.createShadowSVG) {
+        this.shadowSVG = window.ShadowRenderer.createShadowSVG(
+          this.paperElement,
+          this.paperWidth,
+          this.paperHeight
+        );
+      }
     }
 
     scaleKeyframes_forDimensions(keyframes) {
@@ -1042,65 +1038,6 @@
         x: rotatedX + centerX,
         y: rotatedY + centerY,
       };
-    }
-
-    scaleShadowKeyframes_forDimensions(keyframes) {
-      // Scale all shadow keyframe coordinates based on paper dimensions
-      // Same scaling approach as regular keyframes - no offset needed
-      // Also apply globalScale to match the paper's scaling
-      // Apply fixed offset to align shadows with paper position
-      const shadowOffsetX = -180;
-      const shadowOffsetY = 70;
-
-      return keyframes.map(keyframe => {
-        if (!keyframe) return keyframe;
-
-        return {
-          ...keyframe,
-          leftCurve: keyframe.leftCurve.map(point => ({
-            x: (point.x / 250) * this.paperWidth * this.globalScale + shadowOffsetX,
-            y: (point.y / 300) * this.paperHeight * this.globalScale + shadowOffsetY,
-          })),
-          rightCurve: keyframe.rightCurve.map(point => ({
-            x: (point.x / 250) * this.paperWidth * this.globalScale + shadowOffsetX,
-            y: (point.y / 300) * this.paperHeight * this.globalScale + shadowOffsetY,
-          })),
-        };
-      });
-    }
-
-    applyRotationToShadowKeyframes(keyframes) {
-      // Find the center point from the first shadow keyframe
-      const firstKeyframe = keyframes.find(kf => kf);
-      if (!firstKeyframe) return keyframes;
-
-      // Shadow coordinates are in the editor's coordinate system (-200 to 600)
-      // Calculate center from first keyframe's curves in that system
-      const allPoints = [
-        ...firstKeyframe.leftCurve,
-        ...firstKeyframe.rightCurve,
-      ];
-      const centerX =
-        allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
-      const centerY =
-        allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
-
-      const rotationRad = (this.rotation * Math.PI) / 180;
-
-      // Apply rotation to all shadow keyframes
-      return keyframes.map(keyframe => {
-        if (!keyframe) return keyframe;
-
-        return {
-          ...keyframe,
-          leftCurve: keyframe.leftCurve.map(point =>
-            this.transformPoint(point, centerX, centerY, rotationRad),
-          ),
-          rightCurve: keyframe.rightCurve.map(point =>
-            this.transformPoint(point, centerX, centerY, rotationRad),
-          ),
-        };
-      });
     }
 
     renderInitialFrame() {
@@ -1220,10 +1157,16 @@
         this.applyRotationToKeyframes(newAnimationData.keyframes || []),
       );
 
-      // Re-process shadow keyframes
-      this.shadowKeyframes = this.scaleShadowKeyframes_forDimensions(
-        this.applyRotationToShadowKeyframes(newAnimationData.shadowKeyframes || []),
-      );
+      // Re-process shadow keyframes using shared renderer
+      if (window.ShadowRenderer && window.ShadowRenderer.scaleShadowKeyframes) {
+        this.shadowKeyframes = window.ShadowRenderer.scaleShadowKeyframes(
+          newAnimationData.shadowKeyframes || [],
+          this.paperWidth,
+          this.paperHeight,
+          this.globalScale,
+          this.rotation
+        );
+      }
 
       // Update total keyframes count
       this.totalKeyframes = Math.max(

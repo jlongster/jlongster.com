@@ -81,18 +81,20 @@
       { x: 250, y: 300, element: null },
     ];
 
+    // Shadow coordinates use SAME baseline as paper: 0-250 x 0-300
+    // This makes shadows and paper share the exact same origin and coordinate system
     shapeLeftCurvePoints = [
-      { x: 50, y: 50, element: null },
-      { x: 50, y: 150, element: null },
-      { x: 50, y: 250, element: null },
-      { x: 50, y: 350, element: null },
+      { x: 0, y: 0, element: null },
+      { x: 0, y: 100, element: null },
+      { x: 0, y: 200, element: null },
+      { x: 0, y: 300, element: null },
     ];
 
     shapeRightCurvePoints = [
-      { x: 350, y: 50, element: null },
-      { x: 350, y: 150, element: null },
-      { x: 350, y: 250, element: null },
-      { x: 350, y: 350, element: null },
+      { x: 250, y: 0, element: null },
+      { x: 250, y: 100, element: null },
+      { x: 250, y: 200, element: null },
+      { x: 250, y: 300, element: null },
     ];
 
     shapePointColors = [];
@@ -1227,39 +1229,31 @@
 
     document.body.appendChild(overlay);
 
-    // Create shape overlay for shadow
+    // Get paper dimensions - shadow uses same dimensions as paper
+    const paperWidth = targetAnimator ? targetAnimator.paperWidth : 250;
+    const paperHeight = targetAnimator ? targetAnimator.paperHeight : 300;
+
+    // Shadow overlay matches paper overlay size and will be positioned identically
     shapeOverlay = document.createElement('div');
     shapeOverlay.id = 'animation-editor-shape-overlay';
     shapeOverlay.style.cssText = `
       position: fixed;
-      width: 400px;
-      height: 400px;
+      width: ${paperWidth}px;
+      height: ${paperHeight}px;
       pointer-events: none;
-      z-index: 9998;
+      z-index: 10002;
       overflow: visible;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
     `;
 
-    // Create shape SVG - behind the paper overlay
-    const shapeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    shapeSvg.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 800px;
-      height: 800px;
-      pointer-events: none;
-      overflow: visible;
-      z-index: 9997;
-    `;
-    shapeSvg.setAttribute('width', '800');
-    shapeSvg.setAttribute('height', '800');
-    shapeSvg.setAttribute('viewBox', '-200 -200 800 800');
+    // Create shape SVG using shared renderer - same setup as animator
+    const shapeSvg = window.ShadowRenderer.createShadowSVG(
+      targetPaperElement,
+      paperWidth,
+      paperHeight
+    );
     shapeSvg.id = 'animation-editor-shape-svg';
-    document.body.appendChild(shapeSvg);
+    // Make it visible (override z-index: -1 from createShadowSVG for editing)
+    shapeSvg.style.zIndex = '50';
 
     // Create shape control points
     shapeLeftCurvePoints.forEach((point, index) => {
@@ -1274,7 +1268,8 @@
 
     document.body.appendChild(shapeOverlay);
 
-    // Initialize
+    // Initialize positions
+    updateOverlayPosition(); // Position both overlays initially
     updateControlPointPositions();
     updateShapeControlPointPositions();
     calculateSlicePoints();
@@ -1351,6 +1346,12 @@
 
     overlay.style.top = (top + overlayOffsetY) + 'px';
     overlay.style.left = (left + overlayOffsetX) + 'px';
+
+    // Position shape overlay at the same location as paper overlay
+    if (shapeOverlay) {
+      shapeOverlay.style.top = (top + overlayOffsetY) + 'px';
+      shapeOverlay.style.left = (left + overlayOffsetX) + 'px';
+    }
   }
 
   function updateControlPointPositions() {
@@ -1378,6 +1379,7 @@
   }
 
   function updateShapeControlPointPositions() {
+    // Control points are in editor coordinate space - position them directly
     shapeLeftCurvePoints.forEach(point => {
       if (point.element) {
         point.element.style.left = point.x + 'px';
@@ -1495,13 +1497,16 @@
   }
 
   function generateShapePoints() {
-    if (window.ShadowRenderer) {
-      shapeGeneratedPoints = window.ShadowRenderer.generateShapePoints(
-        shapeLeftCurvePoints,
-        shapeRightCurvePoints,
-        10
-      );
-    }
+    if (!window.ShadowRenderer) return;
+
+    // Shadow control points are stored in editor coordinate space
+    // They will be scaled by the animator when the animation is played
+    // For editing, we render them directly without transformation
+    shapeGeneratedPoints = window.ShadowRenderer.generateShapePoints(
+      shapeLeftCurvePoints,
+      shapeRightCurvePoints,
+      10
+    );
   }
 
   function getInterpolatedColor(index) {
@@ -1793,9 +1798,9 @@
 
       const rect = currentOverlay.getBoundingClientRect();
 
-      // Simple relative positioning - overlay is fixed at 250x300
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      // Get pixel coordinates relative to overlay
+      const pixelX = e.clientX - rect.left;
+      const pixelY = e.clientY - rect.top;
 
       let points;
       if (currentDrag.side === 'left') points = leftCurvePoints;
@@ -1805,8 +1810,9 @@
 
       if (!points) return;
 
-      points[currentDrag.index].x = x;
-      points[currentDrag.index].y = y;
+      // Both paper and shadow control points use their natural coordinate spaces
+      points[currentDrag.index].x = pixelX;
+      points[currentDrag.index].y = pixelY;
 
       if (!updateScheduled) {
         updateScheduled = true;
