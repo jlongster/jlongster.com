@@ -981,7 +981,8 @@
         // Render final keyframe
         this.applyInterpolatedFrame(this.endKeyframe);
 
-        this.stop();
+        // Stop the animation but don't clean up (keep shadow, etc.)
+        this.isAnimating = false;
       } else {
         this.applyInterpolatedFrame(this.currentKeyframePosition);
       }
