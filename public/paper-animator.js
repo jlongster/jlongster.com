@@ -356,47 +356,49 @@
                   console.log('[PaperAnimator]', paperId, 'Starting video render to canvases');
                   console.log('[PaperAnimator]', paperId, 'Video dimensions:', firstVideo.videoWidth, 'x', firstVideo.videoHeight);
                   console.log('[PaperAnimator]', paperId, 'Video paused:', firstVideo.paused, 'ended:', firstVideo.ended);
+                  console.log('[PaperAnimator]', paperId, 'Video readyState:', firstVideo.readyState);
 
                   let frameCount = 0;
 
                   // Start video rendering loop - render to all canvases
                   function draw() {
-                    if (!firstVideo.paused && !firstVideo.ended) {
-                      if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
-                        frameCount++;
-                        if (frameCount % 60 === 0) {
-                          console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames');
-                        }
-                        // Update all canvases with the same video frame
-                        canvases.forEach(canvas => {
-                          canvas.width = firstVideo.videoWidth;
-                          canvas.height = firstVideo.videoHeight;
-                          canvas.getContext('2d').drawImage(firstVideo, 0, 0);
-                        });
+                    // Always continue the loop, even if video is paused
+                    if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                      frameCount++;
+                      if (frameCount % 60 === 0) {
+                        console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames, paused:', firstVideo.paused);
                       }
-                      requestAnimationFrame(draw);
-                    } else {
-                      console.log('[PaperAnimator]', paperId, 'Draw loop stopped. paused:', firstVideo.paused, 'ended:', firstVideo.ended);
+                      // Update all canvases with the same video frame
+                      canvases.forEach(canvas => {
+                        canvas.width = firstVideo.videoWidth;
+                        canvas.height = firstVideo.videoHeight;
+                        canvas.getContext('2d').drawImage(firstVideo, 0, 0);
+                      });
                     }
+                    requestAnimationFrame(draw);
                   }
 
-                  // Ensure video is playing (Safari may need explicit play())
-                  if (firstVideo.paused) {
-                    firstVideo.play().then(() => {
-                      draw();
-                    }).catch(err => {
-                      console.error('[PaperAnimator]', paperId, 'Video play failed:', err);
-                    });
-                  } else {
-                    draw();
-                  }
+                  // Start the draw loop immediately
+                  draw();
+
+                  // Always explicitly call play() to ensure video plays
+                  // Don't rely on autoPlay attribute due to browser autoplay policies
+                  console.log('[PaperAnimator]', paperId, 'Calling play() on video');
+                  firstVideo.play().catch(err => {
+                    console.error('[PaperAnimator]', paperId, 'Video play failed:', err);
+                  });
                 };
 
                 // Wait for metadata if needed (Safari)
                 if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                  console.log('[PaperAnimator]', paperId, 'Video metadata already loaded, starting drawing');
                   startDrawing();
                 } else {
-                  firstVideo.addEventListener('loadedmetadata', startDrawing, { once: true });
+                  console.log('[PaperAnimator]', paperId, 'Waiting for video metadata to load');
+                  firstVideo.addEventListener('loadedmetadata', () => {
+                    console.log('[PaperAnimator]', paperId, 'Video metadata loaded');
+                    startDrawing();
+                  }, { once: true });
                 }
 
                 animator.start();
