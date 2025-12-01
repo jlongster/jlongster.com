@@ -409,11 +409,9 @@
     previewContainer.id = 'animation-editor-preview';
     previewContainer.style.cssText = `
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -60%);
+      top: 100px;
+      left: 100px;
       z-index: 9998;
-      pointer-events: none;
     `;
 
     // Generate paper HTML using PaperRenderer
@@ -428,7 +426,8 @@
       const paperElement = previewContainer.querySelector('.paper-element');
       if (paperElement) {
         paperElement.style.visibility = 'visible';
-        paperElement.style.pointerEvents = 'auto';
+        // Mark as editor-controlled to prevent mutation observer from animating it
+        paperElement.setAttribute('data-editor-controlled', 'true');
         targetPaperElement = paperElement;
       }
     } else {
@@ -1241,6 +1240,11 @@
     // Shadow overlay matches paper overlay size and will be positioned identically
     shapeOverlay = document.createElement('div');
     shapeOverlay.id = 'animation-editor-shape-overlay';
+
+    // For new animations, add 100px offset to match preview container position
+    const shapeTop = currentAnimationIndex === -1 ? top + 100 : top;
+    const shapeLeft = currentAnimationIndex === -1 ? left + 100 : left;
+
     shapeOverlay.style.cssText = `
       position: fixed;
       width: ${paperWidth}px;
@@ -1248,6 +1252,8 @@
       pointer-events: none;
       z-index: 10002;
       overflow: visible;
+      top: ${shapeTop}px;
+      left: ${shapeLeft}px;
     `;
 
     // Create shape SVG using shared renderer - same setup as animator
@@ -1349,25 +1355,22 @@
       left = wrapperRect.left + config.offsetX;
     }
 
-    overlay.style.top = (top + overlayOffsetY) + 'px';
-    overlay.style.left = (left + overlayOffsetX) + 'px';
+    // For new animations, add 100px offset to match preview container position
+    const newAnimOffset = currentAnimationIndex === -1 ? 100 : 0;
+
+    overlay.style.top = (top + overlayOffsetY + newAnimOffset) + 'px';
+    overlay.style.left = (left + overlayOffsetX + newAnimOffset) + 'px';
 
     // Position shape overlay at the same location as paper overlay
     if (shapeOverlay) {
-      shapeOverlay.style.top = (top + overlayOffsetY) + 'px';
-      shapeOverlay.style.left = (left + overlayOffsetX) + 'px';
+      shapeOverlay.style.top = (top + overlayOffsetY + newAnimOffset) + 'px';
+      shapeOverlay.style.left = (left + overlayOffsetX + newAnimOffset) + 'px';
     }
   }
 
   function updateControlPointPositions() {
     // Control points are in raw coordinate space (0-250, 0-300)
     // The overlay is fixed at 250x300, so no scaling needed
-    console.log('[PaperAnimationEditor] updateControlPointPositions:', {
-      leftPointsCount: leftCurvePoints.length,
-      rightPointsCount: rightCurvePoints.length,
-      leftPoints: leftCurvePoints.map(p => ({ x: p.x, y: p.y }))
-    });
-
     leftCurvePoints.forEach((point, i) => {
       if (point.element) {
         point.element.style.left = point.x + 'px';
@@ -1536,7 +1539,8 @@
     const polygon = svg.querySelector('.shape-slice');
     if (polygon) {
       polygon.style.cursor = 'move';
-      polygon.addEventListener('mousedown', startShadowWholeDrag);
+      console.log('jwl adding l;istenr')
+      polygon.addEventListener('mousedown', startShadowWholeDrag, true);
     }
 
     drawShapePointMarkers();
@@ -1777,6 +1781,7 @@
   }
 
   function startShadowWholeDrag(e) {
+    console.log(isPlaying, shadowPlayerMode)
     if (isPlaying || shadowPlayerMode) return;
     e.preventDefault();
     e.stopPropagation();

@@ -468,7 +468,6 @@
                   console.log('[PaperAnimator]', paperId, 'Video paused:', firstVideo.paused, 'ended:', firstVideo.ended);
                   console.log('[PaperAnimator]', paperId, 'Video readyState:', firstVideo.readyState);
 
-                  let frameCount = 0;
                   let canvasesInitialized = false;
 
                   // Safari optimization: Use requestVideoFrameCallback if available, otherwise fallback to rAF
@@ -492,11 +491,6 @@
 
                   const drawFrame = () => {
                     if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
-                      frameCount++;
-                      if (frameCount % 60 === 0) {
-                        console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames');
-                      }
-
                       const numContexts = contexts.length;
 
                       // Only set canvas dimensions once, not every frame
