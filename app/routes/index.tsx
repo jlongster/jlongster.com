@@ -277,7 +277,7 @@ export default function Index() {
         </section>
 
         <PostsList
-          posts={experiments.concat(experiments)}
+          posts={experiments}
           id="experiments"
           groupName="experiments"
           style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
