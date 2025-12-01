@@ -910,13 +910,12 @@
         this.applyRotationToKeyframes(animationData.keyframes || []),
       );
 
-      // Apply same transformations to shadow keyframes using shared renderer
-      if (window.ShadowRenderer && window.ShadowRenderer.scaleShadowKeyframes) {
-        this.shadowKeyframes = window.ShadowRenderer.scaleShadowKeyframes(
+      // Store shadow keyframes without pre-scaling - they will be scaled during rendering
+      // using the same center point as the paper
+      if (window.ShadowRenderer && window.ShadowRenderer.applyRotationToKeyframes) {
+        // Only apply rotation to shadow keyframes (rotation happens in baseline coords)
+        this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
           this.shadowKeyframes,
-          this.paperWidth,
-          this.paperHeight,
-          this.globalScale,
           this.rotation
         );
       }
@@ -1157,13 +1156,10 @@
         this.applyRotationToKeyframes(newAnimationData.keyframes || []),
       );
 
-      // Re-process shadow keyframes using shared renderer
-      if (window.ShadowRenderer && window.ShadowRenderer.scaleShadowKeyframes) {
-        this.shadowKeyframes = window.ShadowRenderer.scaleShadowKeyframes(
+      // Re-process shadow keyframes - only apply rotation, not scaling
+      if (window.ShadowRenderer && window.ShadowRenderer.applyRotationToKeyframes) {
+        this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
           newAnimationData.shadowKeyframes || [],
-          this.paperWidth,
-          this.paperHeight,
-          this.globalScale,
           this.rotation
         );
       }
@@ -1366,7 +1362,8 @@
       this.scale *= this.globalScale;
 
       // Interpolate and render shadow if shadow keyframes exist
-      this.renderShadow(keyframePosition, lowerIndex, upperIndex);
+      // Pass paper curves so shadow can be scaled around the same center point
+      this.renderShadow(keyframePosition, lowerIndex, upperIndex, leftCurvePoints, rightCurvePoints);
 
       // If this is a rectangle keyframe, render as single DOM node
       if (isRectangle && false) {
@@ -1381,7 +1378,7 @@
       }
     }
 
-    renderShadow(keyframePosition, lowerIndex, upperIndex) {
+    renderShadow(keyframePosition, lowerIndex, upperIndex, paperLeftCurve, paperRightCurve) {
       if (!this.shadowSVG || this.shadowKeyframes.length === 0) return;
 
       const lowerShadowIndex = this.findPreviousShadowKeyframe(lowerIndex);
@@ -1404,7 +1401,7 @@
         shadowT = Math.max(0, Math.min(1, shadowT));
       }
 
-      // Interpolate shadow bezier curves
+      // Interpolate shadow bezier curves (still in baseline coordinates)
       const leftCurve = lowerShadow.leftCurve.map((p, i) => ({
         x: this.lerp(p.x, upperShadow.leftCurve[i].x, shadowT),
         y: this.lerp(p.y, upperShadow.leftCurve[i].y, shadowT)
@@ -1415,8 +1412,33 @@
         y: this.lerp(p.y, upperShadow.rightCurve[i].y, shadowT)
       }));
 
-      // Generate points along the curves using shared shadow renderer
-      const generatedPoints = window.ShadowRenderer.generateShapePoints(leftCurve, rightCurve, 10);
+      // Calculate center from paper curves (which are already scaled)
+      const allPaperPoints = [...paperLeftCurve, ...paperRightCurve];
+      const centerX = allPaperPoints.reduce((sum, p) => sum + p.x, 0) / allPaperPoints.length;
+      const centerY = allPaperPoints.reduce((sum, p) => sum + p.y, 0) / allPaperPoints.length;
+
+      // Scale shadow curves from baseline to paper dimensions
+      // First scale to paper dimensions, then scale around center point (same as paper)
+      const scaledLeftCurve = leftCurve.map(point => {
+        const scaledX = (point.x / 250) * this.paperWidth;
+        const scaledY = (point.y / 300) * this.paperHeight;
+        return {
+          x: centerX + (scaledX - centerX) * this.globalScale,
+          y: centerY + (scaledY - centerY) * this.globalScale,
+        };
+      });
+
+      const scaledRightCurve = rightCurve.map(point => {
+        const scaledX = (point.x / 250) * this.paperWidth;
+        const scaledY = (point.y / 300) * this.paperHeight;
+        return {
+          x: centerX + (scaledX - centerX) * this.globalScale,
+          y: centerY + (scaledY - centerY) * this.globalScale,
+        };
+      });
+
+      // Generate points along the scaled curves using shared shadow renderer
+      const generatedPoints = window.ShadowRenderer.generateShapePoints(scaledLeftCurve, scaledRightCurve, 10);
 
       // Interpolate colors
       const colors = lowerShadow.colors.map((lowerColor, i) => {
