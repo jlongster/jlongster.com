@@ -138,6 +138,9 @@
       close();
     }
 
+    // Reset dragging state to prevent carrying over drag state from play mode
+    dragging = null;
+
     currentAnimationIndex = animationIndex;
     targetPaperElement = paperElement;
     targetAnimator = animator;
@@ -224,6 +227,9 @@
     if (isOpen) {
       close();
     }
+
+    // Reset dragging state to prevent carrying over drag state from play mode
+    dragging = null;
 
     currentAnimationIndex = -1; // -1 means new animation
     targetPaperElement = null;

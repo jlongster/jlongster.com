@@ -1452,8 +1452,10 @@
       const generatedPoints = window.ShadowRenderer.generateShapePoints(scaledLeftCurve, scaledRightCurve, 10);
 
       // Interpolate colors
-      const colors = lowerShadow.colors.map((lowerColor, i) => {
-        const upperColor = upperShadow.colors[i];
+      const lowerColors = lowerShadow.colors || [];
+      const upperColors = upperShadow.colors || [];
+      const colors = lowerColors.map((lowerColor, i) => {
+        const upperColor = upperColors[i];
         if (lowerColor === null || upperColor === null) {
           return lowerColor || upperColor;
         }
