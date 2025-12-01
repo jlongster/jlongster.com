@@ -350,7 +350,16 @@
                   return;
                 }
 
-                const contexts = Array.from(canvases).map(canvas => canvas.getContext('2d'));
+                // Cache the 2D contexts to avoid repeated getContext() calls
+                const contexts = Array.from(canvases).map(canvas => {
+                  const ctx = canvas.getContext('2d', {
+                    alpha: false,
+                    desynchronized: true // Safari optimization: allow desynchronized rendering
+                  });
+                  // Disable image smoothing for better performance
+                  ctx.imageSmoothingEnabled = false;
+                  return ctx;
+                });
 
                 const startDrawing = () => {
                   console.log('[PaperAnimator]', paperId, 'Starting video render to canvases');
@@ -359,27 +368,81 @@
                   console.log('[PaperAnimator]', paperId, 'Video readyState:', firstVideo.readyState);
 
                   let frameCount = 0;
+                  let canvasesInitialized = false;
 
-                  // Start video rendering loop - render to all canvases
-                  function draw() {
-                    // Always continue the loop, even if video is paused
+                  // Safari optimization: Use requestVideoFrameCallback if available, otherwise fallback to rAF
+                  const supportsVideoFrameCallback = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+                  console.log('[PaperAnimator]', paperId, 'Supports requestVideoFrameCallback:', supportsVideoFrameCallback);
+
+                  // Safari optimization: Create a master offscreen canvas to draw video to once,
+                  // then copy from that canvas to all slice canvases. This avoids multiple
+                  // video decode/upload operations per frame.
+                  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                  let masterCanvas = null;
+                  let masterCtx = null;
+
+                  if (isSafari) {
+                    masterCanvas = document.createElement('canvas');
+                    masterCtx = masterCanvas.getContext('2d', { alpha: false });
+                    console.log('[PaperAnimator]', paperId, 'Safari detected: using master canvas optimization');
+                  }
+
+                  const drawFrame = () => {
                     if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
                       frameCount++;
                       if (frameCount % 60 === 0) {
-                        console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames, paused:', firstVideo.paused);
+                        console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames');
                       }
-                      // Update all canvases with the same video frame
-                      canvases.forEach(canvas => {
-                        canvas.width = firstVideo.videoWidth;
-                        canvas.height = firstVideo.videoHeight;
-                        canvas.getContext('2d').drawImage(firstVideo, 0, 0);
-                      });
+
+                      // Only set canvas dimensions once, not every frame
+                      if (!canvasesInitialized) {
+                        if (masterCanvas) {
+                          masterCanvas.width = firstVideo.videoWidth;
+                          masterCanvas.height = firstVideo.videoHeight;
+                        }
+                        canvases.forEach(canvas => {
+                          canvas.width = firstVideo.videoWidth;
+                          canvas.height = firstVideo.videoHeight;
+                        });
+                        canvasesInitialized = true;
+                      }
+
+                      const numContexts = contexts.length;
+
+                      if (isSafari && masterCanvas && masterCtx) {
+                        // Safari path: Draw video to master canvas once, then copy to all slices
+                        masterCtx.drawImage(firstVideo, 0, 0);
+
+                        // Now copy from master canvas to all slice canvases
+                        for (let i = 0; i < numContexts; i++) {
+                          contexts[i].drawImage(masterCanvas, 0, 0);
+                        }
+                      } else {
+                        // Chrome path: Draw video directly to all canvases
+                        for (let i = 0; i < numContexts; i++) {
+                          contexts[i].drawImage(firstVideo, 0, 0);
+                        }
+                      }
+                    }
+                  };
+
+                  // Start video rendering loop
+                  if (supportsVideoFrameCallback) {
+                    // Use requestVideoFrameCallback for optimal Safari performance
+                    // This only draws when there's actually a new video frame
+                    function draw() {
+                      drawFrame();
+                      firstVideo.requestVideoFrameCallback(draw);
+                    }
+                    firstVideo.requestVideoFrameCallback(draw);
+                  } else {
+                    // Fallback to requestAnimationFrame
+                    function draw() {
+                      drawFrame();
+                      requestAnimationFrame(draw);
                     }
                     requestAnimationFrame(draw);
                   }
-
-                  // Start the draw loop immediately
-                  draw();
 
                   // Always explicitly call play() to ensure video plays
                   // Don't rely on autoPlay attribute due to browser autoplay policies

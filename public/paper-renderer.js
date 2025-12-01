@@ -6,7 +6,7 @@
   function createPaperHTML(htmlContent, paperStyle) {
     const width = 250;
     const height = 300;
-    const numSlices = 10;
+
     const styles =
       paperStyle === 'image'
           ? `padding: 10px;
@@ -20,6 +20,8 @@
     tempDiv.innerHTML = htmlContent;
     const videoPlaceholder = tempDiv.querySelector('[data-video-src]');
     const hasVideo = videoPlaceholder !== null;
+
+    const numSlices = 10;
 
     console.log('[PaperRenderer] Creating paper HTML, hasVideo:', hasVideo);
 
@@ -80,7 +82,6 @@
       }px, ${width}px ${endY}px, 0 ${endY}px);
             transform-style: preserve-3d;
             backface-visibility: hidden;
-            will-change: transform;
           "
         >
           ${paperContent}
