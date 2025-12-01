@@ -488,6 +488,8 @@
                     console.log('[PaperAnimator]', paperId, 'Safari detected: using master canvas optimization');
                   }
 
+                  let animatorStarted = false;
+
                   const drawFrame = () => {
                     if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
                       frameCount++;
@@ -495,7 +497,10 @@
                         console.log('[PaperAnimator]', paperId, 'Rendered', frameCount, 'frames');
                       }
 
+                      const numContexts = contexts.length;
+
                       // Only set canvas dimensions once, not every frame
+                      // Do this right before drawing to avoid flash of black
                       if (!canvasesInitialized) {
                         if (masterCanvas) {
                           masterCanvas.width = firstVideo.videoWidth;
@@ -507,8 +512,6 @@
                         });
                         canvasesInitialized = true;
                       }
-
-                      const numContexts = contexts.length;
 
                       if (isSafari && masterCanvas && masterCtx) {
                         // Safari path: Draw video to master canvas once, then copy to all slices
@@ -523,6 +526,13 @@
                         for (let i = 0; i < numContexts; i++) {
                           contexts[i].drawImage(firstVideo, 0, 0);
                         }
+                      }
+
+                      // Start animator after first frame is drawn to prevent flash of black
+                      if (!animatorStarted) {
+                        animatorStarted = true;
+                        console.log('[PaperAnimator]', paperId, 'Starting animator after first video frame');
+                        animator.start();
                       }
                     }
                   };
@@ -565,7 +575,8 @@
                   }, { once: true });
                 }
 
-                animator.start();
+                // Don't start animator here - wait until first video frame is drawn
+                // animator.start();
               };
 
               // Check if video can play through without buffering
