@@ -1192,8 +1192,6 @@
       overflow: visible;
       top: ${top}px;
       left: ${left}px;
-      border: 3px solid magenta;
-      background: rgba(255, 0, 255, 0.1);
     `;
 
     // Store reference to paper element for position updates
