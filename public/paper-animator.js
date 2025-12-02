@@ -213,6 +213,17 @@
           '[PaperAnimator] Starting coordinated animation for:',
           paperId,
         );
+
+        // For image papers, switch to real gif when starting
+        const paperStyle = element.getAttribute('data-paper-style');
+        if (paperStyle === 'image') {
+          const firstSlice = element.querySelector('.paper-slice-0');
+          const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
+          if (firstImage) {
+            animator.switchToRealGif();
+          }
+        }
+
         animator.start();
       } else {
         console.warn('[PaperAnimator] No animator found for:', paperId);
@@ -440,7 +451,15 @@
         paperElement.style.pointerEvents = 'none';
 
         // Check if this element is managed by the AnimationCoordinator
-        const isCoordinated = paperElement.hasAttribute('data-anim-group');
+        // Check the wrapper element since that's where data-anim-group is set
+        const wrapper = paperElement.closest('.paper-component-wrapper');
+        const isCoordinated = wrapper ? wrapper.hasAttribute('data-anim-group') : false;
+
+        if (isCoordinated) {
+          console.log('[PaperAnimator]', paperId, 'is coordinated, will defer start');
+        } else {
+          console.log('[PaperAnimator]', paperId, 'is NOT coordinated, will auto-start');
+        }
 
         // Re-enable pointer events (visibility will be set when first frame renders)
         paperElement.style.pointerEvents = '';
@@ -455,27 +474,13 @@
         // Store group name if present
         animator.groupName = paperGroup;
 
+        // Store coordinated flag on animator
+        animator.isCoordinated = isCoordinated;
+
         // Register in our local registry
         animatorRegistry.set(paperId, animator);
 
         paperElement.setAttribute('data-animator-initialized', 'true');
-
-        // If coordinated, don't auto-start - AnimationCoordinator will handle it
-        if (isCoordinated) {
-          console.log(
-            '[PaperAnimator] Paper is coordinated, deferring start:',
-            paperId,
-          );
-          // Register with DevTools
-          if (window.PaperDevTools) {
-            window.PaperDevTools.registerAnimator(paperId, animator);
-          }
-          // Setup drag interaction
-          setupDragInteraction(paperId, paperElement, animator);
-          // Create shape overlay for hit detection
-          createPaperShapeOverlay(paperId, paperElement, animator);
-          return;
-        }
 
         // Check if this is an image paper - if so, wait for images/videos to load
         if (isImagePaper) {
@@ -663,7 +668,10 @@
                         paperId,
                         'Starting animator after first video frame',
                       );
-                      animator.start();
+                      // Only auto-start if not coordinated
+                      if (!isCoordinated) {
+                        animator.start();
+                      }
                     }
                   }
                 };
@@ -751,15 +759,21 @@
             }
           } else if (firstImage) {
             // Image codepath
-            animator.start();
-            animator.switchToRealGif();
+            if (!isCoordinated) {
+              animator.start();
+              animator.switchToRealGif();
+            }
           } else {
-            // No image or video found, start immediately
-            animator.start();
+            // No image or video found, start immediately if not coordinated
+            if (!isCoordinated) {
+              animator.start();
+            }
           }
         } else {
-          // Not an image paper, start immediately
-          animator.start();
+          // Not an image paper, start immediately if not coordinated
+          if (!isCoordinated) {
+            animator.start();
+          }
         }
 
         // Register with DevTools
@@ -1277,8 +1291,6 @@
       this.applyInterpolatedFrame(this.currentKeyframePosition);
 
       // Make the paper element visible now that first frame is rendered
-      // Note: For coordinated elements, AnimationCoordinator handles visibility
-      // so this is a no-op in that case (visibility already set by coordinator)
       this.paperElement.style.visibility = 'visible';
 
       // Ensure global animation loop is running

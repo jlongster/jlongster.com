@@ -30,19 +30,7 @@
 
   function hideElement(element, type) {
     if (type === 'paper') {
-      // Hide paper elements - they may have been rendered by paper-animator
-      // Find the actual paper-element (may be wrapper or paper-component)
-      let paperElement = element;
-      if (element.classList.contains('paper-component-wrapper')) {
-        paperElement = element.querySelector('.paper-element');
-      } else if (element.classList.contains('paper-component')) {
-        // The paper-renderer transforms .paper-component into a wrapper
-        // The element itself might not exist anymore, but we can hide what we have
-      }
-      if (paperElement) {
-        paperElement.style.visibility = 'hidden';
-      }
-      element.style.visibility = 'hidden';
+      // Paper elements are already hidden by default
     } else if (type === 'text') {
       element.style.opacity = '0';
     } else if (type === 'arrow') {
@@ -51,17 +39,7 @@
   }
 
   function showElement(element, type) {
-    if (type === 'paper') {
-      // Show paper elements
-      let paperElement = element;
-      if (element.classList.contains('paper-component-wrapper')) {
-        paperElement = element.querySelector('.paper-element');
-      }
-      if (paperElement) {
-        paperElement.style.visibility = 'visible';
-      }
-      element.style.visibility = 'visible';
-    } else if (type === 'text') {
+    if (type === 'text') {
       element.style.opacity = '1';
     } else if (type === 'arrow') {
       element.style.opacity = '1';
@@ -166,7 +144,7 @@
     return groups;
   }
 
-  function animateElement(element, type) {
+  function animateElement(element, type, retryCount = 0) {
     console.log(`[AnimationCoordinator] Animating element of type "${type}"`);
 
     if (type === 'paper') {
@@ -183,11 +161,22 @@
         }
       }
 
-      // Show the paper element before animating
-      showElement(element, type);
-
       if (paperElement && window.PaperAnimator && window.PaperAnimator.animateElement) {
-        window.PaperAnimator.animateElement(paperElement);
+        // Check if the animator is actually registered
+        const paperId = paperElement.getAttribute('data-paper-id');
+        const animator = window.PaperAnimator.getAnimator ? window.PaperAnimator.getAnimator(paperId) : null;
+
+        if (animator) {
+          window.PaperAnimator.animateElement(paperElement);
+        } else if (retryCount < 10) {
+          // Animator not ready yet, retry after a short delay
+          console.log('[AnimationCoordinator] Animator not ready, retrying...', paperId);
+          setTimeout(() => {
+            animateElement(element, type, retryCount + 1);
+          }, 10);
+        } else {
+          console.warn('[AnimationCoordinator] Animator not found after retries:', paperId);
+        }
       } else {
         console.warn('[AnimationCoordinator] PaperAnimator not available or paper element not found');
       }
@@ -263,6 +252,8 @@
     const elements = document.querySelectorAll('[data-anim-group]');
     console.log(`[AnimationCoordinator] Found ${elements.length} animated elements`);
 
+    const triggersPerGroup = new Map(); // group -> trigger type
+
     elements.forEach((element) => {
       const group = element.dataset.animGroup;
       const delay = parseInt(element.dataset.animDelay || '0', 10);
@@ -271,7 +262,14 @@
 
       register(element, { group, delay, type });
 
-      // Set up scroll observation for the group if trigger is scroll
+      // Track trigger type for this group (use first element's trigger)
+      if (!triggersPerGroup.has(group)) {
+        triggersPerGroup.set(group, trigger);
+      }
+    });
+
+    // Set up triggers once per group
+    triggersPerGroup.forEach((trigger, group) => {
       if (trigger === 'scroll') {
         // Defer to allow all elements in group to register first
         setTimeout(() => {
