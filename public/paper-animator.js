@@ -10,6 +10,9 @@
   // Flag to disable interactions when animation editor is open
   let interactionsDisabled = false;
 
+  // Z-index tracking for paper elements
+  let highestZIndex = 1;
+
   // Global animation loop
   let globalAnimationLoopRunning = false;
   let lastFrameTime = 0;
@@ -60,7 +63,7 @@
 
   // Default fallback config if none provided
   const defaultConfig = {
-    animationIndex: 0,
+    animationName: null, // Will be set to first available animation
     offsetX: 0,
     offsetY: 0,
     rotation: 0,
@@ -180,27 +183,26 @@
       // Expose initializePaperElements for external use (e.g., PaperRenderer restart)
       initializePaperElements();
     },
-    updateAnimation: function (animationIndex, animationData) {
+    updateAnimation: function (animationName, animationData) {
       // Update animation data in memory
-      if (animationIndex >= 0 && animationIndex < animations.length) {
-        animations[animationIndex] = animationData;
-        console.log('[PaperAnimator] Animation updated:', animationIndex);
+      if (animations[animationName]) {
+        animations[animationName] = animationData;
+        console.log('[PaperAnimator] Animation updated:', animationName);
 
         // Notify all animators using this animation to refresh
         animatorRegistry.forEach((animator, id) => {
-          if (animator.animationIndex === animationIndex) {
+          if (animator.animationName === animationName) {
             console.log('[PaperAnimator] Refreshing animator:', id);
             animator.refreshAnimationData(animationData);
           }
         });
       }
     },
-    addAnimation: function (animationData) {
+    addAnimation: function (animationName, animationData) {
       // Add a new animation to the list
-      animations.push(animationData);
-      const newIndex = animations.length - 1;
-      console.log('[PaperAnimator] New animation added at index:', newIndex);
-      return newIndex;
+      animations[animationName] = animationData;
+      console.log('[PaperAnimator] New animation added:', animationName);
+      return animationName;
     },
 
     // Utility functions for transforming keyframe data
@@ -297,12 +299,15 @@
       const response = await fetch('/animation-data/manifest.json');
       const manifest = await response.json();
 
-      // Load all animation files
-      const animationPromises = manifest.files.map(filename =>
-        fetch(`/animation-data/${filename}`).then(r => r.json()),
-      );
+      // Load all animation files by name
+      const animationEntries = Object.entries(manifest.animations);
+      const animationPromises = animationEntries.map(async ([name, filename]) => {
+        const data = await fetch(`/animation-data/${filename}`).then(r => r.json());
+        return [name, data];
+      });
 
-      animations = await Promise.all(animationPromises);
+      const loadedAnimations = await Promise.all(animationPromises);
+      animations = Object.fromEntries(loadedAnimations);
 
       // Initialize existing paper elements
       initializePaperElements();
@@ -351,15 +356,15 @@
 
       // First, try to read config from data attributes (set by Paper component)
       const hasDataAttributes = paperElement.hasAttribute(
-        'data-animation-index',
+        'data-animation-name',
       );
       let config;
 
       if (hasDataAttributes) {
         // Use data attributes directly
         config = {
-          animationIndex:
-            parseInt(paperElement.getAttribute('data-animation-index')) || 0,
+          animationName:
+            paperElement.getAttribute('data-animation-name') || null,
           offsetX: parseFloat(paperElement.getAttribute('data-offset-x')) || 0,
           offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
           rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
@@ -380,10 +385,11 @@
         config = window.PaperAnimator.getConfig(paperId, sourceListId);
       }
 
-      // Use animationIndex from config, or fall back to cycling
-      const animationIndex =
-        config?.animationIndex ?? animatorRegistry.size % animations.length;
-      let animationData = animations[animationIndex];
+      // Use animationName from config, or fall back to cycling through available animations
+      const animationNames = Object.keys(animations);
+      const animationName =
+        config?.animationName ?? animationNames[animatorRegistry.size % animationNames.length];
+      let animationData = animations[animationName];
 
       if (animationData) {
         // Deep copy animation data to avoid mutating the original
@@ -427,8 +433,8 @@
           const animator = new PaperAnimator(paperElement, animationData);
           animator.id = paperId;
 
-          // Ensure animationIndex is set on the animator for DevTools
-          animator.animationIndex = animationIndex;
+          // Ensure animationName is set on the animator for DevTools
+          animator.animationName = animationName;
 
           // Store group name if present
           animator.groupName = paperGroup;
@@ -767,6 +773,10 @@
         return;
       }
 
+      // Bring this paper to the front
+      highestZIndex++;
+      paperElement.style.zIndex = highestZIndex;
+
       // Start dragging
       isDragging = true;
       hasDragged = false;
@@ -903,9 +913,20 @@
   }
 
   function setupOverlayHoverInteraction(svg, animator) {
-    const hoverAnimation = animations[4];
+    // Get hover animation name from the animator's animation data
+    const animationData = animations[animator.animationName];
+    const hoverAnimationName = animationData && animationData.hoverAnimationName
+      ? animationData.hoverAnimationName
+      : null;
+
+    if (!hoverAnimationName) {
+      // No hover animation configured for this animation
+      return;
+    }
+
+    const hoverAnimation = animations[hoverAnimationName];
     if (!hoverAnimation) {
-      console.warn('[PaperAnimator] Hover animation not found');
+      console.warn('[PaperAnimator] Hover animation not found:', hoverAnimationName);
       return;
     }
 
@@ -1726,6 +1747,19 @@
 
       // Re-render the current frame with updated animation data
       this.applyInterpolatedFrame(this.currentKeyframePosition);
+
+      // Re-initialize hover interactions with new animation data
+      if (this._overlaySvg) {
+        // Remove old event listeners by cloning the SVG
+        const oldSvg = this._overlaySvg;
+        const newSvg = oldSvg.cloneNode(true);
+        oldSvg.parentNode.replaceChild(newSvg, oldSvg);
+        this._overlaySvg = newSvg;
+        this._overlayPath = newSvg.querySelector('path');
+
+        // Re-setup hover interaction with new animation data
+        setupOverlayHoverInteraction(newSvg, this);
+      }
 
       console.log('[PaperAnimator] Refreshed animation data for', this.id);
     }

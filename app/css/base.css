@@ -114,6 +114,16 @@
   font-style: italic;
 }
 
+@font-face {
+  font-family: 'Handero';
+  src: url('/fonts/handero/ATP-Handero.woff2') format('woff2'),
+       url('/fonts/handero/ATP-Handero.woff') format('woff'),
+       url('/fonts/handero/ATP-Handero.ttf') format('truetype'),
+       url('/fonts/handero/ATP-Handero.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 /*
  * define:
  *

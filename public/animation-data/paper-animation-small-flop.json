@@ -2,6 +2,7 @@
   "version": 2,
   "timePerKeyframe": 0.1,
   "playbackFPS": 30,
+  "hoverAnimationName": "small-flop-hover",
   "keyframes": [
     {
       "leftCurve": [

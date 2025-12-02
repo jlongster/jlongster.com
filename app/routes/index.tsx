@@ -5,7 +5,7 @@ export async function loader() {
   const pages = getPages();
 
   const content = [];
-  const writings = [];
+  const notes = [];
   const experiments = [];
 
   for (let page of pages) {
@@ -15,11 +15,11 @@ export async function loader() {
     } else if (tags.includes('experiment')) {
       experiments.push(page);
     } else {
-      writings.push(page);
+      notes.push(page);
     }
   }
 
-  return { content, writings, experiments };
+  return { content, notes, experiments };
 }
 
 function PostsList({
@@ -61,19 +61,29 @@ function PostsList({
                   className="w-full h-full object-cover"
                   data-video-src={post['preview-vid']}
                 />
-                <img
-                  src={`https://d3ui957tjb5bqd.cloudfront.net/op/font-preview/291939758/2/14?s=%7B%22size%22%3A48%2C%22text%22%3A%22${post.title}%22%2C%22retina%22%3Atrue%7D`}
-                  style={{ height: 18, marginTop: 13, marginLeft: 10 }}
-                />
+                <div
+                  style={{
+                    fontFamily: 'Handero',
+                    marginLeft: 10,
+                    fontSize: 20,
+                    marginTop: 10,
+                  }}
+                >
+                  {post.title}
+                </div>
               </>
             ) : (
               <>
-                <a href={post.url} className="font-bold text-lg block mb-2">
+                <a
+                  href={post.url}
+                  className="font-bold text-lg block mb-2"
+                  style={{ fontFamily: 'Handero', fontSize: 30 }}
+                >
                   {post.title}
                 </a>
-                {post.abstract ? (
+                {/*post.abstract ? (
                   <p className="text-sm mt-2">{post.abstract}</p>
-                ) : null}
+                  ) : null*/}
               </>
             )}
           </Paper>
@@ -84,7 +94,7 @@ function PostsList({
 }
 
 type AnimationConfig = {
-  animationIndex: number;
+  animationName: string;
   offsetX: number;
   offsetY: number;
   rotation: number;
@@ -104,7 +114,7 @@ function Paper({
   paperStyle?: 'text' | 'image';
 }) {
   const config = animationConfig || {
-    animationIndex: 0,
+    animationName: 'floating',
     offsetX: 0,
     offsetY: 0,
     rotation: 0,
@@ -118,7 +128,7 @@ function Paper({
     <div
       className="paper-component"
       data-paper-style={paperStyle}
-      data-animation-index={config.animationIndex}
+      data-animation-name={config.animationName}
       data-offset-x={config.offsetX}
       data-offset-y={config.offsetY}
       data-rotation={config.rotation}
@@ -132,16 +142,85 @@ function Paper({
   );
 }
 
+type TextPositionConfig = {
+  top?: number | string;
+  left?: number | string;
+};
+
+type ArrowConfig = {
+  name: string;
+  top?: number | string;
+  left?: number | string;
+  transform?: string;
+  scale?: number;
+};
+
+function CanvasText({
+  children,
+  position,
+  arrow,
+  color,
+  rotation,
+}: {
+  children: React.ReactNode;
+  position: TextPositionConfig;
+  arrow?: ArrowConfig;
+  color?: string;
+  rotation?: number;
+}) {
+  const transform = rotation ? `rotate(${rotation}deg)` : undefined;
+
+  return (
+    <>
+      <div
+        data-canvas-text="true"
+        data-position={JSON.stringify(position)}
+        data-arrow={arrow ? JSON.stringify(arrow) : undefined}
+        style={{
+          position: 'absolute',
+          fontSize: 23,
+          color,
+          transform,
+          ...position,
+        }}
+      >
+        {children}
+      </div>
+      {arrow && (
+        <div
+          data-canvas-text-arrow="true"
+          data-arrow-name={arrow.name}
+          style={{
+            position: 'absolute',
+            top: arrow.top,
+            left: arrow.left,
+            transform: arrow.transform
+              ? arrow.scale
+                ? `${arrow.transform} scale(${arrow.scale})`
+                : arrow.transform
+              : arrow.scale
+              ? `scale(${arrow.scale})`
+              : undefined,
+            color: color,
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export default function Index() {
-  const { content, experiments, writings } = useLoaderData<typeof loader>();
+  const { content, experiments, notes } = useLoaderData<typeof loader>();
 
   return (
     <>
       <script src="/paper-devtools.js" />
+      <script src="/text-devtools.js" />
       <script src="/shadow-renderer.js" />
       <script src="/paper-animator.js?v=7" />
       <script src="/paper-renderer.js?v=3" />
       <script src="/paper-animation-editor.js" />
+      <script src="/arrow-animator.js" />
 
       <div id="scroll-container" className="overflow-hidden bg-[#fcfbf9]">
         <div
@@ -157,7 +236,7 @@ export default function Index() {
             <section className="">
               <Paper
                 animationConfig={{
-                  animationIndex: 0,
+                  animationName: 'floating',
                   startKeyframe: 10,
                   offsetX: -43,
                   offsetY: -230,
@@ -182,93 +261,26 @@ export default function Index() {
                   <div style={{ height: 50 }} />
                 </div>
               </Paper>
+
+              <CanvasText
+                position={{
+                  top: 200,
+                  left: -456,
+                }}
+                arrow={{
+                  name: 'up-right',
+                  top: -36,
+                  left: -464,
+                  scale: 0.4,
+                }}
+                color="rgb(249, 141, 47)"
+                rotation={-11}
+              >
+                I wrote a note for you. Open it!
+              </CanvasText>
             </section>
           </div>
         </div>
-
-        <section className="max-w-6xl mx-auto px-6 pb-32 relative">
-          <h1
-            className="font-serif text-4xl font-bold"
-            style={{
-              fontFamily: 'Playfair Display',
-            }}
-          >
-            Posts
-          </h1>
-
-          <div className="flex">
-            <div className="flex-1 flex flex-col items-start">
-              <ul id="content-posts" className="posts-list py-4 mt-12 w-full">
-                {writings.slice(0, 3).map((post: any, i: number) => {
-                  const img = !!post.gif;
-
-                  return (
-                    <li
-                      key={post.url}
-                      className={`post-item group relative flex flex-col`}
-                      data-url={post.url}
-                      data-title={post.title}
-                      data-image={post.gif || ''}
-                    >
-                      <a href={post.url} className="uncolored-link">
-                        {img ? (
-                          <div className="aspect-video w-full overflow-hidden bg-gray-50">
-                            <img
-                              src={post.gif}
-                              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-                              alt=""
-                            />
-                          </div>
-                        ) : null}
-
-                        <div className="py-6 flex flex-col flex-grow">
-                          <h2 style={{ margin: 0, marginBottom: 8 }}>
-                            {post.title}
-                          </h2>
-
-                          {post.date && (
-                            <span className="text-xs text-gray-400 font-mono uppercase tracking-wider">
-                              {new Date(post.date).toLocaleDateString(
-                                undefined,
-                                {
-                                  year: 'numeric',
-                                  month: 'short',
-                                },
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-              <a
-                href="/posts"
-                className="uncolored-link bg-primary px-6 py-3 rounded-lg hover:opacity-90 transition-opacity mt-4"
-              >
-                <span className="text-white">Read more</span>
-              </a>
-            </div>
-
-            <Paper
-              animationConfig={{
-                animationIndex: 0,
-                offsetX: -330,
-                offsetY: 4,
-                rotation: -22,
-                scale: 1,
-                startDelay: 0,
-                startKeyframe: 29,
-                endKeyframe: 59,
-              }}
-            >
-              <p>I enjoy breaking down complex topics writing about them.</p>
-              <p>Recently I've been trying to work on my design</p>
-              <p>- James</p>
-            </Paper>
-          </div>
-        </section>
 
         <PostsList
           posts={experiments}
@@ -277,7 +289,7 @@ export default function Index() {
           style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
           animationConfigs={[
             {
-              animationIndex: 3,
+              animationName: 'small-flop',
               offsetX: 695,
               offsetY: -34,
               rotation: -5,
@@ -287,7 +299,7 @@ export default function Index() {
               endKeyframe: 59,
             },
             {
-              animationIndex: 3,
+              animationName: 'small-flop',
               offsetX: 983,
               offsetY: 295,
               rotation: 0,
@@ -297,7 +309,7 @@ export default function Index() {
               endKeyframe: 59,
             },
             {
-              animationIndex: 3,
+              animationName: 'small-flop',
               offsetX: 733,
               offsetY: 318,
               rotation: -6,
@@ -307,7 +319,7 @@ export default function Index() {
               endKeyframe: 59,
             },
             {
-              animationIndex: 3,
+              animationName: 'small-flop',
               offsetX: 973,
               offsetY: -45,
               rotation: 8,
@@ -321,12 +333,13 @@ export default function Index() {
 
         {/* Semantic list of all posts - will be scraped by JS
             NEVER apply display: none here, it should always be an inline script tag below*/}
-        {/*<PostsList
-          posts={writings}
+        <PostsList
+          posts={notes}
           id="all-posts"
+          style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
           animationConfigs={[
             {
-              animationIndex: 0,
+              animationName: 'floating',
               offsetX: 573,
               offsetY: 199,
               rotation: -43,
@@ -336,7 +349,7 @@ export default function Index() {
               endKeyframe: 59,
             },
             {
-              animationIndex: 1,
+              animationName: 'slide-in',
               offsetX: 1045,
               offsetY: 51,
               rotation: -16,
@@ -346,7 +359,7 @@ export default function Index() {
               endKeyframe: 59,
             },
             {
-              animationIndex: 0,
+              animationName: 'floating',
               offsetX: 564,
               offsetY: 493,
               rotation: -9,
@@ -356,7 +369,7 @@ export default function Index() {
               endKeyframe: 59,
             },
             {
-              animationIndex: 1,
+              animationName: 'slide-in',
               offsetX: 962,
               offsetY: 408,
               rotation: -34,
@@ -366,8 +379,7 @@ export default function Index() {
               endKeyframe: 59,
             },
           ]}
-          />*/}
-        {/* Paper animation disabled - uncomment to re-enable */}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html:
@@ -380,7 +392,7 @@ export default function Index() {
           data-block-id="0"
           data-posts-list="content-posts"
           style={{ height: 'min(100vh, 800px)' }}
-        ></div>*/}
+          ></div>*/}
       </div>
     </>
   );

@@ -6,13 +6,14 @@
   const totalKeyframes = 60;
 
   let isOpen = false;
-  let currentAnimationIndex = null; // Which animation we're editing
+  let currentAnimationName = null; // Which animation we're editing (null means new animation)
   let targetPaperElement = null; // The paper element we're editing (for overlay positioning)
   let targetAnimator = null; // The animator instance we're editing
 
   // Editor state
   let timePerKeyframe = 0.1;
   let playbackFPS = 30;
+  let hoverAnimationName = null; // Which animation to use for hover (null = no hover)
   let leftCurvePoints = [];
   let rightCurvePoints = [];
   let slicePoints = [];
@@ -133,7 +134,7 @@
   }
 
   // Open the editor for an existing animation
-  function open(animationIndex, paperElement, animator, options = {}) {
+  function open(animationName, paperElement, animator, options = {}) {
     if (isOpen) {
       close();
     }
@@ -141,7 +142,7 @@
     // Reset dragging state to prevent carrying over drag state from play mode
     dragging = null;
 
-    currentAnimationIndex = animationIndex;
+    currentAnimationName = animationName;
     targetPaperElement = paperElement;
     targetAnimator = animator;
     onCloseCallback = options.onClose;
@@ -183,9 +184,9 @@
     initializeControlPoints();
 
     // Load the animation data
-    const animations = window.PaperAnimator?.getAnimations() || [];
-    if (animationIndex >= 0 && animationIndex < animations.length) {
-      loadAnimationData(animations[animationIndex]);
+    const animations = window.PaperAnimator?.getAnimations() || {};
+    if (animationName && animations[animationName]) {
+      loadAnimationData(animations[animationName]);
     }
 
     createEditorUI();
@@ -232,7 +233,7 @@
     // Reset dragging state to prevent carrying over drag state from play mode
     dragging = null;
 
-    currentAnimationIndex = -1; // -1 means new animation
+    currentAnimationName = null; // null means new animation
     targetPaperElement = null;
     targetAnimator = null;
     onCloseCallback = options.onClose;
@@ -251,6 +252,7 @@
     shadowKeyframes = Array(totalKeyframes).fill(null);
     timePerKeyframe = 0.08;
     playbackFPS = 30;
+    hoverAnimationName = null;
     offsetX = 0;
     offsetY = 0;
     scale = 1;
@@ -325,7 +327,7 @@
     const closeCallback = onCloseCallback;
 
     isOpen = false;
-    currentAnimationIndex = null;
+    currentAnimationName = null;
     targetPaperElement = null;
     targetAnimator = null;
     onCloseCallback = null;
@@ -371,6 +373,15 @@
     }
     if (animationData.playbackFPS !== undefined) {
       playbackFPS = animationData.playbackFPS;
+    }
+    // Support both old hoverAnimationIndex and new hoverAnimationName
+    if (animationData.hoverAnimationName !== undefined) {
+      hoverAnimationName = animationData.hoverAnimationName;
+    } else if (animationData.hoverAnimationIndex !== undefined) {
+      // Backwards compatibility: convert index to name
+      const animations = window.PaperAnimator?.getAnimations() || {};
+      const animNames = Object.keys(animations);
+      hoverAnimationName = animNames[animationData.hoverAnimationIndex] || null;
     }
     if (animationData.offsetX !== undefined) {
       offsetX = animationData.offsetX;
@@ -489,9 +500,9 @@
       font-weight: 600;
       font-size: 14px;
     `;
-    title.textContent = currentAnimationIndex === -1
+    title.textContent = currentAnimationName === null
       ? 'Creating New Animation'
-      : `Editing Animation ${currentAnimationIndex + 1}`;
+      : `Editing Animation: ${currentAnimationName}`;
 
     // Button container for close buttons
     const buttonContainer = document.createElement('div');
@@ -981,6 +992,36 @@
       updateAllTransforms();
     });
 
+    // Hover animation selector
+    const hoverAnimationLabel = document.createElement('label');
+    hoverAnimationLabel.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #374151;
+    `;
+
+    // Get available animations from the global scope
+    const availableAnimations = window.PaperAnimator && window.PaperAnimator.getAnimations ? window.PaperAnimator.getAnimations() : {};
+    const hoverOptions = ['<option value="">None</option>'];
+    Object.keys(availableAnimations).forEach(animName => {
+      const selected = hoverAnimationName === animName ? ' selected' : '';
+      hoverOptions.push(`<option value="${animName}"${selected}>${animName}</option>`);
+    });
+
+    hoverAnimationLabel.innerHTML = `
+      Hover:
+      <select id="editor-hover-animation"
+        style="width: 95px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px;">
+        ${hoverOptions.join('')}
+      </select>
+    `;
+    const hoverAnimationSelect = hoverAnimationLabel.querySelector('#editor-hover-animation');
+    hoverAnimationSelect.addEventListener('change', (e) => {
+      hoverAnimationName = e.target.value === '' ? null : e.target.value;
+    });
+
     // Time display
     const timeDisplay = document.createElement('span');
     timeDisplay.id = 'editor-time-display';
@@ -1004,6 +1045,7 @@
     controls.appendChild(timePerKeyframeLabel);
     controls.appendChild(playbackFPSLabel);
     controls.appendChild(scaleLabel);
+    controls.appendChild(hoverAnimationLabel);
     controls.appendChild(timeDisplay);
 
     expandedContainer.appendChild(viewControls);
@@ -1277,8 +1319,8 @@
     shapeOverlay.id = 'animation-editor-shape-overlay';
 
     // For new animations, add offset to match preview container position
-    const shapeTop = currentAnimationIndex === -1 ? top + 200 : top;
-    const shapeLeft = currentAnimationIndex === -1 ? left + (window.innerWidth / 2) : left;
+    const shapeTop = currentAnimationName === null ? top + 200 : top;
+    const shapeLeft = currentAnimationName === null ? left + (window.innerWidth / 2) : left;
 
     shapeOverlay.style.cssText = `
       position: fixed;
@@ -1391,8 +1433,8 @@
     }
 
     // For new animations, add offset to match preview container position
-    const newAnimOffsetY = currentAnimationIndex === -1 ? 200 : 0;
-    const newAnimOffsetX = currentAnimationIndex === -1 ? (window.innerWidth / 2) : 0;
+    const newAnimOffsetY = currentAnimationName === null ? 200 : 0;
+    const newAnimOffsetX = currentAnimationName === null ? (window.innerWidth / 2) : 0;
 
     overlay.style.top = (top + overlayOffsetY + newAnimOffsetY) + 'px';
     overlay.style.left = (left + overlayOffsetX + newAnimOffsetX) + 'px';
@@ -2602,6 +2644,7 @@
       version: 2,
       timePerKeyframe: timePerKeyframe,
       playbackFPS: playbackFPS,
+      hoverAnimationName: hoverAnimationName,
       keyframes: keyframes,
       scaleKeyframes: scaleKeyframes,
       shadowKeyframes: shadowKeyframes,
@@ -2640,6 +2683,20 @@
         playbackFPS = data.playbackFPS;
         const input = document.getElementById('editor-playback-fps');
         if (input) input.value = playbackFPS;
+      }
+
+      // Support both old hoverAnimationIndex and new hoverAnimationName
+      if (data.hoverAnimationName !== undefined) {
+        hoverAnimationName = data.hoverAnimationName;
+        const select = document.getElementById('editor-hover-animation');
+        if (select) select.value = hoverAnimationName === null ? '' : hoverAnimationName;
+      } else if (data.hoverAnimationIndex !== undefined) {
+        // Backwards compatibility: convert index to name
+        const animations = window.PaperAnimator?.getAnimations() || {};
+        const animNames = Object.keys(animations);
+        hoverAnimationName = animNames[data.hoverAnimationIndex] || null;
+        const select = document.getElementById('editor-hover-animation');
+        if (select) select.value = hoverAnimationName === null ? '' : hoverAnimationName;
       }
 
       if (data.keyframes) {
@@ -2774,7 +2831,7 @@
 
   // Notify that animation data has changed
   function notifyAnimationChange() {
-    if (currentAnimationIndex === -1) {
+    if (currentAnimationName === null) {
       // New animation - don't update existing animations
       return;
     }
@@ -2783,6 +2840,7 @@
       version: 2,
       timePerKeyframe: timePerKeyframe,
       playbackFPS: playbackFPS,
+      hoverAnimationName: hoverAnimationName,
       keyframes: keyframes,
       scaleKeyframes: scaleKeyframes,
       shadowKeyframes: shadowKeyframes,
@@ -2792,11 +2850,11 @@
 
     // Update the animation in PaperAnimator's memory
     if (window.PaperAnimator && window.PaperAnimator.updateAnimation) {
-      window.PaperAnimator.updateAnimation(currentAnimationIndex, animationData);
+      window.PaperAnimator.updateAnimation(currentAnimationName, animationData);
     }
 
     if (onAnimationChangeCallback) {
-      onAnimationChangeCallback(currentAnimationIndex, animationData);
+      onAnimationChangeCallback(currentAnimationName, animationData);
     }
   }
 

@@ -267,7 +267,7 @@
       display: none;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
-    collapseTab.textContent = 'DevTools';
+    collapseTab.textContent = 'Paper DevTools';
     document.body.appendChild(collapseTab);
 
     // Event listeners
@@ -339,8 +339,10 @@
 
       configToExport = groupAnimators.map(([id, _]) => {
         const config = savedConfigs.get(id);
+        const animations = window.PaperAnimator?.getAnimations() || {};
+        const firstAnimName = Object.keys(animations)[0] || null;
         return config || {
-          animationIndex: 0,
+          animationName: firstAnimName,
           offsetX: 0,
           offsetY: 0,
           rotation: 0,
@@ -353,8 +355,10 @@
     } else {
       // Export just the selected animation's config (not as an array)
       const config = savedConfigs.get(selectedAnimatorId);
+      const animations = window.PaperAnimator?.getAnimations() || {};
+      const firstAnimName = Object.keys(animations)[0] || null;
       configToExport = config || {
-        animationIndex: 0,
+        animationName: firstAnimName,
         offsetX: 0,
         offsetY: 0,
         rotation: 0,
@@ -483,9 +487,9 @@
     `;
 
     // Animation selector
-    const animations = window.PaperAnimator?.getAnimations() || [];
+    const animations = window.PaperAnimator?.getAnimations() || {};
     const currentConfig = window.PaperAnimator?.getConfig(id) || {};
-    const currentAnimationIndex = currentConfig.animationIndex ?? 0;
+    const currentAnimationName = currentConfig.animationName ?? Object.keys(animations)[0];
 
     const animationSection = document.createElement('div');
     animationSection.style.cssText = `
@@ -494,11 +498,11 @@
       border-bottom: 1px solid #4b5563;
     `;
 
-    const animationOptions = animations
-      .map((anim, idx) => {
-        return `<option value="${idx}" ${
-          idx === currentAnimationIndex ? 'selected' : ''
-        }>Animation ${idx + 1}</option>`;
+    const animationOptions = Object.keys(animations)
+      .map((animName) => {
+        return `<option value="${animName}" ${
+          animName === currentAnimationName ? 'selected' : ''
+        }>${animName}</option>`;
       })
       .join('');
 
@@ -653,11 +657,11 @@
 
     // Animation selector change
     animationSelector.addEventListener('change', e => {
-      const newAnimationIndex = parseInt(animationSelector.value);
+      const newAnimationName = animationSelector.value;
       const currentConfig = window.PaperAnimator.getConfig(id);
 
       const updatedConfig = {
-        animationIndex: newAnimationIndex,
+        animationName: newAnimationName,
         startKeyframe: 0,
         offsetX: currentConfig.offsetX,
         offsetY: currentConfig.offsetY,
@@ -748,7 +752,7 @@
     }
 
     const currentConfig = window.PaperAnimator?.getConfig(id) || {};
-    const animationIndex = currentConfig.animationIndex ?? 0;
+    const animationName = currentConfig.animationName ?? animator.animationName;
 
     // Hide devtools sidebar
     const sidebar = document.getElementById('paper-devtools');
@@ -757,7 +761,7 @@
     if (collapseTab) collapseTab.style.display = 'none';
 
     // Open the animation editor
-    window.PaperAnimationEditor.open(animationIndex, animator.paperElement, animator, {
+    window.PaperAnimationEditor.open(animationName, animator.paperElement, animator, {
       onClose: () => {
         // Restore devtools to its previous state
         if (isCollapsed) {
@@ -768,8 +772,8 @@
           if (sidebar) sidebar.style.display = 'block';
         }
       },
-      onAnimationChange: (animIndex, animationData) => {
-        console.log('[PaperDevTools] Animation changed:', animIndex, animationData);
+      onAnimationChange: (animName, animationData) => {
+        console.log('[PaperDevTools] Animation changed:', animName, animationData);
       }
     });
   }
@@ -806,7 +810,7 @@
 
   function saveConfig(id, animator) {
     const config = {
-      animationIndex: animator.animationIndex,
+      animationName: animator.animationName,
       offsetX: animator.offsetX,
       offsetY: animator.offsetY,
       rotation: animator.rotation,

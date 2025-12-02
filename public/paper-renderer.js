@@ -11,8 +11,7 @@
       paperStyle === 'image'
           ? `padding: 10px;
              padding-bottom: 50px;
-             overflow: hidden;
-             line-height: 0`
+             overflow: hidden;`
         : `padding: 20px`;
 
     // Check if content contains a video placeholder
@@ -51,7 +50,7 @@
           margin: 0;
           border: 1px solid #f0f1ec;
           background-color: white;
-          font-family: LoveLexie;
+          font-family: Handero;
           color: #404031;
           box-sizing: border-box;
           ${styles}
@@ -120,7 +119,7 @@
       id,
       paperStyle,
       paperGroup,
-      animationIndex,
+      animationName,
       offsetX,
       offsetY,
       rotation,
@@ -137,7 +136,7 @@
     if (paperStyle) {
       paperElement.setAttribute('data-paper-style', paperStyle);
     }
-    paperElement.setAttribute('data-animation-index', animationIndex);
+    paperElement.setAttribute('data-animation-name', animationName);
     paperElement.setAttribute('data-offset-x', offsetX);
     paperElement.setAttribute('data-offset-y', offsetY);
     paperElement.setAttribute('data-rotation', rotation);
@@ -207,8 +206,8 @@
       // Fall back to reading from data attributes if no saved config
       if (!config) {
         config = {
-          animationIndex:
-            parseInt(paperElement.getAttribute('data-animation-index')) || 0,
+          animationName:
+            paperElement.getAttribute('data-animation-name') || 'floating',
           offsetX: parseFloat(paperElement.getAttribute('data-offset-x')) || 0,
           offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
           rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
@@ -223,7 +222,7 @@
       }
 
       const {
-        animationIndex,
+        animationName,
         offsetX,
         offsetY,
         rotation,
@@ -268,7 +267,7 @@
           id,
           paperStyle,
           paperGroup,
-          animationIndex,
+          animationName,
           offsetX,
           offsetY,
           rotation,
@@ -304,8 +303,8 @@
       // Get the HTML content from inside the component
       const htmlContent = component.innerHTML;
       const paperStyle = component.getAttribute('data-paper-style') || 'text';
-      const animationIndex =
-        parseInt(component.getAttribute('data-animation-index')) || 0;
+      const animationName =
+        component.getAttribute('data-animation-name') || 'floating';
       const offsetX = parseFloat(component.getAttribute('data-offset-x')) || 0;
       const offsetY = parseFloat(component.getAttribute('data-offset-y')) || 0;
       const rotation = parseFloat(component.getAttribute('data-rotation')) || 0;
@@ -324,7 +323,7 @@
       console.log('[PaperRenderer] Processing paper component:', {
         index,
         paperStyle,
-        animationIndex,
+        animationName,
         offsetX,
         offsetY,
         rotation,
@@ -345,7 +344,7 @@
         setPaperAttributes(paperElement, {
           paperStyle,
           paperGroup: parentGroup,
-          animationIndex,
+          animationName,
           offsetX,
           offsetY,
           rotation,
