@@ -154,41 +154,34 @@ export default function Index() {
           }}
         >
           <div className="relative z-10 max-w-2xl px-6">
-            <section className="text-lg md:text-xl leading-relaxed">
-              <h1
-                className="text-5xl md:text-7xl mb-8 text-primary"
-                style={{
-                  fontFamily: 'Playfair Display',
-                  fontWeight: 700,
+            <section className="">
+              <Paper
+                animationConfig={{
+                  animationIndex: 0,
+                  startKeyframe: 10,
+                  offsetX: -43,
+                  offsetY: -230,
+                  rotation: -17,
+                  scale: 0.9,
+                  startDelay: 0,
+                  endKeyframe: 35,
                 }}
               >
-                Hello, I'm <span className="text-accent">James Long</span>
-              </h1>
-
-              <div className="space-y-6 text-primary/90">
-                <p>
-                  I'm a <span className="font-semibold">design engineer</span>{' '}
-                  with two decades of experience building products. I study
-                  everything from design to computing, and now AI.
-                </p>
-                <p>
-                  I created{' '}
-                  <a
-                    href="https://prettier.io"
-                    className="text-link hover:text-accent transition-colors duration-200"
-                  >
-                    Prettier
-                  </a>
-                  , worked for over 5 years at{' '}
-                  <a
-                    href="https://stripe.com"
-                    className="text-link hover:text-accent transition-colors duration-200"
-                  >
-                    Stripe
-                  </a>
-                  , and currently looking for my next thing.
-                </p>
-              </div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                  }}
+                >
+                  <p>Hello!</p>
+                  <div style={{ height: 50 }} />
+                </div>
+              </Paper>
             </section>
           </div>
         </div>
