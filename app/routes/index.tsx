@@ -27,6 +27,7 @@ function PostsList({
   id,
   className,
   animationConfigs,
+  animConfigs,
   groupName,
   style,
 }: {
@@ -34,6 +35,7 @@ function PostsList({
   id?: string;
   className?: string;
   animationConfigs?: any[];
+  animConfigs?: PaperAnimConfig[];
   groupName?: string;
   style: any;
 }) {
@@ -47,12 +49,14 @@ function PostsList({
     >
       {posts.map((post: any, index: number) => {
         const animationConfig = animationConfigs?.[index];
+        const animConfig = animConfigs?.[index];
         const paperStyle = post['preview-vid'] ? 'image' : 'text';
 
         return (
           <Paper
             key={post.url}
             animationConfig={animationConfig}
+            animConfig={animConfig}
             paperStyle={paperStyle}
           >
             {post['preview-vid'] ? (
@@ -99,27 +103,37 @@ type AnimationConfig = {
   offsetY: number;
   rotation: number;
   scale: number;
-  startDelay: number;
   startKeyframe: number;
   endKeyframe: number;
+};
+
+type PaperAnimConfig = {
+  group: string;
+  delay?: number;
+  trigger?: 'scroll' | 'load' | 'manual';
 };
 
 function Paper({
   children,
   animationConfig,
+  animConfig,
   paperStyle = 'text',
+  anim,
 }: {
   children: React.ReactNode;
   animationConfig?: AnimationConfig;
+  animConfig?: PaperAnimConfig;
   paperStyle?: 'text' | 'image';
+  anim?: PaperAnimConfig;
 }) {
+  // Support both anim and animConfig props (animConfig takes precedence)
+  const animProps = animConfig || anim;
   const config = animationConfig || {
     animationName: 'floating',
     offsetX: 0,
     offsetY: 0,
     rotation: 0,
     scale: 1,
-    startDelay: 0,
     startKeyframe: 0,
     endKeyframe: 59,
   };
@@ -133,9 +147,12 @@ function Paper({
       data-offset-y={config.offsetY}
       data-rotation={config.rotation}
       data-scale={config.scale}
-      data-start-delay={config.startDelay}
       data-start-keyframe={config.startKeyframe}
       data-end-keyframe={config.endKeyframe}
+      data-anim-group={animProps?.group}
+      data-anim-delay={animProps?.delay}
+      data-anim-type="paper"
+      data-anim-trigger={animProps?.trigger}
     >
       {children}
     </div>
@@ -155,18 +172,27 @@ type ArrowConfig = {
   scale?: number;
 };
 
+type AnimConfig = {
+  group: string;
+  textDelay?: number;
+  arrowDelay?: number;
+  trigger?: 'scroll' | 'load' | 'manual';
+};
+
 function CanvasText({
   children,
   position,
   arrow,
   color,
   rotation,
+  anim,
 }: {
   children: React.ReactNode;
   position: TextPositionConfig;
   arrow?: ArrowConfig;
   color?: string;
   rotation?: number;
+  anim?: AnimConfig;
 }) {
   const transform = rotation ? `rotate(${rotation}deg)` : undefined;
 
@@ -176,6 +202,10 @@ function CanvasText({
         data-canvas-text="true"
         data-position={JSON.stringify(position)}
         data-arrow={arrow ? JSON.stringify(arrow) : undefined}
+        data-anim-group={anim?.group}
+        data-anim-delay={anim?.textDelay}
+        data-anim-type="text"
+        data-anim-trigger={anim?.trigger}
         style={{
           position: 'absolute',
           fontSize: 23,
@@ -190,6 +220,10 @@ function CanvasText({
         <div
           data-canvas-text-arrow="true"
           data-arrow-name={arrow.name}
+          data-anim-group={anim?.group}
+          data-anim-delay={anim?.arrowDelay}
+          data-anim-type="arrow"
+          data-anim-trigger={anim?.trigger}
           style={{
             position: 'absolute',
             top: arrow.top,
@@ -221,6 +255,8 @@ export default function Index() {
       <script src="/paper-renderer.js?v=3" />
       <script src="/paper-animation-editor.js" />
       <script src="/arrow-animator.js" />
+      <script src="/animation-coordinator.js" />
+      <script src="/anim-devtools.js" />
 
       <div id="scroll-container" className="overflow-hidden bg-[#fcfbf9]">
         <div
@@ -242,8 +278,12 @@ export default function Index() {
                   offsetY: -230,
                   rotation: -17,
                   scale: 0.9,
-                  startDelay: 0,
                   endKeyframe: 35,
+                }}
+                anim={{
+                  group: 'intro',
+                  delay: 0,
+                  trigger: 'load',
                 }}
               >
                 <div
@@ -275,61 +315,99 @@ export default function Index() {
                 }}
                 color="rgb(249, 141, 47)"
                 rotation={-11}
+                anim={{
+                  group: 'intro',
+                  textDelay: 1500,
+                  arrowDelay: 1800,
+                  trigger: 'load',
+                }}
               >
-                I wrote a note for you. Open it!
+                I wrote a note for you, open it!
               </CanvasText>
             </section>
           </div>
         </div>
 
-        <PostsList
-          posts={experiments}
-          id="experiments"
-          groupName="experiments"
-          style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
-          animationConfigs={[
-            {
-              animationName: 'small-flop',
-              offsetX: 695,
-              offsetY: -34,
-              rotation: -5,
-              scale: 1.3,
-              startDelay: 200,
-              startKeyframe: 0,
-              endKeyframe: 59,
-            },
-            {
-              animationName: 'small-flop',
-              offsetX: 983,
-              offsetY: 295,
-              rotation: 0,
-              scale: 1.3,
-              startDelay: 800,
-              startKeyframe: 0,
-              endKeyframe: 59,
-            },
-            {
-              animationName: 'small-flop',
-              offsetX: 733,
-              offsetY: 318,
-              rotation: -6,
-              scale: 1.3,
-              startDelay: 600,
-              startKeyframe: 0,
-              endKeyframe: 59,
-            },
-            {
-              animationName: 'small-flop',
-              offsetX: 973,
-              offsetY: -45,
-              rotation: 8,
-              scale: 1.3,
-              startDelay: 400,
-              startKeyframe: 0,
-              endKeyframe: 59,
-            },
-          ]}
-        />
+        <div
+          style={{
+            marginTop: 200,
+            marginBottom: 300,
+            minHeight: '100vh',
+            position: 'relative',
+          }}
+        >
+          <PostsList
+            posts={experiments}
+            id="experiments"
+            groupName="experiments"
+            animationConfigs={[
+              {
+                animationName: 'small-flop',
+                offsetX: 695,
+                offsetY: -34,
+                rotation: -5,
+                scale: 1.3,
+                startKeyframe: 0,
+                endKeyframe: 59,
+              },
+              {
+                animationName: 'small-flop',
+                offsetX: 983,
+                offsetY: 295,
+                rotation: 0,
+                scale: 1.3,
+                startKeyframe: 0,
+                endKeyframe: 59,
+              },
+              {
+                animationName: 'small-flop',
+                offsetX: 733,
+                offsetY: 318,
+                rotation: -6,
+                scale: 1.3,
+                startKeyframe: 0,
+                endKeyframe: 59,
+              },
+              {
+                animationName: 'small-flop',
+                offsetX: 973,
+                offsetY: -45,
+                rotation: 8,
+                scale: 1.3,
+                startKeyframe: 0,
+                endKeyframe: 59,
+              },
+            ]}
+            animConfigs={[
+              { group: 'experiments', delay: 0, trigger: 'load' },
+              { group: 'experiments', delay: 200, trigger: 'load' },
+              { group: 'experiments', delay: 400, trigger: 'load' },
+              { group: 'experiments', delay: 600, trigger: 'load' },
+            ]}
+          />
+          <CanvasText
+            position={{
+              top: 295,
+              left: 973,
+            }}
+            arrow={{
+              name: 'down-left',
+              top: 257,
+              left: 959,
+              scale: 0.4,
+            }}
+            color="rgb(249, 141, 47)"
+            rotation={8}
+            anim={{
+              group: 'experiments',
+              textDelay: 1500,
+              arrowDelay: 1800,
+              trigger: 'load',
+            }}
+          >
+            Some experiments I've worked on
+          </CanvasText>
+        </div>
 
         {/* Semantic list of all posts - will be scraped by JS
             NEVER apply display: none here, it should always be an inline script tag below*/}
@@ -344,7 +422,6 @@ export default function Index() {
               offsetY: 199,
               rotation: -43,
               scale: 1,
-              startDelay: 0,
               startKeyframe: 31,
               endKeyframe: 59,
             },
@@ -354,7 +431,6 @@ export default function Index() {
               offsetY: 51,
               rotation: -16,
               scale: 1.2,
-              startDelay: 0,
               startKeyframe: 5,
               endKeyframe: 59,
             },
@@ -364,7 +440,6 @@ export default function Index() {
               offsetY: 493,
               rotation: -9,
               scale: 0.9,
-              startDelay: 0,
               startKeyframe: 28,
               endKeyframe: 59,
             },
@@ -374,7 +449,6 @@ export default function Index() {
               offsetY: 408,
               rotation: -34,
               scale: 1.1,
-              startDelay: 0,
               startKeyframe: 0,
               endKeyframe: 59,
             },

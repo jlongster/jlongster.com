@@ -68,7 +68,6 @@
     offsetY: 0,
     rotation: 0,
     scale: 1,
-    startDelay: 0,
     startKeyframe: 0,
     endKeyframe: 59,
   };
@@ -156,9 +155,6 @@
         if (config.scale !== undefined) {
           animator.updateScale(config.scale);
         }
-        if (config.startDelay !== undefined) {
-          animator.startDelay = config.startDelay;
-        }
         if (config.startKeyframe !== undefined) {
           animator.startKeyframe = config.startKeyframe;
         }
@@ -203,6 +199,27 @@
       animations[animationName] = animationData;
       console.log('[PaperAnimator] New animation added:', animationName);
       return animationName;
+    },
+    animateElement: function (element) {
+      // Start animation for a specific element (used by AnimationCoordinator)
+      const paperId = element.getAttribute('data-paper-id');
+      if (!paperId) {
+        console.warn('[PaperAnimator] Element has no data-paper-id:', element);
+        return;
+      }
+      const animator = animatorRegistry.get(paperId);
+      if (animator) {
+        console.log(
+          '[PaperAnimator] Starting coordinated animation for:',
+          paperId,
+        );
+        animator.start();
+      } else {
+        console.warn('[PaperAnimator] No animator found for:', paperId);
+      }
+    },
+    getAnimator: function (paperId) {
+      return animatorRegistry.get(paperId);
     },
 
     // Utility functions for transforming keyframe data
@@ -301,10 +318,14 @@
 
       // Load all animation files by name
       const animationEntries = Object.entries(manifest.animations);
-      const animationPromises = animationEntries.map(async ([name, filename]) => {
-        const data = await fetch(`/animation-data/${filename}`).then(r => r.json());
-        return [name, data];
-      });
+      const animationPromises = animationEntries.map(
+        async ([name, filename]) => {
+          const data = await fetch(`/animation-data/${filename}`).then(r =>
+            r.json(),
+          );
+          return [name, data];
+        },
+      );
 
       const loadedAnimations = await Promise.all(animationPromises);
       animations = Object.fromEntries(loadedAnimations);
@@ -369,8 +390,6 @@
           offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
           rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
           scale: parseFloat(paperElement.getAttribute('data-scale')) || 1,
-          startDelay:
-            parseInt(paperElement.getAttribute('data-start-delay')) || 0,
           startKeyframe:
             parseInt(paperElement.getAttribute('data-start-keyframe')) || 0,
           endKeyframe:
@@ -388,7 +407,8 @@
       // Use animationName from config, or fall back to cycling through available animations
       const animationNames = Object.keys(animations);
       const animationName =
-        config?.animationName ?? animationNames[animatorRegistry.size % animationNames.length];
+        config?.animationName ??
+        animationNames[animatorRegistry.size % animationNames.length];
       let animationData = animations[animationName];
 
       if (animationData) {
@@ -406,16 +426,11 @@
           if (config.rotation !== undefined)
             animationData.rotation = config.rotation;
           if (config.scale !== undefined) animationData.scale = config.scale;
-          if (config.startDelay !== undefined)
-            animationData.startDelay = config.startDelay;
           if (config.startKeyframe !== undefined)
             animationData.startKeyframe = config.startKeyframe;
           if (config.endKeyframe !== undefined)
             animationData.endKeyframe = config.endKeyframe;
         }
-
-        // Get delay from animation data or config
-        const delay = animationData.startDelay || 0;
 
         // Check if this is an image paper
         const paperStyle = paperElement.getAttribute('data-paper-style');
@@ -424,327 +439,339 @@
         // Disable pointer events initially
         paperElement.style.pointerEvents = 'none';
 
-        // Schedule mounting and initialization
-        setTimeout(() => {
-          // Re-enable pointer events (visibility will be set when first frame renders)
-          paperElement.style.pointerEvents = '';
+        // Check if this element is managed by the AnimationCoordinator
+        const isCoordinated = paperElement.hasAttribute('data-anim-group');
 
-          // Create animator and start
-          const animator = new PaperAnimator(paperElement, animationData);
-          animator.id = paperId;
+        // Re-enable pointer events (visibility will be set when first frame renders)
+        paperElement.style.pointerEvents = '';
 
-          // Ensure animationName is set on the animator for DevTools
-          animator.animationName = animationName;
+        // Create animator and start
+        const animator = new PaperAnimator(paperElement, animationData);
+        animator.id = paperId;
 
-          // Store group name if present
-          animator.groupName = paperGroup;
+        // Ensure animationName is set on the animator for DevTools
+        animator.animationName = animationName;
 
-          // Register in our local registry
-          animatorRegistry.set(paperId, animator);
+        // Store group name if present
+        animator.groupName = paperGroup;
 
-          paperElement.setAttribute('data-animator-initialized', 'true');
+        // Register in our local registry
+        animatorRegistry.set(paperId, animator);
 
-          // Check if this is an image paper - if so, wait for images/videos to load
-          if (isImagePaper) {
-            // Find the first slice (all slices have identical content)
-            const firstSlice = paperElement.querySelector('.paper-slice-0');
-            // Check for video or image
-            // Video is in hidden div with paper-master-video class
-            console.log(
-              '[PaperAnimator]',
-              paperId,
-              'Looking for video in paperElement',
-            );
-            const firstVideo = paperElement.querySelector(
-              '.paper-master-video',
-            );
-            console.log(
-              '[PaperAnimator]',
-              paperId,
-              'Found video:',
-              firstVideo ? firstVideo.src : 'none',
-            );
+        paperElement.setAttribute('data-animator-initialized', 'true');
 
-            const firstImage = firstSlice
-              ? firstSlice.querySelector('img')
-              : null;
-
-            if (firstVideo) {
-              console.log(
-                '[PaperAnimator]',
-                paperId,
-                'Using first video, src:',
-                firstVideo.src,
-              );
-              // Video codepath - render video to all slice canvases
-              const handleVideoReady = () => {
-                console.log(
-                  '[PaperAnimator]',
-                  paperId,
-                  'Video ready, starting animation',
-                );
-                console.log(
-                  '[PaperAnimator]',
-                  paperId,
-                  'First video:',
-                  firstVideo,
-                );
-                console.log(
-                  '[PaperAnimator]',
-                  paperId,
-                  'First video src:',
-                  firstVideo.src,
-                );
-
-                // Get all canvas elements in all slices
-                const canvases = paperElement.querySelectorAll(
-                  '.paper-video-canvas',
-                );
-                console.log(
-                  '[PaperAnimator]',
-                  paperId,
-                  'Found',
-                  canvases.length,
-                  'canvases for video rendering',
-                );
-                console.log('[PaperAnimator]', paperId, 'Canvases:', canvases);
-
-                if (canvases.length === 0) {
-                  console.error(
-                    '[PaperAnimator]',
-                    paperId,
-                    'No canvases found! Cannot render video.',
-                  );
-                  return;
-                }
-
-                // Cache the 2D contexts to avoid repeated getContext() calls
-                const contexts = Array.from(canvases).map(canvas => {
-                  const ctx = canvas.getContext('2d', {
-                    alpha: false,
-                    desynchronized: true, // Safari optimization: allow desynchronized rendering
-                  });
-                  // Disable image smoothing for better performance
-                  ctx.imageSmoothingEnabled = false;
-                  return ctx;
-                });
-
-                const startDrawing = () => {
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Starting video render to canvases',
-                  );
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Video dimensions:',
-                    firstVideo.videoWidth,
-                    'x',
-                    firstVideo.videoHeight,
-                  );
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Video paused:',
-                    firstVideo.paused,
-                    'ended:',
-                    firstVideo.ended,
-                  );
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Video readyState:',
-                    firstVideo.readyState,
-                  );
-
-                  let canvasesInitialized = false;
-
-                  // Safari optimization: Use requestVideoFrameCallback if available, otherwise fallback to rAF
-                  const supportsVideoFrameCallback =
-                    'requestVideoFrameCallback' in HTMLVideoElement.prototype;
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Supports requestVideoFrameCallback:',
-                    supportsVideoFrameCallback,
-                  );
-
-                  // Safari optimization: Create a master offscreen canvas to draw video to once,
-                  // then copy from that canvas to all slice canvases. This avoids multiple
-                  // video decode/upload operations per frame.
-                  const isSafari = /^((?!chrome|android).)*safari/i.test(
-                    navigator.userAgent,
-                  );
-                  let masterCanvas = null;
-                  let masterCtx = null;
-
-                  if (isSafari) {
-                    masterCanvas = document.createElement('canvas');
-                    masterCtx = masterCanvas.getContext('2d', { alpha: false });
-                    console.log(
-                      '[PaperAnimator]',
-                      paperId,
-                      'Safari detected: using master canvas optimization',
-                    );
-                  }
-
-                  let animatorStarted = false;
-
-                  const drawFrame = () => {
-                    if (
-                      firstVideo.videoWidth > 0 &&
-                      firstVideo.videoHeight > 0
-                    ) {
-                      const numContexts = contexts.length;
-
-                      // Only set canvas dimensions once, not every frame
-                      // Do this right before drawing to avoid flash of black
-                      if (!canvasesInitialized) {
-                        if (masterCanvas) {
-                          masterCanvas.width = firstVideo.videoWidth;
-                          masterCanvas.height = firstVideo.videoHeight;
-                        }
-                        canvases.forEach(canvas => {
-                          canvas.width = firstVideo.videoWidth;
-                          canvas.height = firstVideo.videoHeight;
-                        });
-                        canvasesInitialized = true;
-                      }
-
-                      if (isSafari && masterCanvas && masterCtx) {
-                        // Safari path: Draw video to master canvas once, then copy to all slices
-                        masterCtx.drawImage(firstVideo, 0, 0);
-
-                        // Now copy from master canvas to all slice canvases
-                        for (let i = 0; i < numContexts; i++) {
-                          contexts[i].drawImage(masterCanvas, 0, 0);
-                        }
-                      } else {
-                        // Chrome path: Draw video directly to all canvases
-                        for (let i = 0; i < numContexts; i++) {
-                          contexts[i].drawImage(firstVideo, 0, 0);
-                        }
-                      }
-
-                      // Start animator after first frame is drawn to prevent flash of black
-                      if (!animatorStarted) {
-                        animatorStarted = true;
-                        console.log(
-                          '[PaperAnimator]',
-                          paperId,
-                          'Starting animator after first video frame',
-                        );
-                        animator.start();
-                      }
-                    }
-                  };
-
-                  // Start video rendering loop
-                  if (supportsVideoFrameCallback) {
-                    // Use requestVideoFrameCallback for optimal Safari performance
-                    // This only draws when there's actually a new video frame
-                    function draw() {
-                      drawFrame();
-                      firstVideo.requestVideoFrameCallback(draw);
-                    }
-                    firstVideo.requestVideoFrameCallback(draw);
-                  } else {
-                    // Fallback to requestAnimationFrame
-                    function draw() {
-                      drawFrame();
-                      requestAnimationFrame(draw);
-                    }
-                    requestAnimationFrame(draw);
-                  }
-
-                  // Always explicitly call play() to ensure video plays
-                  // Don't rely on autoPlay attribute due to browser autoplay policies
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Calling play() on video',
-                  );
-                  firstVideo.play().catch(err => {
-                    console.error(
-                      '[PaperAnimator]',
-                      paperId,
-                      'Video play failed:',
-                      err,
-                    );
-                  });
-                };
-
-                // Wait for metadata if needed (Safari)
-                if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Video metadata already loaded, starting drawing',
-                  );
-                  startDrawing();
-                } else {
-                  console.log(
-                    '[PaperAnimator]',
-                    paperId,
-                    'Waiting for video metadata to load',
-                  );
-                  firstVideo.addEventListener(
-                    'loadedmetadata',
-                    () => {
-                      console.log(
-                        '[PaperAnimator]',
-                        paperId,
-                        'Video metadata loaded',
-                      );
-                      startDrawing();
-                    },
-                    { once: true },
-                  );
-                }
-
-                // Don't start animator here - wait until first video frame is drawn
-                // animator.start();
-              };
-
-              // Check if video can play through without buffering
-              if (firstVideo.readyState >= 3) {
-                // HAVE_FUTURE_DATA or better
-                handleVideoReady();
-              } else {
-                console.log(
-                  '[PaperAnimator]',
-                  paperId,
-                  'Waiting for video to be ready',
-                );
-                firstVideo.addEventListener('canplay', handleVideoReady, {
-                  once: true,
-                });
-              }
-            } else if (firstImage) {
-              // Image codepath
-              animator.start();
-              animator.switchToRealGif();
-            } else {
-              // No image or video found, start immediately
-              animator.start();
-            }
-          } else {
-            // Not an image paper, start immediately
-            animator.start();
-          }
-
+        // If coordinated, don't auto-start - AnimationCoordinator will handle it
+        if (isCoordinated) {
+          console.log(
+            '[PaperAnimator] Paper is coordinated, deferring start:',
+            paperId,
+          );
           // Register with DevTools
           if (window.PaperDevTools) {
             window.PaperDevTools.registerAnimator(paperId, animator);
           }
-
           // Setup drag interaction
           setupDragInteraction(paperId, paperElement, animator);
-
           // Create shape overlay for hit detection
           createPaperShapeOverlay(paperId, paperElement, animator);
-        }, delay);
+          return;
+        }
+
+        // Check if this is an image paper - if so, wait for images/videos to load
+        if (isImagePaper) {
+          // Find the first slice (all slices have identical content)
+          const firstSlice = paperElement.querySelector('.paper-slice-0');
+          // Check for video or image
+          // Video is in hidden div with paper-master-video class
+          console.log(
+            '[PaperAnimator]',
+            paperId,
+            'Looking for video in paperElement',
+          );
+          const firstVideo = paperElement.querySelector('.paper-master-video');
+          console.log(
+            '[PaperAnimator]',
+            paperId,
+            'Found video:',
+            firstVideo ? firstVideo.src : 'none',
+          );
+
+          const firstImage = firstSlice
+            ? firstSlice.querySelector('img')
+            : null;
+
+          if (firstVideo) {
+            console.log(
+              '[PaperAnimator]',
+              paperId,
+              'Using first video, src:',
+              firstVideo.src,
+            );
+            // Video codepath - render video to all slice canvases
+            const handleVideoReady = () => {
+              console.log(
+                '[PaperAnimator]',
+                paperId,
+                'Video ready, starting animation',
+              );
+              console.log(
+                '[PaperAnimator]',
+                paperId,
+                'First video:',
+                firstVideo,
+              );
+              console.log(
+                '[PaperAnimator]',
+                paperId,
+                'First video src:',
+                firstVideo.src,
+              );
+
+              // Get all canvas elements in all slices
+              const canvases = paperElement.querySelectorAll(
+                '.paper-video-canvas',
+              );
+              console.log(
+                '[PaperAnimator]',
+                paperId,
+                'Found',
+                canvases.length,
+                'canvases for video rendering',
+              );
+              console.log('[PaperAnimator]', paperId, 'Canvases:', canvases);
+
+              if (canvases.length === 0) {
+                console.error(
+                  '[PaperAnimator]',
+                  paperId,
+                  'No canvases found! Cannot render video.',
+                );
+                return;
+              }
+
+              // Cache the 2D contexts to avoid repeated getContext() calls
+              const contexts = Array.from(canvases).map(canvas => {
+                const ctx = canvas.getContext('2d', {
+                  alpha: false,
+                  desynchronized: true, // Safari optimization: allow desynchronized rendering
+                });
+                // Disable image smoothing for better performance
+                ctx.imageSmoothingEnabled = false;
+                return ctx;
+              });
+
+              const startDrawing = () => {
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Starting video render to canvases',
+                );
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Video dimensions:',
+                  firstVideo.videoWidth,
+                  'x',
+                  firstVideo.videoHeight,
+                );
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Video paused:',
+                  firstVideo.paused,
+                  'ended:',
+                  firstVideo.ended,
+                );
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Video readyState:',
+                  firstVideo.readyState,
+                );
+
+                let canvasesInitialized = false;
+
+                // Safari optimization: Use requestVideoFrameCallback if available, otherwise fallback to rAF
+                const supportsVideoFrameCallback =
+                  'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Supports requestVideoFrameCallback:',
+                  supportsVideoFrameCallback,
+                );
+
+                // Safari optimization: Create a master offscreen canvas to draw video to once,
+                // then copy from that canvas to all slice canvases. This avoids multiple
+                // video decode/upload operations per frame.
+                const isSafari = /^((?!chrome|android).)*safari/i.test(
+                  navigator.userAgent,
+                );
+                let masterCanvas = null;
+                let masterCtx = null;
+
+                if (isSafari) {
+                  masterCanvas = document.createElement('canvas');
+                  masterCtx = masterCanvas.getContext('2d', { alpha: false });
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Safari detected: using master canvas optimization',
+                  );
+                }
+
+                let animatorStarted = false;
+
+                const drawFrame = () => {
+                  if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                    const numContexts = contexts.length;
+
+                    // Only set canvas dimensions once, not every frame
+                    // Do this right before drawing to avoid flash of black
+                    if (!canvasesInitialized) {
+                      if (masterCanvas) {
+                        masterCanvas.width = firstVideo.videoWidth;
+                        masterCanvas.height = firstVideo.videoHeight;
+                      }
+                      canvases.forEach(canvas => {
+                        canvas.width = firstVideo.videoWidth;
+                        canvas.height = firstVideo.videoHeight;
+                      });
+                      canvasesInitialized = true;
+                    }
+
+                    if (isSafari && masterCanvas && masterCtx) {
+                      // Safari path: Draw video to master canvas once, then copy to all slices
+                      masterCtx.drawImage(firstVideo, 0, 0);
+
+                      // Now copy from master canvas to all slice canvases
+                      for (let i = 0; i < numContexts; i++) {
+                        contexts[i].drawImage(masterCanvas, 0, 0);
+                      }
+                    } else {
+                      // Chrome path: Draw video directly to all canvases
+                      for (let i = 0; i < numContexts; i++) {
+                        contexts[i].drawImage(firstVideo, 0, 0);
+                      }
+                    }
+
+                    // Start animator after first frame is drawn to prevent flash of black
+                    if (!animatorStarted) {
+                      animatorStarted = true;
+                      console.log(
+                        '[PaperAnimator]',
+                        paperId,
+                        'Starting animator after first video frame',
+                      );
+                      animator.start();
+                    }
+                  }
+                };
+
+                // Start video rendering loop
+                if (supportsVideoFrameCallback) {
+                  // Use requestVideoFrameCallback for optimal Safari performance
+                  // This only draws when there's actually a new video frame
+                  function draw() {
+                    drawFrame();
+                    firstVideo.requestVideoFrameCallback(draw);
+                  }
+                  firstVideo.requestVideoFrameCallback(draw);
+                } else {
+                  // Fallback to requestAnimationFrame
+                  function draw() {
+                    drawFrame();
+                    requestAnimationFrame(draw);
+                  }
+                  requestAnimationFrame(draw);
+                }
+
+                // Always explicitly call play() to ensure video plays
+                // Don't rely on autoPlay attribute due to browser autoplay policies
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Calling play() on video',
+                );
+                firstVideo.play().catch(err => {
+                  console.error(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Video play failed:',
+                    err,
+                  );
+                });
+              };
+
+              // Wait for metadata if needed (Safari)
+              if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Video metadata already loaded, starting drawing',
+                );
+                startDrawing();
+              } else {
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Waiting for video metadata to load',
+                );
+                firstVideo.addEventListener(
+                  'loadedmetadata',
+                  () => {
+                    console.log(
+                      '[PaperAnimator]',
+                      paperId,
+                      'Video metadata loaded',
+                    );
+                    startDrawing();
+                  },
+                  { once: true },
+                );
+              }
+
+              // Don't start animator here - wait until first video frame is drawn
+              // animator.start();
+            };
+
+            // Check if video can play through without buffering
+            if (firstVideo.readyState >= 3) {
+              // HAVE_FUTURE_DATA or better
+              handleVideoReady();
+            } else {
+              console.log(
+                '[PaperAnimator]',
+                paperId,
+                'Waiting for video to be ready',
+              );
+              firstVideo.addEventListener('canplay', handleVideoReady, {
+                once: true,
+              });
+            }
+          } else if (firstImage) {
+            // Image codepath
+            animator.start();
+            animator.switchToRealGif();
+          } else {
+            // No image or video found, start immediately
+            animator.start();
+          }
+        } else {
+          // Not an image paper, start immediately
+          animator.start();
+        }
+
+        // Register with DevTools
+        if (window.PaperDevTools) {
+          window.PaperDevTools.registerAnimator(paperId, animator);
+        }
+
+        // Setup drag interaction
+        setupDragInteraction(paperId, paperElement, animator);
+
+        // Create shape overlay for hit detection
+        createPaperShapeOverlay(paperId, paperElement, animator);
       }
     });
   }
@@ -889,7 +916,10 @@
       `;
 
       // Create path element with red fill
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const path = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'path',
+      );
       path.setAttribute('fill', 'none');
       path.setAttribute('stroke', 'none');
 
@@ -915,9 +945,10 @@
   function setupOverlayHoverInteraction(svg, animator) {
     // Get hover animation name from the animator's animation data
     const animationData = animations[animator.animationName];
-    const hoverAnimationName = animationData && animationData.hoverAnimationName
-      ? animationData.hoverAnimationName
-      : null;
+    const hoverAnimationName =
+      animationData && animationData.hoverAnimationName
+        ? animationData.hoverAnimationName
+        : null;
 
     if (!hoverAnimationName) {
       // No hover animation configured for this animation
@@ -926,7 +957,10 @@
 
     const hoverAnimation = animations[hoverAnimationName];
     if (!hoverAnimation) {
-      console.warn('[PaperAnimator] Hover animation not found:', hoverAnimationName);
+      console.warn(
+        '[PaperAnimator] Hover animation not found:',
+        hoverAnimationName,
+      );
       return;
     }
 
@@ -962,7 +996,9 @@
       pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
     }
 
-    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${rightPoints[rightPoints.length - 1].y}`;
+    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${
+      rightPoints[rightPoints.length - 1].y
+    }`;
 
     for (let i = rightPoints.length - 2; i >= 0; i--) {
       pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
@@ -1075,9 +1111,6 @@
 
       // Animation state
       this.isAnimating = false;
-
-      // Timing configuration - now in keyframe indices
-      this.startDelay = animationData.startDelay || 0;
 
       // Initialize scale from first scale keyframe if available
       const firstScaleKeyframe = this.scaleKeyframes.find(
@@ -1244,6 +1277,8 @@
       this.applyInterpolatedFrame(this.currentKeyframePosition);
 
       // Make the paper element visible now that first frame is rendered
+      // Note: For coordinated elements, AnimationCoordinator handles visibility
+      // so this is a no-op in that case (visibility already set by coordinator)
       this.paperElement.style.visibility = 'visible';
 
       // Ensure global animation loop is running
@@ -1397,7 +1432,8 @@
         if (this._overlayPath) {
           const endFramePosition = this.hoverState.originalEndKeyframe;
           const originalKeyframes = this.hoverState.originalKeyframes;
-          const originalShadowKeyframes = this.hoverState.originalShadowKeyframes;
+          const originalShadowKeyframes =
+            this.hoverState.originalShadowKeyframes;
 
           // Temporarily restore original state to render the end frame
           const savedKeyframes = this.keyframes;
@@ -1490,7 +1526,10 @@
     }
 
     reverseHoverAnimation() {
-      console.log('[Hover] reverseHoverAnimation called, hoverState:', this.hoverState);
+      console.log(
+        '[Hover] reverseHoverAnimation called, hoverState:',
+        this.hoverState,
+      );
       if (!this.hoverState) return;
 
       // If already reversing, don't start another reverse
@@ -1626,7 +1665,9 @@
             this.applyInterpolatedFrame(this.currentKeyframePosition);
 
             // Clear hover state
-            console.log('[Hover] Clearing hoverState (case 2: was NOT animating)');
+            console.log(
+              '[Hover] Clearing hoverState (case 2: was NOT animating)',
+            );
             this.hoverState = null;
             this.reverseAnimationCheckId = null;
           } else {

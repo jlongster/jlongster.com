@@ -1,0 +1,7 @@
+{
+  "name": "test-arrow",
+  "keyframes": [
+    "<svg></svg>"
+  ],
+  "timePerKeyframe": 0.05
+}

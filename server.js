@@ -58,6 +58,14 @@ async function startServer() {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // CORS for API routes in development
+  app.options('/api/*', (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).end();
+  });
+
   app.use(
     '/assets',
     express.static('build/client/assets', { immutable: true, maxAge: '1y' }),

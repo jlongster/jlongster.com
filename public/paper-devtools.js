@@ -253,7 +253,7 @@
       position: fixed;
       top: 50%;
       right: 0;
-      transform: translateY(-50%);
+      transform: translateY(-50%) translateY(-200px);
       background: #1f2937;
       color: #f3f4f6;
       padding: 12px 8px;
@@ -347,7 +347,6 @@
           offsetY: 0,
           rotation: 0,
           scale: 1,
-          startDelay: 0,
           startKeyframe: 0,
           endKeyframe: 59,
         };
@@ -363,7 +362,6 @@
         offsetY: 0,
         rotation: 0,
         scale: 1,
-        startDelay: 0,
         startKeyframe: 0,
         endKeyframe: 59,
       };
@@ -579,14 +577,6 @@
       <div style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; font-weight: 500;">
         PLAYBACK TIMING
       </div>
-      <label style="display: block; margin-bottom: 6px;">
-        <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Start Delay (ms)</div>
-        <input type="number" class="start-delay" value="${
-          animator.startDelay || 0
-        }" min="0" step="100"
-          style="width: 100%; padding: 4px 6px; background: #1f2937; border: 1px solid #4b5563;
-          border-radius: 3px; color: #f3f4f6; font-size: 12px;">
-      </label>
       <div style="display: flex; gap: 8px;">
         <label style="flex: 1;">
           <div style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Start Keyframe</div>
@@ -651,7 +641,6 @@
     const offsetYInput = card.querySelector('.offset-y');
     const rotationInput = card.querySelector('.rotation');
     const scaleInput = card.querySelector('.scale');
-    const startDelayInput = card.querySelector('.start-delay');
     const startKeyframeInput = card.querySelector('.start-keyframe');
     const endKeyframeInput = card.querySelector('.end-keyframe');
 
@@ -667,7 +656,6 @@
         offsetY: currentConfig.offsetY,
         rotation: currentConfig.rotation,
         scale: currentConfig.scale,
-        startDelay: currentConfig.startDelay,
         endKeyframe: currentConfig.endKeyframe,
       };
 
@@ -710,11 +698,6 @@
     });
 
     // Auto-apply timing changes
-    startDelayInput.addEventListener('change', () => {
-      animator.startDelay = parseFloat(startDelayInput.value) || 0;
-      saveConfig(id, animator);
-    });
-
     startKeyframeInput.addEventListener('change', () => {
       animator.startKeyframe = parseInt(startKeyframeInput.value) || 0;
       saveConfig(id, animator);
@@ -815,7 +798,6 @@
       offsetY: animator.offsetY,
       rotation: animator.rotation,
       scale: animator.globalScale,
-      startDelay: animator.startDelay,
       startKeyframe: animator.startKeyframe,
       endKeyframe: animator.endKeyframe,
     };

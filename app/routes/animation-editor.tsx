@@ -9,7 +9,6 @@ function Paper({
     offsetY: number;
     rotation: number;
     scale: number;
-    startDelay: number;
     startKeyframe: number;
     endKeyframe: number;
   };
@@ -20,7 +19,6 @@ function Paper({
     offsetY: 0,
     rotation: 0,
     scale: 1,
-    startDelay: 0,
     startKeyframe: 0,
     endKeyframe: 59,
   };
@@ -34,7 +32,6 @@ function Paper({
       data-offset-y={config.offsetY}
       data-rotation={config.rotation}
       data-scale={config.scale}
-      data-start-delay={config.startDelay}
       data-start-keyframe={config.startKeyframe}
       data-end-keyframe={config.endKeyframe}
     >
@@ -77,7 +74,6 @@ export default function AnimationEditor() {
               offsetY: 0,
               rotation: 0,
               scale: 1,
-              startDelay: 0,
               startKeyframe: 0,
               endKeyframe: 59,
             }}
@@ -96,7 +92,6 @@ export default function AnimationEditor() {
               offsetY: 50,
               rotation: 5,
               scale: 1,
-              startDelay: 200,
               startKeyframe: 0,
               endKeyframe: 59,
             }}
@@ -115,7 +110,6 @@ export default function AnimationEditor() {
               offsetY: -20,
               rotation: -8,
               scale: 0.9,
-              startDelay: 400,
               startKeyframe: 20,
               endKeyframe: 59,
             }}

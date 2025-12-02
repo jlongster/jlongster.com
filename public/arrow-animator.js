@@ -35,8 +35,14 @@
     // Clamp frame index to valid range
     const clampedIndex = Math.min(frameIndex, animation.keyframes.length - 1);
 
+    // Skip rendering if the keyframe is null (keep previous frame visible)
+    const keyframe = animation.keyframes[clampedIndex];
+    if (keyframe === null) {
+      return;
+    }
+
     // Render the SVG string directly
-    element.innerHTML = animation.keyframes[clampedIndex];
+    element.innerHTML = keyframe;
   }
 
   function getTotalFrames(animation) {
@@ -79,15 +85,20 @@
   }
 
   function startArrowAnimation(element, animationName) {
-    if (arrowInstances.has(element)) {
-      const instance = arrowInstances.get(element);
-      instance.isPlaying = true;
-      return;
-    }
-
     const animation = arrowAnimations.get(animationName);
     if (!animation) {
       console.error(`[ArrowAnimator] Animation not loaded: ${animationName}`);
+      return;
+    }
+
+    if (arrowInstances.has(element)) {
+      // Reset existing instance to restart from beginning
+      const instance = arrowInstances.get(element);
+      instance.currentFrame = 0;
+      instance.startTime = performance.now();
+      instance.isPlaying = true;
+      renderArrowFrame(element, animation, 0);
+      animateArrow(element, animation);
       return;
     }
 
@@ -121,13 +132,18 @@
         continue;
       }
 
+      // Check if this element is managed by the AnimationCoordinator
+      const isCoordinated = element.dataset.animGroup !== undefined;
+
       // Load the animation data
       const animation = await loadArrowAnimation(arrowName);
       if (animation) {
         // Render the first frame immediately
         renderArrowFrame(element, animation, 0);
-        // Start animation
-        startArrowAnimation(element, arrowName);
+        // Only auto-start if not coordinated
+        if (!isCoordinated) {
+          startArrowAnimation(element, arrowName);
+        }
       }
     }
   }

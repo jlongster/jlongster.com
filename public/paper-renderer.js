@@ -124,7 +124,6 @@
       offsetY,
       rotation,
       scale,
-      startDelay,
       startKeyframe,
       endKeyframe,
     } = config;
@@ -141,12 +140,15 @@
     paperElement.setAttribute('data-offset-y', offsetY);
     paperElement.setAttribute('data-rotation', rotation);
     paperElement.setAttribute('data-scale', scale);
-    paperElement.setAttribute('data-start-delay', startDelay);
     paperElement.setAttribute('data-start-keyframe', startKeyframe);
     paperElement.setAttribute('data-end-keyframe', endKeyframe);
     if (paperGroup) {
       paperElement.setAttribute('data-paper-group', paperGroup);
     }
+    // Note: We intentionally do NOT copy animation coordination attributes
+    // (data-anim-group, data-anim-delay, etc.) to the inner paper-element.
+    // These should only exist on the outer wrapper so AnimationCoordinator
+    // doesn't register the same paper twice.
   }
 
   // Expose API for devtools
@@ -212,8 +214,6 @@
           offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
           rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
           scale: parseFloat(paperElement.getAttribute('data-scale')) || 1,
-          startDelay:
-            parseInt(paperElement.getAttribute('data-start-delay')) || 0,
           startKeyframe:
             parseInt(paperElement.getAttribute('data-start-keyframe')) || 0,
           endKeyframe:
@@ -227,7 +227,6 @@
         offsetY,
         rotation,
         scale,
-        startDelay,
         startKeyframe,
         endKeyframe,
       } = config;
@@ -272,7 +271,6 @@
           offsetY,
           rotation,
           scale,
-          startDelay,
           startKeyframe,
           endKeyframe,
         });
@@ -309,12 +307,16 @@
       const offsetY = parseFloat(component.getAttribute('data-offset-y')) || 0;
       const rotation = parseFloat(component.getAttribute('data-rotation')) || 0;
       const scale = parseFloat(component.getAttribute('data-scale')) || 1;
-      const startDelay =
-        parseInt(component.getAttribute('data-start-delay')) || 0;
       const startKeyframe =
         parseInt(component.getAttribute('data-start-keyframe')) || 0;
       const endKeyframe =
         parseInt(component.getAttribute('data-end-keyframe')) || 59;
+
+      // Animation coordination attributes
+      const animGroup = component.getAttribute('data-anim-group') || null;
+      const animDelay = component.getAttribute('data-anim-delay');
+      const animType = component.getAttribute('data-anim-type') || null;
+      const animTrigger = component.getAttribute('data-anim-trigger') || null;
 
       // Check if parent element has a group name
       const parentGroup =
@@ -349,7 +351,6 @@
           offsetY,
           rotation,
           scale,
-          startDelay,
           startKeyframe,
           endKeyframe,
         });
