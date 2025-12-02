@@ -213,17 +213,6 @@
           '[PaperAnimator] Starting coordinated animation for:',
           paperId,
         );
-
-        // For image papers, switch to real gif when starting
-        const paperStyle = element.getAttribute('data-paper-style');
-        if (paperStyle === 'image') {
-          const firstSlice = element.querySelector('.paper-slice-0');
-          const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
-          if (firstImage) {
-            animator.switchToRealGif();
-          }
-        }
-
         animator.start();
       } else {
         console.warn('[PaperAnimator] No animator found for:', paperId);
@@ -666,11 +655,24 @@
                       console.log(
                         '[PaperAnimator]',
                         paperId,
-                        'Starting animator after first video frame',
+                        'First video frame rendered',
                       );
+
+                      // Mark that video is ready
+                      animator.videoFirstFrameReady = true;
+
                       // Only auto-start if not coordinated
                       if (!isCoordinated) {
+                        console.log('[PaperAnimator]', paperId, 'Auto-starting animator');
                         animator.start();
+                      } else {
+                        console.log('[PaperAnimator]', paperId, 'Video ready, waiting for coordinator to trigger');
+                        // If start was called before video was ready, start now
+                        if (animator.pendingStart) {
+                          console.log('[PaperAnimator]', paperId, 'Starting pending animation');
+                          animator.pendingStart = false;
+                          animator.start();
+                        }
                       }
                     }
                   }
@@ -761,7 +763,6 @@
             // Image codepath
             if (!isCoordinated) {
               animator.start();
-              animator.switchToRealGif();
             }
           } else {
             // No image or video found, start immediately if not coordinated
@@ -1278,6 +1279,16 @@
     }
 
     start() {
+      // For video papers, wait until first frame is rendered
+      const paperStyle = this.paperElement.getAttribute('data-paper-style');
+      const hasVideo = this.paperElement.querySelector('.paper-master-video');
+
+      if (paperStyle === 'image' && hasVideo && !this.videoFirstFrameReady) {
+        console.log('[PaperAnimator]', this.id, 'Video not ready yet, deferring start');
+        this.pendingStart = true;
+        return;
+      }
+
       // Start at the start keyframe
       this.currentKeyframePosition = this.startKeyframe;
       this.isAnimating = true;
@@ -1322,33 +1333,6 @@
       } else {
         this.applyInterpolatedFrame(this.currentKeyframePosition);
       }
-    }
-
-    switchToRealGif() {
-      // Find all img elements with data-gif attribute in this paper
-      const images = this.paperElement.querySelectorAll('img[data-gif]');
-      images.forEach(img => {
-        const realGifUrl = img.getAttribute('data-gif');
-        const currentSrc = img.getAttribute('src');
-
-        // Only switch if we're currently showing the poster (not already the real gif)
-        if (realGifUrl && currentSrc !== realGifUrl) {
-          // Add load event listener to log when gif is loaded
-          const handleGifLoad = () => {
-            console.log(
-              '[PaperAnimator]',
-              this.id,
-              'Real gif loaded:',
-              realGifUrl,
-            );
-            img.removeEventListener('load', handleGifLoad);
-          };
-          img.addEventListener('load', handleGifLoad);
-
-          img.setAttribute('decoding', 'sync');
-          img.setAttribute('src', realGifUrl);
-        }
-      });
     }
 
     stop() {

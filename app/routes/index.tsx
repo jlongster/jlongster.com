@@ -380,9 +380,9 @@ export default function Index() {
             ]}
             animConfigs={[
               { group: 'experiments', delay: 0, trigger: 'load' },
-              { group: 'experiments', delay: 200, trigger: 'load' },
-              { group: 'experiments', delay: 400, trigger: 'load' },
               { group: 'experiments', delay: 600, trigger: 'load' },
+              { group: 'experiments', delay: 400, trigger: 'load' },
+              { group: 'experiments', delay: 200, trigger: 'load' },
             ]}
           />
           <CanvasText
