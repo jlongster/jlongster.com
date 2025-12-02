@@ -10,6 +10,13 @@
   // Flag to disable interactions when animation editor is open
   let interactionsDisabled = false;
 
+  // Global hover state tracking
+  let currentHoveredPaper = null; // { paperId, paperElement, animator }
+  let lastHoverStateChangeX = null;
+  let lastHoverStateChangeY = null;
+  let hoverInteractionsEnabled = true;
+  const HOVER_MOVEMENT_THRESHOLD = 10;
+
   // Global animation loop
   let globalAnimationLoopRunning = false;
   let lastFrameTime = 0;
@@ -292,6 +299,9 @@
       );
 
       animations = await Promise.all(animationPromises);
+
+      // Setup global hover tracking
+      setupGlobalHoverTracking();
 
       // Initialize existing paper elements
       initializePaperElements();
@@ -705,6 +715,47 @@
     };
   }
 
+  // Global mousemove handler for hover state management
+  function setupGlobalHoverTracking() {
+    const hoverAnimation = animations[4];
+    if (!hoverAnimation) {
+      console.warn('[PaperAnimator] Hover animation not found');
+      return;
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      // Re-enable hover interactions after cursor moves 10px
+      if (!hoverInteractionsEnabled && lastHoverStateChangeX !== null && lastHoverStateChangeY !== null) {
+        const dx = e.clientX - lastHoverStateChangeX;
+        const dy = e.clientY - lastHoverStateChangeY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance >= HOVER_MOVEMENT_THRESHOLD) {
+          console.log('hover interactions re-enabled after movement:', distance);
+          hoverInteractionsEnabled = true;
+        }
+      }
+
+      // Check if cursor is outside the currently hovered paper
+      if (currentHoveredPaper && hoverInteractionsEnabled) {
+        const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+
+        // Check if the element under cursor is within the current hovered paper
+        const isInsideCurrentPaper = currentHoveredPaper.paperElement.contains(elementUnderCursor);
+
+        if (!isInsideCurrentPaper) {
+          console.log('cursor moved outside current hovered paper');
+          // Animate out and clear current hover
+          currentHoveredPaper.animator.reverseHoverAnimation();
+          currentHoveredPaper = null;
+          hoverInteractionsEnabled = false;
+          lastHoverStateChangeX = e.clientX;
+          lastHoverStateChangeY = e.clientY;
+        }
+      }
+    });
+  }
+
   function setupHoverInteraction(paperId, paperElement, animator) {
     // Check if interactions are disabled
     if (interactionsDisabled) return;
@@ -716,70 +767,41 @@
       return;
     }
 
-    let isHovering = false;
-    let hoverInteractionsEnabled = true;
-    let lastStateChangeX = null;
-    let lastStateChangeY = null;
-    const MOVEMENT_THRESHOLD = 10; // pixels
-
-    const onMouseMove = (e) => {
-      // If interactions are disabled, re-enable them after cursor moves 10px
-      if (!hoverInteractionsEnabled && lastStateChangeX !== null && lastStateChangeY !== null) {
-        const dx = e.clientX - lastStateChangeX;
-        const dy = e.clientY - lastStateChangeY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance >= MOVEMENT_THRESHOLD) {
-          console.log('hover interactions re-enabled after movement:', distance);
-          hoverInteractionsEnabled = true;
-        }
-      }
-    };
-
     const onMouseEnter = (e) => {
-      console.log('mouse enter, enabled:', hoverInteractionsEnabled)
+      console.log('mouse enter, enabled:', hoverInteractionsEnabled, 'paperId:', paperId)
       if (interactionsDisabled) return;
-      if (isHovering) return;
       if (!hoverInteractionsEnabled) return;
 
-      isHovering = true;
+      // If there's a currently hovered paper, animate it out first
+      if (currentHoveredPaper && currentHoveredPaper.paperId !== paperId) {
+        console.log('forcing previous paper to animate out:', currentHoveredPaper.paperId);
+        currentHoveredPaper.animator.reverseHoverAnimation();
+      }
+
+      // Set this as the currently hovered paper
+      currentHoveredPaper = { paperId, paperElement, animator };
       hoverInteractionsEnabled = false;
-      lastStateChangeX = e.clientX;
-      lastStateChangeY = e.clientY;
+      lastHoverStateChangeX = e.clientX;
+      lastHoverStateChangeY = e.clientY;
+
       animator.playHoverAnimation(hoverAnimation);
-    };
-
-    const onMouseLeave = (e) => {
-      console.log('mouse leaving, enabled:', hoverInteractionsEnabled)
-      if (!isHovering) return;
-      if (!hoverInteractionsEnabled) return;
-
-      isHovering = false;
-      hoverInteractionsEnabled = false;
-      lastStateChangeX = e.clientX;
-      lastStateChangeY = e.clientY;
-
-      // Use a small delay to ensure the hover animation state is set up
-      // This prevents race conditions when quickly entering/leaving
-      requestAnimationFrame(() => {
-        animator.reverseHoverAnimation();
-      });
     };
 
     for(let slice of paperElement.querySelectorAll('.paper-slice')) {
       slice.style.border = '1px solid green'
     }
 
-    // Add event listeners
-    document.addEventListener('mousemove', onMouseMove);
+    // Add event listener
     paperElement.addEventListener('mouseenter', onMouseEnter);
-    paperElement.addEventListener('mouseleave', onMouseLeave);
 
     // Store cleanup function on animator
     animator._cleanupHover = () => {
-      document.removeEventListener('mousemove', onMouseMove);
       paperElement.removeEventListener('mouseenter', onMouseEnter);
-      paperElement.removeEventListener('mouseleave', onMouseLeave);
+
+      // Clear global hover state if this was the current one
+      if (currentHoveredPaper && currentHoveredPaper.paperId === paperId) {
+        currentHoveredPaper = null;
+      }
     };
   }
 
