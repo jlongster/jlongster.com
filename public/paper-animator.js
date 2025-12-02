@@ -601,6 +601,9 @@
           // Setup drag interaction
           setupDragInteraction(paperId, paperElement, animator);
 
+          // Setup hover interaction
+          setupHoverInteraction(paperId, paperElement, animator);
+
         }, delay);
       }
     });
@@ -699,6 +702,45 @@
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
       paperElement.style.cursor = '';
+    };
+  }
+
+  function setupHoverInteraction(paperId, paperElement, animator) {
+    // Check if interactions are disabled
+    if (interactionsDisabled) return;
+
+    // Get hover animation (index 4 in manifest: hover animation)
+    const hoverAnimation = animations[4];
+    if (!hoverAnimation) {
+      console.warn('[PaperAnimator] Hover animation not found');
+      return;
+    }
+
+    let isHovering = false;
+
+    const onMouseEnter = () => {
+      if (interactionsDisabled) return;
+      if (isHovering) return;
+
+      isHovering = true;
+      animator.playHoverAnimation(hoverAnimation);
+    };
+
+    const onMouseLeave = () => {
+      if (!isHovering) return;
+
+      isHovering = false;
+      animator.reverseHoverAnimation();
+    };
+
+    // Add event listeners
+    paperElement.addEventListener('mouseenter', onMouseEnter);
+    paperElement.addEventListener('mouseleave', onMouseLeave);
+
+    // Store cleanup function on animator
+    animator._cleanupHover = () => {
+      paperElement.removeEventListener('mouseenter', onMouseEnter);
+      paperElement.removeEventListener('mouseleave', onMouseLeave);
     };
   }
 
@@ -1047,6 +1089,309 @@
         this.isAnimating = true;
         startGlobalAnimationLoop();
       }
+    }
+
+    playHoverAnimation(hoverAnimationData) {
+      // Save the current state before starting hover animation
+      const wasAnimating = this.isAnimating;
+
+      if (!this.hoverState) {
+        this.hoverState = {
+          originalKeyframes: this.keyframes,
+          originalShadowKeyframes: this.shadowKeyframes,
+          originalScaleKeyframes: this.scaleKeyframes,
+          originalStartKeyframe: this.startKeyframe,
+          originalEndKeyframe: this.endKeyframe,
+          currentPosition: this.currentKeyframePosition,
+          wasAnimating: wasAnimating,
+          originalTimePerKeyframe: this.timePerKeyframe,
+          originalPlaybackFPS: this.playbackFPS,
+        };
+      }
+
+      // Deep copy hover animation data
+      const hoverData = JSON.parse(JSON.stringify(hoverAnimationData));
+
+      // Update timing settings from hover animation
+      this.timePerKeyframe = hoverData.timePerKeyframe || 0.1;
+      this.playbackFPS = hoverData.playbackFPS || 30;
+
+      // Apply rotation and scaling to hover animation
+      let hoverKeyframes = this.scaleKeyframes_forDimensions(
+        this.applyRotationToKeyframes(hoverData.keyframes || [])
+      );
+
+      // Find the last keyframe with data in the hover animation
+      let lastHoverKeyframeIndex = -1;
+      for (let i = hoverKeyframes.length - 1; i >= 0; i--) {
+        if (hoverKeyframes[i]) {
+          lastHoverKeyframeIndex = i;
+          break;
+        }
+      }
+
+      if (lastHoverKeyframeIndex === -1) {
+        console.warn('[PaperAnimator] No valid hover keyframes found');
+        return;
+      }
+
+      // Check if the element was animating when hover started
+      if (wasAnimating) {
+        // CASE 1: Element was animating
+        // Stop the animation and interpolate from current frame to hover's last keyframe over 100ms
+        this.isAnimating = false;
+
+        // Get current interpolated frame
+        const currentFrame = this.getCurrentInterpolatedFrame();
+        const targetFrame = hoverKeyframes[lastHoverKeyframeIndex];
+
+        // Create transition keyframes (100ms transition)
+        const transitionKeyframes = 3; // Number of keyframes for the transition
+        const transitionFrames = [];
+
+        for (let i = 0; i <= transitionKeyframes; i++) {
+          const t = i / transitionKeyframes;
+          transitionFrames.push({
+            leftCurve: currentFrame.leftCurve.map((point, idx) => ({
+              x: point.x + (targetFrame.leftCurve[idx].x - point.x) * t,
+              y: point.y + (targetFrame.leftCurve[idx].y - point.y) * t,
+            })),
+            rightCurve: currentFrame.rightCurve.map((point, idx) => ({
+              x: point.x + (targetFrame.rightCurve[idx].x - point.x) * t,
+              y: point.y + (targetFrame.rightCurve[idx].y - point.y) * t,
+            })),
+            overlayOffsetX: 0,
+            overlayOffsetY: 0,
+          });
+        }
+
+        // Replace keyframes with transition + hover keyframes
+        this.keyframes = [...transitionFrames, ...hoverKeyframes.slice(0, lastHoverKeyframeIndex + 1)];
+        this.scaleKeyframes = hoverData.scaleKeyframes || [];
+
+        // Process shadow keyframes
+        if (hoverData.shadowKeyframes && window.ShadowRenderer) {
+          this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
+            hoverData.shadowKeyframes,
+            this.rotation
+          );
+        }
+
+        // Set new start/end keyframes
+        this.startKeyframe = 0;
+        this.endKeyframe = this.keyframes.length - 1;
+        this.currentKeyframePosition = 0;
+        this.isAnimating = true;
+      } else {
+        // CASE 2: Element was NOT animating
+        // Play the hover animation immediately without any interpolation
+        this.keyframes = hoverKeyframes;
+        this.scaleKeyframes = hoverData.scaleKeyframes || [];
+
+        // Process shadow keyframes
+        if (hoverData.shadowKeyframes && window.ShadowRenderer) {
+          this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
+            hoverData.shadowKeyframes,
+            this.rotation
+          );
+        }
+
+        // Find the last keyframe with data
+        this.startKeyframe = 0;
+        this.endKeyframe = lastHoverKeyframeIndex;
+        this.currentKeyframePosition = 0;
+        this.isAnimating = true;
+      }
+
+      // Ensure global animation loop is running
+      startGlobalAnimationLoop();
+    }
+
+    reverseHoverAnimation() {
+      if (!this.hoverState) return;
+
+      // Stop current animation
+      this.isAnimating = false;
+
+      // Get the current frame from the hover animation
+      const currentFrame = this.getCurrentInterpolatedFrame();
+
+      // Check if the original animation was playing or static
+      if (this.hoverState.wasAnimating) {
+        // CASE 1: Original was animating
+        // Restore original keyframes and interpolate back to the position it was at
+        this.keyframes = this.hoverState.originalKeyframes;
+        this.shadowKeyframes = this.hoverState.originalShadowKeyframes;
+        this.scaleKeyframes = this.hoverState.originalScaleKeyframes;
+
+        const targetPosition = Math.min(this.hoverState.currentPosition, this.hoverState.originalEndKeyframe);
+        const targetFrame = this.getInterpolatedFrameAt(targetPosition);
+
+        // Create reverse transition keyframes (100ms)
+        const transitionKeyframes = 3;
+        const transitionFrames = [];
+
+        for (let i = 0; i <= transitionKeyframes; i++) {
+          const t = i / transitionKeyframes;
+          transitionFrames.push({
+            leftCurve: currentFrame.leftCurve.map((point, idx) => ({
+              x: point.x + (targetFrame.leftCurve[idx].x - point.x) * t,
+              y: point.y + (targetFrame.leftCurve[idx].y - point.y) * t,
+            })),
+            rightCurve: currentFrame.rightCurve.map((point, idx) => ({
+              x: point.x + (targetFrame.rightCurve[idx].x - point.x) * t,
+              y: point.y + (targetFrame.rightCurve[idx].y - point.y) * t,
+            })),
+            overlayOffsetX: 0,
+            overlayOffsetY: 0,
+          });
+        }
+
+        // Create a temporary keyframe array with just the transition
+        const tempKeyframes = Array(this.totalKeyframes).fill(null);
+        transitionFrames.forEach((frame, i) => {
+          tempKeyframes[i] = frame;
+        });
+        this.keyframes = tempKeyframes;
+
+        // Play the transition
+        this.currentKeyframePosition = 0;
+        this.startKeyframe = 0;
+        this.endKeyframe = transitionKeyframes;
+        this.isAnimating = true;
+
+        // After transition completes, restore original state
+        const checkTransitionComplete = () => {
+          if (this.currentKeyframePosition >= this.endKeyframe) {
+            // Restore original state
+            this.keyframes = this.hoverState.originalKeyframes;
+            this.shadowKeyframes = this.hoverState.originalShadowKeyframes;
+            this.scaleKeyframes = this.hoverState.originalScaleKeyframes;
+            this.startKeyframe = this.hoverState.originalStartKeyframe;
+            this.endKeyframe = this.hoverState.originalEndKeyframe;
+            this.currentKeyframePosition = targetPosition;
+            this.isAnimating = this.hoverState.wasAnimating;
+            this.timePerKeyframe = this.hoverState.originalTimePerKeyframe;
+            this.playbackFPS = this.hoverState.originalPlaybackFPS;
+
+            // Render the target frame
+            this.applyInterpolatedFrame(targetPosition);
+
+            // Clear hover state
+            this.hoverState = null;
+          } else {
+            requestAnimationFrame(checkTransitionComplete);
+          }
+        };
+        requestAnimationFrame(checkTransitionComplete);
+      } else {
+        // CASE 2: Original was NOT animating
+        // Just play the hover animation in reverse (reverse the keyframes)
+        // Collect all non-null hover keyframes
+        const hoverFrames = [];
+        for (let i = 0; i < this.keyframes.length; i++) {
+          if (this.keyframes[i]) {
+            hoverFrames.push(this.keyframes[i]);
+          }
+        }
+
+        // Reverse the frames
+        const reversedFrames = [...hoverFrames].reverse();
+
+        // Create keyframe array with reversed frames
+        const reversedKeyframes = Array(this.totalKeyframes).fill(null);
+        reversedFrames.forEach((frame, i) => {
+          reversedKeyframes[i] = frame;
+        });
+
+        this.keyframes = reversedKeyframes;
+
+        // Play from start to end of reversed animation
+        this.currentKeyframePosition = 0;
+        this.startKeyframe = 0;
+        this.endKeyframe = reversedFrames.length - 1;
+        this.isAnimating = true;
+
+        // After reverse animation completes, restore original static state
+        const checkReverseComplete = () => {
+          if (this.currentKeyframePosition >= this.endKeyframe) {
+            // Restore original state
+            this.keyframes = this.hoverState.originalKeyframes;
+            this.shadowKeyframes = this.hoverState.originalShadowKeyframes;
+            this.scaleKeyframes = this.hoverState.originalScaleKeyframes;
+            this.startKeyframe = this.hoverState.originalStartKeyframe;
+            this.endKeyframe = this.hoverState.originalEndKeyframe;
+            this.currentKeyframePosition = this.hoverState.currentPosition;
+            this.isAnimating = false;
+            this.timePerKeyframe = this.hoverState.originalTimePerKeyframe;
+            this.playbackFPS = this.hoverState.originalPlaybackFPS;
+
+            // Render the final frame
+            this.applyInterpolatedFrame(this.currentKeyframePosition);
+
+            // Clear hover state
+            this.hoverState = null;
+          } else {
+            requestAnimationFrame(checkReverseComplete);
+          }
+        };
+        requestAnimationFrame(checkReverseComplete);
+      }
+
+      // Ensure global animation loop is running
+      startGlobalAnimationLoop();
+    }
+
+    getCurrentInterpolatedFrame() {
+      return this.getInterpolatedFrameAt(this.currentKeyframePosition);
+    }
+
+    getInterpolatedFrameAt(position) {
+      // Get the interpolated frame at a specific position
+      const floor = Math.floor(position);
+      const ceil = Math.ceil(position);
+      const t = position - floor;
+
+      // Find the nearest non-null keyframes
+      let beforeKeyframe = null;
+      for (let i = floor; i >= 0; i--) {
+        if (this.keyframes[i]) {
+          beforeKeyframe = this.keyframes[i];
+          break;
+        }
+      }
+
+      let afterKeyframe = null;
+      for (let i = ceil; i < this.keyframes.length; i++) {
+        if (this.keyframes[i]) {
+          afterKeyframe = this.keyframes[i];
+          break;
+        }
+      }
+
+      // If we only have one keyframe, use it
+      if (!beforeKeyframe && afterKeyframe) beforeKeyframe = afterKeyframe;
+      if (!afterKeyframe && beforeKeyframe) afterKeyframe = beforeKeyframe;
+
+      if (!beforeKeyframe || !afterKeyframe) {
+        // Return a default frame
+        return {
+          leftCurve: [{ x: 0, y: 0 }, { x: 0, y: 100 }, { x: 0, y: 200 }, { x: 0, y: 300 }],
+          rightCurve: [{ x: 250, y: 0 }, { x: 250, y: 100 }, { x: 250, y: 200 }, { x: 250, y: 300 }],
+        };
+      }
+
+      // Interpolate between keyframes
+      return {
+        leftCurve: beforeKeyframe.leftCurve.map((point, idx) => ({
+          x: point.x + (afterKeyframe.leftCurve[idx].x - point.x) * t,
+          y: point.y + (afterKeyframe.leftCurve[idx].y - point.y) * t,
+        })),
+        rightCurve: beforeKeyframe.rightCurve.map((point, idx) => ({
+          x: point.x + (afterKeyframe.rightCurve[idx].x - point.x) * t,
+          y: point.y + (afterKeyframe.rightCurve[idx].y - point.y) * t,
+        })),
+      };
     }
 
     refreshAnimationData(newAnimationData) {

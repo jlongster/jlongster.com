@@ -438,6 +438,7 @@
       const htmlContent = `
         <p style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">New Animation</p>
         <p style="font-size: 14px;">This is a preview paper for creating a new animation. Edit the bezier curves to shape the paper.</p>
+        <p style="font-size: 14px;">This is some extra text to fill the whole paper. Be careful not to split words.</p>
       `;
       const paperHtml = window.PaperRenderer.createPaperHTML(htmlContent, 'text');
       previewContainer.innerHTML = paperHtml;
