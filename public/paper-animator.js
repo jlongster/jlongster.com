@@ -719,6 +719,7 @@
     let isHovering = false;
 
     const onMouseEnter = () => {
+      console.log('mouse enter')
       if (interactionsDisabled) return;
       if (isHovering) return;
 
@@ -727,11 +728,21 @@
     };
 
     const onMouseLeave = () => {
+      console.log('mouse leaving')
       if (!isHovering) return;
 
       isHovering = false;
-      animator.reverseHoverAnimation();
+
+      // Use a small delay to ensure the hover animation state is set up
+      // This prevents race conditions when quickly entering/leaving
+      requestAnimationFrame(() => {
+        animator.reverseHoverAnimation();
+      });
     };
+
+    for(let slice of paperElement.querySelectorAll('.paper-slice')) {
+      slice.style.border = '1px solid green'
+    }
 
     // Add event listeners
     paperElement.addEventListener('mouseenter', onMouseEnter);
@@ -1092,6 +1103,12 @@
     }
 
     playHoverAnimation(hoverAnimationData) {
+      // Cancel any pending reverse animation check
+      if (this.reverseAnimationCheckId) {
+        cancelAnimationFrame(this.reverseAnimationCheckId);
+        this.reverseAnimationCheckId = null;
+      }
+
       // Save the current state before starting hover animation
       const wasAnimating = this.isAnimating;
 
@@ -1106,8 +1123,12 @@
           wasAnimating: wasAnimating,
           originalTimePerKeyframe: this.timePerKeyframe,
           originalPlaybackFPS: this.playbackFPS,
+          isReversing: false,
         };
       }
+
+      // Mark that we're not reversing
+      this.hoverState.isReversing = false;
 
       // Deep copy hover animation data
       const hoverData = JSON.parse(JSON.stringify(hoverAnimationData));
@@ -1210,6 +1231,12 @@
     reverseHoverAnimation() {
       if (!this.hoverState) return;
 
+      // If already reversing, don't start another reverse
+      if (this.hoverState.isReversing) return;
+
+      // Mark as reversing
+      this.hoverState.isReversing = true;
+
       // Stop current animation
       this.isAnimating = false;
 
@@ -1279,11 +1306,12 @@
 
             // Clear hover state
             this.hoverState = null;
+            this.reverseAnimationCheckId = null;
           } else {
-            requestAnimationFrame(checkTransitionComplete);
+            this.reverseAnimationCheckId = requestAnimationFrame(checkTransitionComplete);
           }
         };
-        requestAnimationFrame(checkTransitionComplete);
+        this.reverseAnimationCheckId = requestAnimationFrame(checkTransitionComplete);
       } else {
         // CASE 2: Original was NOT animating
         // Just play the hover animation in reverse (reverse the keyframes)
@@ -1331,11 +1359,12 @@
 
             // Clear hover state
             this.hoverState = null;
+            this.reverseAnimationCheckId = null;
           } else {
-            requestAnimationFrame(checkReverseComplete);
+            this.reverseAnimationCheckId = requestAnimationFrame(checkReverseComplete);
           }
         };
-        requestAnimationFrame(checkReverseComplete);
+        this.reverseAnimationCheckId = requestAnimationFrame(checkReverseComplete);
       }
 
       // Ensure global animation loop is running
