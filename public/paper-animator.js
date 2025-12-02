@@ -717,21 +717,47 @@
     }
 
     let isHovering = false;
+    let hoverInteractionsEnabled = true;
+    let lastStateChangeX = null;
+    let lastStateChangeY = null;
+    const MOVEMENT_THRESHOLD = 10; // pixels
 
-    const onMouseEnter = () => {
-      console.log('mouse enter')
+    const onMouseMove = (e) => {
+      // If interactions are disabled, re-enable them after cursor moves 10px
+      if (!hoverInteractionsEnabled && lastStateChangeX !== null && lastStateChangeY !== null) {
+        const dx = e.clientX - lastStateChangeX;
+        const dy = e.clientY - lastStateChangeY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance >= MOVEMENT_THRESHOLD) {
+          console.log('hover interactions re-enabled after movement:', distance);
+          hoverInteractionsEnabled = true;
+        }
+      }
+    };
+
+    const onMouseEnter = (e) => {
+      console.log('mouse enter, enabled:', hoverInteractionsEnabled)
       if (interactionsDisabled) return;
       if (isHovering) return;
+      if (!hoverInteractionsEnabled) return;
 
       isHovering = true;
+      hoverInteractionsEnabled = false;
+      lastStateChangeX = e.clientX;
+      lastStateChangeY = e.clientY;
       animator.playHoverAnimation(hoverAnimation);
     };
 
-    const onMouseLeave = () => {
-      console.log('mouse leaving')
+    const onMouseLeave = (e) => {
+      console.log('mouse leaving, enabled:', hoverInteractionsEnabled)
       if (!isHovering) return;
+      if (!hoverInteractionsEnabled) return;
 
       isHovering = false;
+      hoverInteractionsEnabled = false;
+      lastStateChangeX = e.clientX;
+      lastStateChangeY = e.clientY;
 
       // Use a small delay to ensure the hover animation state is set up
       // This prevents race conditions when quickly entering/leaving
@@ -745,11 +771,13 @@
     }
 
     // Add event listeners
+    document.addEventListener('mousemove', onMouseMove);
     paperElement.addEventListener('mouseenter', onMouseEnter);
     paperElement.addEventListener('mouseleave', onMouseLeave);
 
     // Store cleanup function on animator
     animator._cleanupHover = () => {
+      document.removeEventListener('mousemove', onMouseMove);
       paperElement.removeEventListener('mouseenter', onMouseEnter);
       paperElement.removeEventListener('mouseleave', onMouseLeave);
     };
