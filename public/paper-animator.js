@@ -10,10 +10,6 @@
   // Flag to disable interactions when animation editor is open
   let interactionsDisabled = false;
 
-  // Selection/highlight state
-  let selectedPaperId = null;
-  let highlightUpdateLoop = null;
-
   // Global animation loop
   let globalAnimationLoopRunning = false;
   let lastFrameTime = 0;
@@ -740,13 +736,8 @@
           // Setup drag interaction
           setupDragInteraction(paperId, paperElement, animator);
 
-          // Setup click to select paper
-          paperElement.addEventListener('click', e => {
-            // Only select if not dragging
-            if (e.defaultPrevented) return;
-            console.log('[PaperAnimator] Clicked paper:', paperId);
-            selectPaper(paperId);
-          });
+          // Create shape overlay for hit detection
+          createPaperShapeOverlay(paperId, paperElement, animator);
         }, delay);
       }
     });
@@ -852,131 +843,84 @@
     };
   }
 
-  function updateHighlight() {
-    if (!selectedPaperId) return;
+  function createPaperShapeOverlay(paperId, paperElement, animator) {
+    // Wait for slice points to be available
+    const checkSlicePoints = () => {
+      const slicePoints = animator.slicePoints || [];
 
-    const animator = animatorRegistry.get(selectedPaperId);
-    if (!animator) return;
+      if (slicePoints.length === 0) {
+        // Retry after a short delay
+        setTimeout(checkSlicePoints, 50);
+        return;
+      }
 
-    const svg = document.getElementById('paper-selection-highlight');
-    if (!svg) return;
+      // Create SVG element
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.classList.add('paper-shape-overlay');
+      svg.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: all;
+        z-index: 1000;
+        overflow: visible;
+        border: 1px solid transparent;
+      `;
 
-    const wrapper = animator.paperElement.closest('.paper-component-wrapper');
-    if (!wrapper) return;
+      // Create path element with red fill
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'none');
 
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const slicePoints = animator.slicePoints || [];
+      svg.appendChild(path);
+      paperElement.appendChild(svg);
 
-    if (slicePoints.length === 0) return;
+      // Store references on animator
+      animator._overlayPath = path;
+      animator._overlaySvg = svg;
 
-    // Update SVG position
-    svg.style.top = `${wrapperRect.top}px`;
-    svg.style.left = `${wrapperRect.left}px`;
+      // Setup hover interaction on the SVG overlay
+      setupOverlayHoverInteraction(svg, animator);
 
-    // Get current offset from animator
-    const offsetX = animator.offsetX || 0;
-    const offsetY = animator.offsetY || 0;
+      // Initial update
+      updateOverlayPath(animator);
 
-    // Build SVG path from current slice points with offset applied
-    const leftPoints = slicePoints.map(s => ({
-      x: s.left.x + offsetX,
-      y: s.left.y + offsetY,
-    }));
-    const rightPoints = slicePoints.map(s => ({
-      x: s.right.x + offsetX,
-      y: s.right.y + offsetY,
-    }));
+      console.log('[PaperAnimator] Created shape overlay for:', paperId);
+    };
 
-    let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
-
-    for (let i = 1; i < leftPoints.length; i++) {
-      pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
-    }
-
-    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${
-      rightPoints[rightPoints.length - 1].y
-    }`;
-
-    for (let i = rightPoints.length - 2; i >= 0; i--) {
-      pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
-    }
-
-    pathData += ' Z';
-
-    // Update path
-    const path = svg.querySelector('path');
-    if (path) {
-      path.setAttribute('d', pathData);
-    }
-
-    // Continue the loop
-    highlightUpdateLoop = requestAnimationFrame(updateHighlight);
+    checkSlicePoints();
   }
 
-  function selectPaper(paperId) {
-    console.log('[PaperAnimator] selectPaper called:', paperId);
-    const previousId = selectedPaperId;
-    selectedPaperId = paperId;
-
-    // Stop previous update loop
-    if (highlightUpdateLoop) {
-      cancelAnimationFrame(highlightUpdateLoop);
-      highlightUpdateLoop = null;
-    }
-
-    // Remove previous highlight overlay
-    const oldHighlight = document.getElementById('paper-selection-highlight');
-    if (oldHighlight) {
-      oldHighlight.remove();
-    }
-
-    // If deselecting (clicking same element), just remove highlight and return
-    if (previousId === paperId) {
-      console.log('[PaperAnimator] Deselecting paper');
-      selectedPaperId = null;
+  function setupOverlayHoverInteraction(svg, animator) {
+    const hoverAnimation = animations[4];
+    if (!hoverAnimation) {
+      console.warn('[PaperAnimator] Hover animation not found');
       return;
     }
 
-    // Create new highlight overlay using SVG path from bezier curves
-    const animator = animatorRegistry.get(paperId);
-    if (!animator) {
-      console.warn('[PaperAnimator] Animator not found for:', paperId);
-      return;
-    }
+    svg.addEventListener('mouseenter', () => {
+      if (interactionsDisabled) return;
+      animator.playHoverAnimation(hoverAnimation);
+    });
 
-    console.log('[PaperAnimator] Creating highlight for:', paperId);
-    const wrapper = animator.paperElement.closest('.paper-component-wrapper');
-    if (!wrapper) {
-      console.warn('[PaperAnimator] Wrapper not found for:', paperId);
-      return;
-    }
+    svg.addEventListener('mouseleave', () => {
+      if (interactionsDisabled) return;
+      animator.reverseHoverAnimation();
+    });
+  }
 
-    const wrapperRect = wrapper.getBoundingClientRect();
+  function updateOverlayPath(animator) {
+    if (!animator._overlayPath) return;
+
+    // Don't update overlay during hover animation - keep it at the original shape
+    if (animator.hoverState) return;
+
     const slicePoints = animator.slicePoints || [];
+    if (slicePoints.length === 0) return;
 
-    console.log('[PaperAnimator] slicePoints:', slicePoints.length);
-    console.log('[PaperAnimator] wrapperRect:', wrapperRect);
-    if (slicePoints.length === 0) {
-      console.warn('[PaperAnimator] No slice points available');
-      return;
-    }
-
-    // Create SVG element
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.id = 'paper-selection-highlight';
-    svg.style.cssText = `
-      position: fixed;
-      top: ${wrapperRect.top}px;
-      left: ${wrapperRect.left}px;
-      width: ${wrapperRect.width}px;
-      height: ${wrapperRect.height}px;
-      pointer-events: none;
-      z-index: 10001;
-      overflow: visible;
-      border: 1px solid transparent;
-    `;
-
-    // Build initial SVG path
+    // Build SVG path from current slice points
     const leftPoints = slicePoints.map(s => s.left);
     const rightPoints = slicePoints.map(s => s.right);
 
@@ -986,9 +930,7 @@
       pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
     }
 
-    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${
-      rightPoints[rightPoints.length - 1].y
-    }`;
+    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${rightPoints[rightPoints.length - 1].y}`;
 
     for (let i = rightPoints.length - 2; i >= 0; i--) {
       pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
@@ -996,22 +938,7 @@
 
     pathData += ' Z';
 
-    // Create path element
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', pathData);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', '#3b82f6');
-    path.setAttribute('stroke-width', '3');
-    path.setAttribute(
-      'filter',
-      'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))',
-    );
-
-    svg.appendChild(path);
-    document.body.appendChild(svg);
-
-    // Start update loop
-    highlightUpdateLoop = requestAnimationFrame(updateHighlight);
+    animator._overlayPath.setAttribute('d', pathData);
   }
 
   function setupMutationObserver() {
@@ -2180,6 +2107,9 @@
           this.updateSliceTransform(i);
         }
       }
+
+      // Update the shape overlay to match current animation
+      updateOverlayPath(this);
     }
 
     updateRectangleTransform() {
