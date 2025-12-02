@@ -718,10 +718,6 @@
   // Global mousemove handler for hover state management
   function setupGlobalHoverTracking() {
     const hoverAnimation = animations[4];
-    if (!hoverAnimation) {
-      console.warn('[PaperAnimator] Hover animation not found');
-      return;
-    }
 
     document.addEventListener('mousemove', (e) => {
       // Re-enable hover interactions after cursor moves 10px
@@ -733,24 +729,45 @@
         if (distance >= HOVER_MOVEMENT_THRESHOLD) {
           console.log('hover interactions re-enabled after movement:', distance);
           hoverInteractionsEnabled = true;
-        }
-      }
 
-      // Check if cursor is outside the currently hovered paper
-      if (currentHoveredPaper && hoverInteractionsEnabled) {
-        const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+          // Check if cursor is over a paper element
+          const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+          const paperElement = elementUnderCursor?.closest('.paper-element');
+          const paperId = paperElement?.getAttribute('data-paper-id');
 
-        // Check if the element under cursor is within the current hovered paper
-        const isInsideCurrentPaper = currentHoveredPaper.paperElement.contains(elementUnderCursor);
+          // Determine if we need to switch hover state
+          const shouldSwitchToPaper = paperId && (!currentHoveredPaper || currentHoveredPaper.paperId !== paperId);
+          const shouldExitHover = !paperId && currentHoveredPaper;
 
-        if (!isInsideCurrentPaper) {
-          console.log('cursor moved outside current hovered paper');
-          // Animate out and clear current hover
-          currentHoveredPaper.animator.reverseHoverAnimation();
-          currentHoveredPaper = null;
-          hoverInteractionsEnabled = false;
-          lastHoverStateChangeX = e.clientX;
-          lastHoverStateChangeY = e.clientY;
+          if (shouldSwitchToPaper) {
+            // Switch to hovering the paper under cursor
+            console.log('switching hover to paper:', paperId);
+
+            // Animate out current if exists
+            if (currentHoveredPaper) {
+              currentHoveredPaper.animator.reverseHoverAnimation();
+            }
+
+            // Animate in the new one
+            const animator = animatorRegistry.get(paperId);
+            if (animator && hoverAnimation) {
+              currentHoveredPaper = { paperId, paperElement, animator };
+              hoverInteractionsEnabled = false;
+              lastHoverStateChangeX = e.clientX;
+              lastHoverStateChangeY = e.clientY;
+              animator.playHoverAnimation(hoverAnimation);
+            } else {
+              currentHoveredPaper = null;
+            }
+          } else if (shouldExitHover) {
+            // Exit hover state - cursor not over any paper
+            console.log('cursor not over paper element, forcing exit hover animation');
+            currentHoveredPaper.animator.reverseHoverAnimation();
+            currentHoveredPaper = null;
+            hoverInteractionsEnabled = false;
+            lastHoverStateChangeX = e.clientX;
+            lastHoverStateChangeY = e.clientY;
+          }
         }
       }
     });
@@ -787,16 +804,28 @@
       animator.playHoverAnimation(hoverAnimation);
     };
 
-    for(let slice of paperElement.querySelectorAll('.paper-slice')) {
-      slice.style.border = '1px solid green'
-    }
+    const onMouseLeave = (e) => {
+      console.log('mouse leave, enabled:', hoverInteractionsEnabled, 'paperId:', paperId)
+      if (interactionsDisabled) return;
+      if (!hoverInteractionsEnabled) return;
+      if (!currentHoveredPaper || currentHoveredPaper.paperId !== paperId) return;
 
-    // Add event listener
+      console.log('animating out on mouse leave');
+      currentHoveredPaper.animator.reverseHoverAnimation();
+      currentHoveredPaper = null;
+      hoverInteractionsEnabled = false;
+      lastHoverStateChangeX = e.clientX;
+      lastHoverStateChangeY = e.clientY;
+    };
+
+    // Add event listeners
     paperElement.addEventListener('mouseenter', onMouseEnter);
+    paperElement.addEventListener('mouseleave', onMouseLeave);
 
     // Store cleanup function on animator
     animator._cleanupHover = () => {
       paperElement.removeEventListener('mouseenter', onMouseEnter);
+      paperElement.removeEventListener('mouseleave', onMouseLeave);
 
       // Clear global hover state if this was the current one
       if (currentHoveredPaper && currentHoveredPaper.paperId === paperId) {

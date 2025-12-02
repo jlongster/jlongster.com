@@ -11,8 +11,7 @@
   let dragOffsetY = 0;
   let highlightUpdateLoop = null;
 
-  // Start with devtools open
-  let isCollapsed = false;
+  let isCollapsed = true;
 
   console.log('[PaperDevTools] Script loaded');
 
