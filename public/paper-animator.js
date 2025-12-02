@@ -10,12 +10,9 @@
   // Flag to disable interactions when animation editor is open
   let interactionsDisabled = false;
 
-  // Global hover state tracking
-  let currentHoveredPaper = null; // { paperId, paperElement, animator }
-  let lastHoverStateChangeX = null;
-  let lastHoverStateChangeY = null;
-  let hoverInteractionsEnabled = true;
-  const HOVER_MOVEMENT_THRESHOLD = 10;
+  // Selection/highlight state
+  let selectedPaperId = null;
+  let highlightUpdateLoop = null;
 
   // Global animation loop
   let globalAnimationLoopRunning = false;
@@ -214,11 +211,15 @@
     // These are used by both the animator and the animation editor
     utils: {
       // Transform a single point by rotation around a center
-      transformPoint: function(point, centerX, centerY, rotationRad) {
+      transformPoint: function (point, centerX, centerY, rotationRad) {
         const translatedX = point.x - centerX;
         const translatedY = point.y - centerY;
-        const rotatedX = translatedX * Math.cos(rotationRad) - translatedY * Math.sin(rotationRad);
-        const rotatedY = translatedX * Math.sin(rotationRad) + translatedY * Math.cos(rotationRad);
+        const rotatedX =
+          translatedX * Math.cos(rotationRad) -
+          translatedY * Math.sin(rotationRad);
+        const rotatedY =
+          translatedX * Math.sin(rotationRad) +
+          translatedY * Math.cos(rotationRad);
         return {
           x: rotatedX + centerX,
           y: rotatedY + centerY,
@@ -226,27 +227,34 @@
       },
 
       // Apply rotation to keyframe bezier curves
-      applyRotationToKeyframe: function(keyframe, rotation) {
+      applyRotationToKeyframe: function (keyframe, rotation) {
         if (!keyframe || rotation === 0) return keyframe;
 
         const allPoints = [...keyframe.leftCurve, ...keyframe.rightCurve];
-        const centerX = allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
-        const centerY = allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
+        const centerX =
+          allPoints.reduce((sum, p) => sum + p.x, 0) / allPoints.length;
+        const centerY =
+          allPoints.reduce((sum, p) => sum + p.y, 0) / allPoints.length;
         const rotationRad = (rotation * Math.PI) / 180;
 
         return {
           ...keyframe,
           leftCurve: keyframe.leftCurve.map(point =>
-            this.transformPoint(point, centerX, centerY, rotationRad)
+            this.transformPoint(point, centerX, centerY, rotationRad),
           ),
           rightCurve: keyframe.rightCurve.map(point =>
-            this.transformPoint(point, centerX, centerY, rotationRad)
+            this.transformPoint(point, centerX, centerY, rotationRad),
           ),
         };
       },
 
       // Scale keyframe coordinates for paper dimensions and global scale
-      scaleKeyframeForDimensions: function(keyframe, paperWidth, paperHeight, globalScale) {
+      scaleKeyframeForDimensions: function (
+        keyframe,
+        paperWidth,
+        paperHeight,
+        globalScale,
+      ) {
         if (!keyframe) return keyframe;
 
         const widthScale = paperWidth / 250;
@@ -266,23 +274,23 @@
       },
 
       // Get the transform style for a paper element
-      getPaperTransform: function(offsetX, offsetY) {
+      getPaperTransform: function (offsetX, offsetY) {
         return `translate(${offsetX}px, ${offsetY}px)`;
       },
     },
 
     // Disable interactions (hover, etc.) - used by animation editor
-    disableInteractions: function() {
+    disableInteractions: function () {
       interactionsDisabled = true;
     },
 
     // Re-enable interactions
-    enableInteractions: function() {
+    enableInteractions: function () {
       interactionsDisabled = false;
     },
 
     // Check if interactions are disabled
-    areInteractionsDisabled: function() {
+    areInteractionsDisabled: function () {
       return interactionsDisabled;
     },
   };
@@ -299,9 +307,6 @@
       );
 
       animations = await Promise.all(animationPromises);
-
-      // Setup global hover tracking
-      setupGlobalHoverTracking();
 
       // Initialize existing paper elements
       initializePaperElements();
@@ -349,20 +354,26 @@
       const paperGroup = paperElement.getAttribute('data-paper-group') || null;
 
       // First, try to read config from data attributes (set by Paper component)
-      const hasDataAttributes = paperElement.hasAttribute('data-animation-index');
+      const hasDataAttributes = paperElement.hasAttribute(
+        'data-animation-index',
+      );
       let config;
 
       if (hasDataAttributes) {
         // Use data attributes directly
         config = {
-          animationIndex: parseInt(paperElement.getAttribute('data-animation-index')) || 0,
+          animationIndex:
+            parseInt(paperElement.getAttribute('data-animation-index')) || 0,
           offsetX: parseFloat(paperElement.getAttribute('data-offset-x')) || 0,
           offsetY: parseFloat(paperElement.getAttribute('data-offset-y')) || 0,
           rotation: parseFloat(paperElement.getAttribute('data-rotation')) || 0,
           scale: parseFloat(paperElement.getAttribute('data-scale')) || 1,
-          startDelay: parseInt(paperElement.getAttribute('data-start-delay')) || 0,
-          startKeyframe: parseInt(paperElement.getAttribute('data-start-keyframe')) || 0,
-          endKeyframe: parseInt(paperElement.getAttribute('data-end-keyframe')) || 59,
+          startDelay:
+            parseInt(paperElement.getAttribute('data-start-delay')) || 0,
+          startKeyframe:
+            parseInt(paperElement.getAttribute('data-start-keyframe')) || 0,
+          endKeyframe:
+            parseInt(paperElement.getAttribute('data-end-keyframe')) || 59,
         };
 
         // Save this config so it persists across restarts
@@ -437,27 +448,71 @@
             const firstSlice = paperElement.querySelector('.paper-slice-0');
             // Check for video or image
             // Video is in hidden div with paper-master-video class
-            console.log('[PaperAnimator]', paperId, 'Looking for video in paperElement');
-            const firstVideo = paperElement.querySelector('.paper-master-video');
-            console.log('[PaperAnimator]', paperId, 'Found video:', firstVideo ? firstVideo.src : 'none');
+            console.log(
+              '[PaperAnimator]',
+              paperId,
+              'Looking for video in paperElement',
+            );
+            const firstVideo = paperElement.querySelector(
+              '.paper-master-video',
+            );
+            console.log(
+              '[PaperAnimator]',
+              paperId,
+              'Found video:',
+              firstVideo ? firstVideo.src : 'none',
+            );
 
-            const firstImage = firstSlice ? firstSlice.querySelector('img') : null;
+            const firstImage = firstSlice
+              ? firstSlice.querySelector('img')
+              : null;
 
             if (firstVideo) {
-              console.log('[PaperAnimator]', paperId, 'Using first video, src:', firstVideo.src);
+              console.log(
+                '[PaperAnimator]',
+                paperId,
+                'Using first video, src:',
+                firstVideo.src,
+              );
               // Video codepath - render video to all slice canvases
               const handleVideoReady = () => {
-                console.log('[PaperAnimator]', paperId, 'Video ready, starting animation');
-                console.log('[PaperAnimator]', paperId, 'First video:', firstVideo);
-                console.log('[PaperAnimator]', paperId, 'First video src:', firstVideo.src);
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Video ready, starting animation',
+                );
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'First video:',
+                  firstVideo,
+                );
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'First video src:',
+                  firstVideo.src,
+                );
 
                 // Get all canvas elements in all slices
-                const canvases = paperElement.querySelectorAll('.paper-video-canvas');
-                console.log('[PaperAnimator]', paperId, 'Found', canvases.length, 'canvases for video rendering');
+                const canvases = paperElement.querySelectorAll(
+                  '.paper-video-canvas',
+                );
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Found',
+                  canvases.length,
+                  'canvases for video rendering',
+                );
                 console.log('[PaperAnimator]', paperId, 'Canvases:', canvases);
 
                 if (canvases.length === 0) {
-                  console.error('[PaperAnimator]', paperId, 'No canvases found! Cannot render video.');
+                  console.error(
+                    '[PaperAnimator]',
+                    paperId,
+                    'No canvases found! Cannot render video.',
+                  );
                   return;
                 }
 
@@ -465,7 +520,7 @@
                 const contexts = Array.from(canvases).map(canvas => {
                   const ctx = canvas.getContext('2d', {
                     alpha: false,
-                    desynchronized: true // Safari optimization: allow desynchronized rendering
+                    desynchronized: true, // Safari optimization: allow desynchronized rendering
                   });
                   // Disable image smoothing for better performance
                   ctx.imageSmoothingEnabled = false;
@@ -473,34 +528,72 @@
                 });
 
                 const startDrawing = () => {
-                  console.log('[PaperAnimator]', paperId, 'Starting video render to canvases');
-                  console.log('[PaperAnimator]', paperId, 'Video dimensions:', firstVideo.videoWidth, 'x', firstVideo.videoHeight);
-                  console.log('[PaperAnimator]', paperId, 'Video paused:', firstVideo.paused, 'ended:', firstVideo.ended);
-                  console.log('[PaperAnimator]', paperId, 'Video readyState:', firstVideo.readyState);
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Starting video render to canvases',
+                  );
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Video dimensions:',
+                    firstVideo.videoWidth,
+                    'x',
+                    firstVideo.videoHeight,
+                  );
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Video paused:',
+                    firstVideo.paused,
+                    'ended:',
+                    firstVideo.ended,
+                  );
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Video readyState:',
+                    firstVideo.readyState,
+                  );
 
                   let canvasesInitialized = false;
 
                   // Safari optimization: Use requestVideoFrameCallback if available, otherwise fallback to rAF
-                  const supportsVideoFrameCallback = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
-                  console.log('[PaperAnimator]', paperId, 'Supports requestVideoFrameCallback:', supportsVideoFrameCallback);
+                  const supportsVideoFrameCallback =
+                    'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Supports requestVideoFrameCallback:',
+                    supportsVideoFrameCallback,
+                  );
 
                   // Safari optimization: Create a master offscreen canvas to draw video to once,
                   // then copy from that canvas to all slice canvases. This avoids multiple
                   // video decode/upload operations per frame.
-                  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                  const isSafari = /^((?!chrome|android).)*safari/i.test(
+                    navigator.userAgent,
+                  );
                   let masterCanvas = null;
                   let masterCtx = null;
 
                   if (isSafari) {
                     masterCanvas = document.createElement('canvas');
                     masterCtx = masterCanvas.getContext('2d', { alpha: false });
-                    console.log('[PaperAnimator]', paperId, 'Safari detected: using master canvas optimization');
+                    console.log(
+                      '[PaperAnimator]',
+                      paperId,
+                      'Safari detected: using master canvas optimization',
+                    );
                   }
 
                   let animatorStarted = false;
 
                   const drawFrame = () => {
-                    if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
+                    if (
+                      firstVideo.videoWidth > 0 &&
+                      firstVideo.videoHeight > 0
+                    ) {
                       const numContexts = contexts.length;
 
                       // Only set canvas dimensions once, not every frame
@@ -535,7 +628,11 @@
                       // Start animator after first frame is drawn to prevent flash of black
                       if (!animatorStarted) {
                         animatorStarted = true;
-                        console.log('[PaperAnimator]', paperId, 'Starting animator after first video frame');
+                        console.log(
+                          '[PaperAnimator]',
+                          paperId,
+                          'Starting animator after first video frame',
+                        );
                         animator.start();
                       }
                     }
@@ -561,22 +658,47 @@
 
                   // Always explicitly call play() to ensure video plays
                   // Don't rely on autoPlay attribute due to browser autoplay policies
-                  console.log('[PaperAnimator]', paperId, 'Calling play() on video');
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Calling play() on video',
+                  );
                   firstVideo.play().catch(err => {
-                    console.error('[PaperAnimator]', paperId, 'Video play failed:', err);
+                    console.error(
+                      '[PaperAnimator]',
+                      paperId,
+                      'Video play failed:',
+                      err,
+                    );
                   });
                 };
 
                 // Wait for metadata if needed (Safari)
                 if (firstVideo.videoWidth > 0 && firstVideo.videoHeight > 0) {
-                  console.log('[PaperAnimator]', paperId, 'Video metadata already loaded, starting drawing');
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Video metadata already loaded, starting drawing',
+                  );
                   startDrawing();
                 } else {
-                  console.log('[PaperAnimator]', paperId, 'Waiting for video metadata to load');
-                  firstVideo.addEventListener('loadedmetadata', () => {
-                    console.log('[PaperAnimator]', paperId, 'Video metadata loaded');
-                    startDrawing();
-                  }, { once: true });
+                  console.log(
+                    '[PaperAnimator]',
+                    paperId,
+                    'Waiting for video metadata to load',
+                  );
+                  firstVideo.addEventListener(
+                    'loadedmetadata',
+                    () => {
+                      console.log(
+                        '[PaperAnimator]',
+                        paperId,
+                        'Video metadata loaded',
+                      );
+                      startDrawing();
+                    },
+                    { once: true },
+                  );
                 }
 
                 // Don't start animator here - wait until first video frame is drawn
@@ -584,11 +706,18 @@
               };
 
               // Check if video can play through without buffering
-              if (firstVideo.readyState >= 3) { // HAVE_FUTURE_DATA or better
+              if (firstVideo.readyState >= 3) {
+                // HAVE_FUTURE_DATA or better
                 handleVideoReady();
               } else {
-                console.log('[PaperAnimator]', paperId, 'Waiting for video to be ready');
-                firstVideo.addEventListener('canplay', handleVideoReady, { once: true });
+                console.log(
+                  '[PaperAnimator]',
+                  paperId,
+                  'Waiting for video to be ready',
+                );
+                firstVideo.addEventListener('canplay', handleVideoReady, {
+                  once: true,
+                });
               }
             } else if (firstImage) {
               // Image codepath
@@ -611,9 +740,13 @@
           // Setup drag interaction
           setupDragInteraction(paperId, paperElement, animator);
 
-          // Setup hover interaction
-          setupHoverInteraction(paperId, paperElement, animator);
-
+          // Setup click to select paper
+          paperElement.addEventListener('click', e => {
+            // Only select if not dragging
+            if (e.defaultPrevented) return;
+            console.log('[PaperAnimator] Clicked paper:', paperId);
+            selectPaper(paperId);
+          });
         }, delay);
       }
     });
@@ -627,7 +760,7 @@
     let dragStartOffsetY = 0;
     let hasDragged = false;
 
-    const onMouseDown = (e) => {
+    const onMouseDown = e => {
       // Don't start dragging if animation editor has disabled interactions
       if (interactionsDisabled) {
         return;
@@ -635,7 +768,11 @@
 
       // Check if we clicked directly on the paper element or its children
       const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-      if (!elementAtPoint || (!paperElement.contains(elementAtPoint) && paperElement !== elementAtPoint)) {
+      if (
+        !elementAtPoint ||
+        (!paperElement.contains(elementAtPoint) &&
+          paperElement !== elementAtPoint)
+      ) {
         return;
       }
 
@@ -651,7 +788,7 @@
       e.preventDefault();
     };
 
-    const onMouseMove = (e) => {
+    const onMouseMove = e => {
       if (!isDragging) return;
 
       const deltaX = e.clientX - dragStartX;
@@ -689,7 +826,7 @@
 
       // If we actually dragged, prevent click events briefly
       if (hasDragged) {
-        const preventClick = (e) => {
+        const preventClick = e => {
           e.preventDefault();
           e.stopPropagation();
           document.removeEventListener('click', preventClick, true);
@@ -715,123 +852,166 @@
     };
   }
 
-  // Global mousemove handler for hover state management
-  function setupGlobalHoverTracking() {
-    const hoverAnimation = animations[4];
+  function updateHighlight() {
+    if (!selectedPaperId) return;
 
-    document.addEventListener('mousemove', (e) => {
-      // Re-enable hover interactions after cursor moves 10px
-      if (!hoverInteractionsEnabled && lastHoverStateChangeX !== null && lastHoverStateChangeY !== null) {
-        const dx = e.clientX - lastHoverStateChangeX;
-        const dy = e.clientY - lastHoverStateChangeY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+    const animator = animatorRegistry.get(selectedPaperId);
+    if (!animator) return;
 
-        if (distance >= HOVER_MOVEMENT_THRESHOLD) {
-          console.log('hover interactions re-enabled after movement:', distance);
-          hoverInteractionsEnabled = true;
+    const svg = document.getElementById('paper-selection-highlight');
+    if (!svg) return;
 
-          // Check if cursor is over a paper element
-          const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
-          const paperElement = elementUnderCursor?.closest('.paper-element');
-          const paperId = paperElement?.getAttribute('data-paper-id');
+    const wrapper = animator.paperElement.closest('.paper-component-wrapper');
+    if (!wrapper) return;
 
-          // Determine if we need to switch hover state
-          const shouldSwitchToPaper = paperId && (!currentHoveredPaper || currentHoveredPaper.paperId !== paperId);
-          const shouldExitHover = !paperId && currentHoveredPaper;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const slicePoints = animator.slicePoints || [];
 
-          if (shouldSwitchToPaper) {
-            // Switch to hovering the paper under cursor
-            console.log('switching hover to paper:', paperId);
+    if (slicePoints.length === 0) return;
 
-            // Animate out current if exists
-            if (currentHoveredPaper) {
-              currentHoveredPaper.animator.reverseHoverAnimation();
-            }
+    // Update SVG position
+    svg.style.top = `${wrapperRect.top}px`;
+    svg.style.left = `${wrapperRect.left}px`;
 
-            // Animate in the new one
-            const animator = animatorRegistry.get(paperId);
-            if (animator && hoverAnimation) {
-              currentHoveredPaper = { paperId, paperElement, animator };
-              hoverInteractionsEnabled = false;
-              lastHoverStateChangeX = e.clientX;
-              lastHoverStateChangeY = e.clientY;
-              animator.playHoverAnimation(hoverAnimation);
-            } else {
-              currentHoveredPaper = null;
-            }
-          } else if (shouldExitHover) {
-            // Exit hover state - cursor not over any paper
-            console.log('cursor not over paper element, forcing exit hover animation');
-            currentHoveredPaper.animator.reverseHoverAnimation();
-            currentHoveredPaper = null;
-            hoverInteractionsEnabled = false;
-            lastHoverStateChangeX = e.clientX;
-            lastHoverStateChangeY = e.clientY;
-          }
-        }
-      }
-    });
+    // Get current offset from animator
+    const offsetX = animator.offsetX || 0;
+    const offsetY = animator.offsetY || 0;
+
+    // Build SVG path from current slice points with offset applied
+    const leftPoints = slicePoints.map(s => ({
+      x: s.left.x + offsetX,
+      y: s.left.y + offsetY,
+    }));
+    const rightPoints = slicePoints.map(s => ({
+      x: s.right.x + offsetX,
+      y: s.right.y + offsetY,
+    }));
+
+    let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
+
+    for (let i = 1; i < leftPoints.length; i++) {
+      pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
+    }
+
+    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${
+      rightPoints[rightPoints.length - 1].y
+    }`;
+
+    for (let i = rightPoints.length - 2; i >= 0; i--) {
+      pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
+    }
+
+    pathData += ' Z';
+
+    // Update path
+    const path = svg.querySelector('path');
+    if (path) {
+      path.setAttribute('d', pathData);
+    }
+
+    // Continue the loop
+    highlightUpdateLoop = requestAnimationFrame(updateHighlight);
   }
 
-  function setupHoverInteraction(paperId, paperElement, animator) {
-    // Check if interactions are disabled
-    if (interactionsDisabled) return;
+  function selectPaper(paperId) {
+    console.log('[PaperAnimator] selectPaper called:', paperId);
+    const previousId = selectedPaperId;
+    selectedPaperId = paperId;
 
-    // Get hover animation (index 4 in manifest: hover animation)
-    const hoverAnimation = animations[4];
-    if (!hoverAnimation) {
-      console.warn('[PaperAnimator] Hover animation not found');
+    // Stop previous update loop
+    if (highlightUpdateLoop) {
+      cancelAnimationFrame(highlightUpdateLoop);
+      highlightUpdateLoop = null;
+    }
+
+    // Remove previous highlight overlay
+    const oldHighlight = document.getElementById('paper-selection-highlight');
+    if (oldHighlight) {
+      oldHighlight.remove();
+    }
+
+    // If deselecting (clicking same element), just remove highlight and return
+    if (previousId === paperId) {
+      console.log('[PaperAnimator] Deselecting paper');
+      selectedPaperId = null;
       return;
     }
 
-    const onMouseEnter = (e) => {
-      console.log('mouse enter, enabled:', hoverInteractionsEnabled, 'paperId:', paperId)
-      if (interactionsDisabled) return;
-      if (!hoverInteractionsEnabled) return;
+    // Create new highlight overlay using SVG path from bezier curves
+    const animator = animatorRegistry.get(paperId);
+    if (!animator) {
+      console.warn('[PaperAnimator] Animator not found for:', paperId);
+      return;
+    }
 
-      // If there's a currently hovered paper, animate it out first
-      if (currentHoveredPaper && currentHoveredPaper.paperId !== paperId) {
-        console.log('forcing previous paper to animate out:', currentHoveredPaper.paperId);
-        currentHoveredPaper.animator.reverseHoverAnimation();
-      }
+    console.log('[PaperAnimator] Creating highlight for:', paperId);
+    const wrapper = animator.paperElement.closest('.paper-component-wrapper');
+    if (!wrapper) {
+      console.warn('[PaperAnimator] Wrapper not found for:', paperId);
+      return;
+    }
 
-      // Set this as the currently hovered paper
-      currentHoveredPaper = { paperId, paperElement, animator };
-      hoverInteractionsEnabled = false;
-      lastHoverStateChangeX = e.clientX;
-      lastHoverStateChangeY = e.clientY;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const slicePoints = animator.slicePoints || [];
 
-      animator.playHoverAnimation(hoverAnimation);
-    };
+    console.log('[PaperAnimator] slicePoints:', slicePoints.length);
+    console.log('[PaperAnimator] wrapperRect:', wrapperRect);
+    if (slicePoints.length === 0) {
+      console.warn('[PaperAnimator] No slice points available');
+      return;
+    }
 
-    const onMouseLeave = (e) => {
-      console.log('mouse leave, enabled:', hoverInteractionsEnabled, 'paperId:', paperId)
-      if (interactionsDisabled) return;
-      if (!hoverInteractionsEnabled) return;
-      if (!currentHoveredPaper || currentHoveredPaper.paperId !== paperId) return;
+    // Create SVG element
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'paper-selection-highlight';
+    svg.style.cssText = `
+      position: fixed;
+      top: ${wrapperRect.top}px;
+      left: ${wrapperRect.left}px;
+      width: ${wrapperRect.width}px;
+      height: ${wrapperRect.height}px;
+      pointer-events: none;
+      z-index: 10001;
+      overflow: visible;
+      border: 1px solid transparent;
+    `;
 
-      console.log('animating out on mouse leave');
-      currentHoveredPaper.animator.reverseHoverAnimation();
-      currentHoveredPaper = null;
-      hoverInteractionsEnabled = false;
-      lastHoverStateChangeX = e.clientX;
-      lastHoverStateChangeY = e.clientY;
-    };
+    // Build initial SVG path
+    const leftPoints = slicePoints.map(s => s.left);
+    const rightPoints = slicePoints.map(s => s.right);
 
-    // Add event listeners
-    paperElement.addEventListener('mouseenter', onMouseEnter);
-    paperElement.addEventListener('mouseleave', onMouseLeave);
+    let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
 
-    // Store cleanup function on animator
-    animator._cleanupHover = () => {
-      paperElement.removeEventListener('mouseenter', onMouseEnter);
-      paperElement.removeEventListener('mouseleave', onMouseLeave);
+    for (let i = 1; i < leftPoints.length; i++) {
+      pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
+    }
 
-      // Clear global hover state if this was the current one
-      if (currentHoveredPaper && currentHoveredPaper.paperId === paperId) {
-        currentHoveredPaper = null;
-      }
-    };
+    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${
+      rightPoints[rightPoints.length - 1].y
+    }`;
+
+    for (let i = rightPoints.length - 2; i >= 0; i--) {
+      pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
+    }
+
+    pathData += ' Z';
+
+    // Create path element
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathData);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#3b82f6');
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute(
+      'filter',
+      'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))',
+    );
+
+    svg.appendChild(path);
+    document.body.appendChild(svg);
+
+    // Start update loop
+    highlightUpdateLoop = requestAnimationFrame(updateHighlight);
   }
 
   function setupMutationObserver() {
@@ -851,7 +1031,9 @@
                 );
               }
             } else if (node.querySelectorAll) {
-              const paperElements = node.querySelectorAll('.paper-element:not([data-editor-controlled])');
+              const paperElements = node.querySelectorAll(
+                '.paper-element:not([data-editor-controlled])',
+              );
               if (paperElements.length > 0) {
                 hasNewPaperElements = true;
                 console.log(
@@ -951,11 +1133,14 @@
 
       // Store shadow keyframes without pre-scaling - they will be scaled during rendering
       // using the same center point as the paper
-      if (window.ShadowRenderer && window.ShadowRenderer.applyRotationToKeyframes) {
+      if (
+        window.ShadowRenderer &&
+        window.ShadowRenderer.applyRotationToKeyframes
+      ) {
         // Only apply rotation to shadow keyframes (rotation happens in baseline coords)
         this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
           this.shadowKeyframes,
-          this.rotation
+          this.rotation,
         );
       }
 
@@ -982,7 +1167,10 @@
 
       // Use configured endKeyframe only if it's explicitly set and different from default
       // Otherwise, auto-detect the last keyframe with actual position data
-      if (animationData.endKeyframe !== undefined && animationData.endKeyframe !== 59) {
+      if (
+        animationData.endKeyframe !== undefined &&
+        animationData.endKeyframe !== 59
+      ) {
         this.endKeyframe = animationData.endKeyframe;
       } else {
         this.endKeyframe = lastKeyframeIndex >= 0 ? lastKeyframeIndex : 59;
@@ -1001,7 +1189,7 @@
         this.shadowSVG = window.ShadowRenderer.createShadowSVG(
           this.paperElement,
           this.paperWidth,
-          this.paperHeight
+          this.paperHeight,
         );
       }
     }
@@ -1141,7 +1329,12 @@
         if (realGifUrl && currentSrc !== realGifUrl) {
           // Add load event listener to log when gif is loaded
           const handleGifLoad = () => {
-            console.log('[PaperAnimator]', this.id, 'Real gif loaded:', realGifUrl);
+            console.log(
+              '[PaperAnimator]',
+              this.id,
+              'Real gif loaded:',
+              realGifUrl,
+            );
             img.removeEventListener('load', handleGifLoad);
           };
           img.addEventListener('load', handleGifLoad);
@@ -1163,7 +1356,7 @@
 
       // Check if we should stop the global loop (no more active animators)
       const hasActiveAnimators = Array.from(animatorRegistry.values()).some(
-        animator => animator.isAnimating
+        animator => animator.isAnimating,
       );
       if (!hasActiveAnimators) {
         stopGlobalAnimationLoop();
@@ -1218,7 +1411,7 @@
 
       // Apply rotation and scaling to hover animation
       let hoverKeyframes = this.scaleKeyframes_forDimensions(
-        this.applyRotationToKeyframes(hoverData.keyframes || [])
+        this.applyRotationToKeyframes(hoverData.keyframes || []),
       );
 
       // Find the last keyframe with data in the hover animation
@@ -1266,14 +1459,17 @@
         }
 
         // Replace keyframes with transition + hover keyframes
-        this.keyframes = [...transitionFrames, ...hoverKeyframes.slice(0, lastHoverKeyframeIndex + 1)];
+        this.keyframes = [
+          ...transitionFrames,
+          ...hoverKeyframes.slice(0, lastHoverKeyframeIndex + 1),
+        ];
         this.scaleKeyframes = hoverData.scaleKeyframes || [];
 
         // Process shadow keyframes
         if (hoverData.shadowKeyframes && window.ShadowRenderer) {
           this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
             hoverData.shadowKeyframes,
-            this.rotation
+            this.rotation,
           );
         }
 
@@ -1292,7 +1488,7 @@
         if (hoverData.shadowKeyframes && window.ShadowRenderer) {
           this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
             hoverData.shadowKeyframes,
-            this.rotation
+            this.rotation,
           );
         }
 
@@ -1330,7 +1526,10 @@
         this.shadowKeyframes = this.hoverState.originalShadowKeyframes;
         this.scaleKeyframes = this.hoverState.originalScaleKeyframes;
 
-        const targetPosition = Math.min(this.hoverState.currentPosition, this.hoverState.originalEndKeyframe);
+        const targetPosition = Math.min(
+          this.hoverState.currentPosition,
+          this.hoverState.originalEndKeyframe,
+        );
         const targetFrame = this.getInterpolatedFrameAt(targetPosition);
 
         // Create reverse transition keyframes (100ms)
@@ -1387,10 +1586,14 @@
             this.hoverState = null;
             this.reverseAnimationCheckId = null;
           } else {
-            this.reverseAnimationCheckId = requestAnimationFrame(checkTransitionComplete);
+            this.reverseAnimationCheckId = requestAnimationFrame(
+              checkTransitionComplete,
+            );
           }
         };
-        this.reverseAnimationCheckId = requestAnimationFrame(checkTransitionComplete);
+        this.reverseAnimationCheckId = requestAnimationFrame(
+          checkTransitionComplete,
+        );
       } else {
         // CASE 2: Original was NOT animating
         // Just play the hover animation in reverse (reverse the keyframes)
@@ -1440,10 +1643,12 @@
             this.hoverState = null;
             this.reverseAnimationCheckId = null;
           } else {
-            this.reverseAnimationCheckId = requestAnimationFrame(checkReverseComplete);
+            this.reverseAnimationCheckId =
+              requestAnimationFrame(checkReverseComplete);
           }
         };
-        this.reverseAnimationCheckId = requestAnimationFrame(checkReverseComplete);
+        this.reverseAnimationCheckId =
+          requestAnimationFrame(checkReverseComplete);
       }
 
       // Ensure global animation loop is running
@@ -1484,8 +1689,18 @@
       if (!beforeKeyframe || !afterKeyframe) {
         // Return a default frame
         return {
-          leftCurve: [{ x: 0, y: 0 }, { x: 0, y: 100 }, { x: 0, y: 200 }, { x: 0, y: 300 }],
-          rightCurve: [{ x: 250, y: 0 }, { x: 250, y: 100 }, { x: 250, y: 200 }, { x: 250, y: 300 }],
+          leftCurve: [
+            { x: 0, y: 0 },
+            { x: 0, y: 100 },
+            { x: 0, y: 200 },
+            { x: 0, y: 300 },
+          ],
+          rightCurve: [
+            { x: 250, y: 0 },
+            { x: 250, y: 100 },
+            { x: 250, y: 200 },
+            { x: 250, y: 300 },
+          ],
         };
       }
 
@@ -1517,10 +1732,13 @@
       );
 
       // Re-process shadow keyframes - only apply rotation, not scaling
-      if (window.ShadowRenderer && window.ShadowRenderer.applyRotationToKeyframes) {
+      if (
+        window.ShadowRenderer &&
+        window.ShadowRenderer.applyRotationToKeyframes
+      ) {
         this.shadowKeyframes = window.ShadowRenderer.applyRotationToKeyframes(
           newAnimationData.shadowKeyframes || [],
-          this.rotation
+          this.rotation,
         );
       }
 
@@ -1723,7 +1941,13 @@
 
       // Interpolate and render shadow if shadow keyframes exist
       // Pass paper curves so shadow can be scaled around the same center point
-      this.renderShadow(keyframePosition, lowerIndex, upperIndex, leftCurvePoints, rightCurvePoints);
+      this.renderShadow(
+        keyframePosition,
+        lowerIndex,
+        upperIndex,
+        leftCurvePoints,
+        rightCurvePoints,
+      );
 
       // If this is a rectangle keyframe, render as single DOM node
       if (isRectangle && false) {
@@ -1738,7 +1962,13 @@
       }
     }
 
-    renderShadow(keyframePosition, lowerIndex, upperIndex, paperLeftCurve, paperRightCurve) {
+    renderShadow(
+      keyframePosition,
+      lowerIndex,
+      upperIndex,
+      paperLeftCurve,
+      paperRightCurve,
+    ) {
       if (!this.shadowSVG || this.shadowKeyframes.length === 0) return;
 
       const lowerShadowIndex = this.findPreviousShadowKeyframe(lowerIndex);
@@ -1757,25 +1987,29 @@
       if (lowerShadowIndex === upperShadowIndex) {
         shadowT = 0;
       } else {
-        shadowT = (keyframePosition - lowerShadowIndex) / (upperShadowIndex - lowerShadowIndex);
+        shadowT =
+          (keyframePosition - lowerShadowIndex) /
+          (upperShadowIndex - lowerShadowIndex);
         shadowT = Math.max(0, Math.min(1, shadowT));
       }
 
       // Interpolate shadow bezier curves (still in baseline coordinates)
       const leftCurve = lowerShadow.leftCurve.map((p, i) => ({
         x: this.lerp(p.x, upperShadow.leftCurve[i].x, shadowT),
-        y: this.lerp(p.y, upperShadow.leftCurve[i].y, shadowT)
+        y: this.lerp(p.y, upperShadow.leftCurve[i].y, shadowT),
       }));
 
       const rightCurve = lowerShadow.rightCurve.map((p, i) => ({
         x: this.lerp(p.x, upperShadow.rightCurve[i].x, shadowT),
-        y: this.lerp(p.y, upperShadow.rightCurve[i].y, shadowT)
+        y: this.lerp(p.y, upperShadow.rightCurve[i].y, shadowT),
       }));
 
       // Calculate center from paper curves (which are already scaled)
       const allPaperPoints = [...paperLeftCurve, ...paperRightCurve];
-      const centerX = allPaperPoints.reduce((sum, p) => sum + p.x, 0) / allPaperPoints.length;
-      const centerY = allPaperPoints.reduce((sum, p) => sum + p.y, 0) / allPaperPoints.length;
+      const centerX =
+        allPaperPoints.reduce((sum, p) => sum + p.x, 0) / allPaperPoints.length;
+      const centerY =
+        allPaperPoints.reduce((sum, p) => sum + p.y, 0) / allPaperPoints.length;
 
       // Scale shadow curves from baseline to paper dimensions
       // First scale to paper dimensions, then scale around center point (same as paper)
@@ -1798,7 +2032,11 @@
       });
 
       // Generate points along the scaled curves using shared shadow renderer
-      const generatedPoints = window.ShadowRenderer.generateShapePoints(scaledLeftCurve, scaledRightCurve, 10);
+      const generatedPoints = window.ShadowRenderer.generateShapePoints(
+        scaledLeftCurve,
+        scaledRightCurve,
+        10,
+      );
 
       // Interpolate colors
       const lowerColors = lowerShadow.colors || [];
@@ -1812,11 +2050,14 @@
       });
 
       // Interpolate blur
-      const blurAmount = lowerShadow.blurAmount !== undefined && upperShadow.blurAmount !== undefined
-        ? this.lerp(lowerShadow.blurAmount, upperShadow.blurAmount, shadowT)
-        : (lowerShadow.blurAmount || upperShadow.blurAmount || 0);
+      const blurAmount =
+        lowerShadow.blurAmount !== undefined &&
+        upperShadow.blurAmount !== undefined
+          ? this.lerp(lowerShadow.blurAmount, upperShadow.blurAmount, shadowT)
+          : lowerShadow.blurAmount || upperShadow.blurAmount || 0;
 
-      const blurEnabled = shadowT < 0.5 ? lowerShadow.blurEnabled : upperShadow.blurEnabled;
+      const blurEnabled =
+        shadowT < 0.5 ? lowerShadow.blurEnabled : upperShadow.blurEnabled;
 
       // Render the shadow shape
       this.drawShadowShape(generatedPoints, colors, blurAmount, blurEnabled);
@@ -1835,7 +2076,7 @@
         colors,
         blurEnabled,
         blurAmount,
-        `shadow-${this.id}`
+        `shadow-${this.id}`,
       );
     }
 
@@ -2102,11 +2343,17 @@
 
     findNextShadowKeyframe(startIndex) {
       for (let i = startIndex; i < this.shadowKeyframes.length; i++) {
-        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+        if (
+          this.shadowKeyframes[i] !== null &&
+          this.shadowKeyframes[i] !== undefined
+        )
           return i;
       }
       for (let i = 0; i < startIndex; i++) {
-        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+        if (
+          this.shadowKeyframes[i] !== null &&
+          this.shadowKeyframes[i] !== undefined
+        )
           return i;
       }
       return null;
@@ -2114,11 +2361,17 @@
 
     findPreviousShadowKeyframe(startIndex) {
       for (let i = startIndex; i >= 0; i--) {
-        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+        if (
+          this.shadowKeyframes[i] !== null &&
+          this.shadowKeyframes[i] !== undefined
+        )
           return i;
       }
       for (let i = this.shadowKeyframes.length - 1; i > startIndex; i--) {
-        if (this.shadowKeyframes[i] !== null && this.shadowKeyframes[i] !== undefined)
+        if (
+          this.shadowKeyframes[i] !== null &&
+          this.shadowKeyframes[i] !== undefined
+        )
           return i;
       }
       return null;
