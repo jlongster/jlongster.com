@@ -1372,6 +1372,33 @@
         // Stop the animation and interpolate from current frame to hover's last keyframe over 100ms
         this.isAnimating = false;
 
+        // Update the overlay to show the last keyframe of the original animation
+        if (this._overlayPath) {
+          const endFramePosition = this.hoverState.originalEndKeyframe;
+          const originalKeyframes = this.hoverState.originalKeyframes;
+          const originalShadowKeyframes = this.hoverState.originalShadowKeyframes;
+
+          // Temporarily restore original state to render the end frame
+          const savedKeyframes = this.keyframes;
+          const savedShadowKeyframes = this.shadowKeyframes;
+          const savedHoverState = this.hoverState;
+
+          this.keyframes = originalKeyframes;
+          this.shadowKeyframes = originalShadowKeyframes;
+          this.hoverState = null; // Temporarily clear so updateOverlayPath works
+
+          // Apply the end frame to update slice points
+          this.applyInterpolatedFrame(endFramePosition);
+
+          // Update the overlay path
+          updateOverlayPath(this);
+
+          // Restore the state
+          this.keyframes = savedKeyframes;
+          this.shadowKeyframes = savedShadowKeyframes;
+          this.hoverState = savedHoverState;
+        }
+
         // Get current interpolated frame
         const currentFrame = this.getCurrentInterpolatedFrame();
         const targetFrame = hoverKeyframes[lastHoverKeyframeIndex];
@@ -1460,15 +1487,13 @@
       // Check if the original animation was playing or static
       if (this.hoverState.wasAnimating) {
         // CASE 1: Original was animating
-        // Restore original keyframes and interpolate back to the position it was at
+        // Restore original keyframes and interpolate back to the END of the original animation
         this.keyframes = this.hoverState.originalKeyframes;
         this.shadowKeyframes = this.hoverState.originalShadowKeyframes;
         this.scaleKeyframes = this.hoverState.originalScaleKeyframes;
 
-        const targetPosition = Math.min(
-          this.hoverState.currentPosition,
-          this.hoverState.originalEndKeyframe,
-        );
+        // Always go back to the end of the original animation, not where it was interrupted
+        const targetPosition = this.hoverState.originalEndKeyframe;
         const targetFrame = this.getInterpolatedFrameAt(targetPosition);
 
         // Create reverse transition keyframes (100ms)
