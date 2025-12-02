@@ -4,12 +4,6 @@
   let savedConfigs = new Map(); // id -> config
   let selectedAnimatorId = null;
   let lastUnregisteredId = null; // Track last unregistered ID for auto-reselect
-  let isDragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragOffsetX = 0;
-  let dragOffsetY = 0;
-  let highlightUpdateLoop = null;
 
   let isCollapsed = true;
 
@@ -62,6 +56,11 @@
     selectAnimator: function (id) {
       selectAnimator(id);
     },
+    onConfigUpdate: function (id) {
+      // Update the UI to reflect the new config values
+      console.log('[PaperDevTools] onConfigUpdate called for:', id);
+      updateDevToolsUI();
+    },
   };
 
   function init() {
@@ -79,7 +78,6 @@
       if (collapseTab) collapseTab.style.display = 'block';
     }
 
-    setupDragListeners();
     setupKeyboardShortcuts();
     console.log('[PaperDevTools] Initialization complete');
   }
@@ -827,271 +825,9 @@
     console.log('[PaperDevTools] Saved config:', id, config);
   }
 
-  function updateHighlight() {
-    if (!selectedAnimatorId) return;
-
-    const animator = animatorRegistry.get(selectedAnimatorId);
-    if (!animator) return;
-
-    const svg = document.getElementById('paper-selection-highlight');
-    if (!svg) return;
-
-    const wrapper = animator.paperElement.closest('.paper-component-wrapper');
-    if (!wrapper) return;
-
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const slicePoints = animator.slicePoints || [];
-
-    if (slicePoints.length === 0) return;
-
-    // Update SVG position
-    svg.style.top = `${wrapperRect.top}px`;
-    svg.style.left = `${wrapperRect.left}px`;
-
-    // Get current offset from animator
-    const offsetX = animator.offsetX || 0;
-    const offsetY = animator.offsetY || 0;
-
-    // Build SVG path from current slice points with offset applied
-    const leftPoints = slicePoints.map(s => ({
-      x: s.left.x + offsetX,
-      y: s.left.y + offsetY,
-    }));
-    const rightPoints = slicePoints.map(s => ({
-      x: s.right.x + offsetX,
-      y: s.right.y + offsetY,
-    }));
-
-    let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
-
-    for (let i = 1; i < leftPoints.length; i++) {
-      pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
-    }
-
-    pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${rightPoints[rightPoints.length - 1].y}`;
-
-    for (let i = rightPoints.length - 2; i >= 0; i--) {
-      pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
-    }
-
-    pathData += ' Z';
-
-    // Update path
-    const path = svg.querySelector('path');
-    if (path) {
-      path.setAttribute('d', pathData);
-    }
-
-    // Continue the loop
-    highlightUpdateLoop = requestAnimationFrame(updateHighlight);
-  }
-
   function selectAnimator(id) {
-    const previousId = selectedAnimatorId;
     selectedAnimatorId = id;
-
-    // Stop previous update loop
-    if (highlightUpdateLoop) {
-      cancelAnimationFrame(highlightUpdateLoop);
-      highlightUpdateLoop = null;
-    }
-
-    // Remove previous highlight overlay
-    if (previousId !== null) {
-      const oldHighlight = document.getElementById('paper-selection-highlight');
-      if (oldHighlight) {
-        oldHighlight.remove();
-      }
-    }
-
-    // Create new highlight overlay using SVG path from bezier curves
-    const animator = animatorRegistry.get(id);
-    if (animator) {
-      // Remove any existing highlight
-      const oldHighlight = document.getElementById('paper-selection-highlight');
-      if (oldHighlight) {
-        oldHighlight.remove();
-      }
-
-      const wrapper = animator.paperElement.closest('.paper-component-wrapper');
-      if (!wrapper) return;
-
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const slicePoints = animator.slicePoints || [];
-
-      if (slicePoints.length === 0) return;
-
-      // Create SVG element
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.id = 'paper-selection-highlight';
-      svg.style.cssText = `
-        position: fixed;
-        top: ${wrapperRect.top}px;
-        left: ${wrapperRect.left}px;
-        width: ${wrapperRect.width}px;
-        height: ${wrapperRect.height}px;
-        pointer-events: none;
-        z-index: 10001;
-        overflow: visible;
-      `;
-
-      // Build initial SVG path
-      const leftPoints = slicePoints.map(s => s.left);
-      const rightPoints = slicePoints.map(s => s.right);
-
-      let pathData = `M ${leftPoints[0].x} ${leftPoints[0].y}`;
-
-      for (let i = 1; i < leftPoints.length; i++) {
-        pathData += ` L ${leftPoints[i].x} ${leftPoints[i].y}`;
-      }
-
-      pathData += ` L ${rightPoints[rightPoints.length - 1].x} ${rightPoints[rightPoints.length - 1].y}`;
-
-      for (let i = rightPoints.length - 2; i >= 0; i--) {
-        pathData += ` L ${rightPoints[i].x} ${rightPoints[i].y}`;
-      }
-
-      pathData += ' Z';
-
-      // Create path element
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', pathData);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#3b82f6');
-      path.setAttribute('stroke-width', '3');
-      path.setAttribute('filter', 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))');
-
-      svg.appendChild(path);
-      document.body.appendChild(svg);
-
-      // Start update loop
-      highlightUpdateLoop = requestAnimationFrame(updateHighlight);
-    }
-
     updateDevToolsUI();
-  }
-
-  function setupDragListeners() {
-    let hasDragged = false;
-    let dragJustEnded = false;
-
-    // Prevent clicks on links if we just dragged
-    document.addEventListener('click', e => {
-      if (dragJustEnded) {
-        e.preventDefault();
-        e.stopPropagation();
-        dragJustEnded = false;
-      }
-    }, true);
-
-    document.addEventListener('mousedown', e => {
-      const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-
-      hasDragged = false;
-      dragJustEnded = false;
-
-      // Check if we clicked on any paper element
-      let clickedPaperId = null;
-      for (const [id, animator] of animatorRegistry.entries()) {
-        const paperElement = animator.paperElement;
-        if (
-          elementAtPoint &&
-          (paperElement.contains(elementAtPoint) ||
-            paperElement === elementAtPoint)
-        ) {
-          clickedPaperId = id;
-          break;
-        }
-      }
-
-      // If we clicked on a paper element
-      if (clickedPaperId !== null) {
-        // Select it
-        selectAnimator(clickedPaperId);
-
-        // Don't start dragging if animation editor has disabled interactions
-        if (window.PaperAnimator?.areInteractionsDisabled()) {
-          return;
-        }
-
-        // Start dragging
-        const animator = animatorRegistry.get(clickedPaperId);
-        isDragging = true;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        dragOffsetX = animator.offsetX;
-        dragOffsetY = animator.offsetY;
-
-        animator.paperElement.style.cursor = 'grabbing';
-        e.preventDefault();
-      }
-    });
-
-    document.addEventListener('mousemove', e => {
-      if (!isDragging || selectedAnimatorId === null) return;
-
-      const animator = animatorRegistry.get(selectedAnimatorId);
-      if (!animator) return;
-
-      const deltaX = e.clientX - dragStartX;
-      const deltaY = e.clientY - dragStartY;
-
-      // Mark that we've actually dragged
-      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
-        hasDragged = true;
-      }
-
-      const newOffsetX = dragOffsetX + deltaX;
-      const newOffsetY = dragOffsetY + deltaY;
-
-      animator.updateOffsets(newOffsetX, newOffsetY);
-
-      // Update the UI
-      const card = document.querySelector('.animator-card');
-      if (card && card._updateOffsets) {
-        card._updateOffsets(newOffsetX, newOffsetY);
-      }
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (isDragging && selectedAnimatorId !== null) {
-        const animator = animatorRegistry.get(selectedAnimatorId);
-        if (animator) {
-          animator.paperElement.style.cursor = 'grab';
-          saveConfig(selectedAnimatorId, animator);
-        }
-
-        // If we dragged, prevent clicks on links
-        if (hasDragged) {
-          dragJustEnded = true;
-          setTimeout(() => {
-            dragJustEnded = false;
-          }, 100);
-        }
-      }
-      isDragging = false;
-    });
-
-    // Set cursor for selected paper when hovering over it
-    let lastCursorState = false;
-    document.addEventListener('mousemove', e => {
-      if (selectedAnimatorId === null || isDragging) return;
-
-      const animator = animatorRegistry.get(selectedAnimatorId);
-      if (!animator) return;
-
-      const paperElement = animator.paperElement;
-      const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-      const isOverPaper =
-        elementAtPoint &&
-        (paperElement.contains(elementAtPoint) ||
-          paperElement === elementAtPoint);
-
-      if (isOverPaper !== lastCursorState) {
-        paperElement.style.cursor = isOverPaper ? 'grab' : '';
-        lastCursorState = isOverPaper;
-      }
-    });
   }
 
   // Initialize when DOM is ready

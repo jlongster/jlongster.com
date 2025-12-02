@@ -826,8 +826,16 @@
       }
     };
 
+    const onClick = e => {
+      // Select this paper in devtools if available
+      if (window.PaperDevTools && window.PaperDevTools.selectAnimator) {
+        window.PaperDevTools.selectAnimator(paperId);
+      }
+    };
+
     // Add event listeners
     paperElement.addEventListener('mousedown', onMouseDown);
+    paperElement.addEventListener('click', onClick);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
 
@@ -837,6 +845,7 @@
     // Store cleanup function on animator for potential removal
     animator._cleanupDrag = () => {
       paperElement.removeEventListener('mousedown', onMouseDown);
+      paperElement.removeEventListener('click', onClick);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
       paperElement.style.cursor = '';
@@ -901,11 +910,13 @@
     }
 
     svg.addEventListener('mouseenter', () => {
+      console.log('[Hover] mouseenter');
       if (interactionsDisabled) return;
       animator.playHoverAnimation(hoverAnimation);
     });
 
     svg.addEventListener('mouseleave', () => {
+      console.log('[Hover] mouseleave');
       if (interactionsDisabled) return;
       animator.reverseHoverAnimation();
     });
@@ -1431,6 +1442,7 @@
     }
 
     reverseHoverAnimation() {
+      console.log('[Hover] reverseHoverAnimation called, hoverState:', this.hoverState);
       if (!this.hoverState) return;
 
       // If already reversing, don't start another reverse
@@ -1510,6 +1522,7 @@
             this.applyInterpolatedFrame(targetPosition);
 
             // Clear hover state
+            console.log('[Hover] Clearing hoverState (case 1: was animating)');
             this.hoverState = null;
             this.reverseAnimationCheckId = null;
           } else {
@@ -1567,6 +1580,7 @@
             this.applyInterpolatedFrame(this.currentKeyframePosition);
 
             // Clear hover state
+            console.log('[Hover] Clearing hoverState (case 2: was NOT animating)');
             this.hoverState = null;
             this.reverseAnimationCheckId = null;
           } else {
