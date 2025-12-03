@@ -142,18 +142,15 @@ export default function RenderPage(props) {
 
   return (
     <Layout
-      name="post"
+      className="post"
       minimal={minimal}
       toc={toc}
       page={page}
-      contentClassName={minimal ? '' : '!mt-[200px]'}
       sidebar={
         toc ? (
-          <div className="toc mr-8 mt-[200px] py-4 top-0 min-[951px]:sticky min-[951px]:overflow-auto min-[951px]:h-[100dvh] min-[951px]:w-[250px] min-[951px]:flex min-[951px]:flex-col [&_a]:text-inherit">
-            <div className="max-[950px]:hidden">
-              <div className="uncolored-links text-subdued leading-[1.35em] text-[length:13px]">
-                <TableOfContents toc={toc} pageid={page.url} />
-              </div>
+          <div className="toc mt-[200px] py-4 top-0 overscroll-contain min-[951px]:sticky min-[951px]:overflow-auto min-[951px]:h-[100dvh] min-[951px]:flex min-[951px]:flex-col [&_a]:text-inherit">
+            <div className="uncolored-links text-subdued leading-[1.35em] text-[length:13px]">
+              <TableOfContents toc={toc} pageid={page.url} />
             </div>
           </div>
         ) : null
@@ -179,10 +176,6 @@ export default function RenderPage(props) {
           <Footer>
             {minimal ? null : (
               <>
-                <div className="text-[length:12px] w-fit mx-auto my-[140px] text-[#909090]">
-                  ◇◇
-                </div>
-
                 <div className="mb-4 text-[#818a90] font-semibold">
                   Read more
                 </div>

@@ -1,6 +1,31 @@
 import { useLoaderData } from '@remix-run/react';
 import { getPages } from '~/db/queries';
 
+import styles from '~/css/old-paper-refresh.css?url';
+
+export function links() {
+  return [
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap',
+    },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&display=swap',
+    },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap',
+    },
+    {
+      rel: 'stylesheet',
+      href: styles,
+    },
+  ];
+}
+
 export async function loader() {
   const pages = getPages();
 
