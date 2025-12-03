@@ -11,7 +11,7 @@
     }
 
     try {
-      const response = await fetch(`/arrow-animations/${name}.json`);
+      const response = await fetch(`/old-paper-refresh/arrow-animations/${name}.json`);
       if (!response.ok) {
         console.error(`[ArrowAnimator] Failed to load animation: ${name}`);
         return null;

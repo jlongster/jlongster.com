@@ -53,6 +53,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const animationPath = path.join(
       process.cwd(),
       'public',
+      'old-paper-refresh',
       'arrow-animations',
       `${sanitizedName}.json`,
     );

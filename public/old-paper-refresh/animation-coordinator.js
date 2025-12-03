@@ -86,16 +86,21 @@
     groupData.elements.forEach(({ element, type }) => {
       hideElement(element, type);
 
-      // For paper elements, we need to reset the animator
+      // For paper elements, reset to initial frame without destroying
       if (type === 'paper') {
         let paperElement = element;
         if (element.classList.contains('paper-component-wrapper')) {
           paperElement = element.querySelector('.paper-element');
         }
-        if (paperElement && window.PaperRenderer && window.PaperRenderer.restartAnimator) {
+        if (paperElement && window.PaperAnimator) {
           const paperId = paperElement.getAttribute('data-paper-id');
-          if (paperId) {
-            window.PaperRenderer.restartAnimator(paperId);
+          const animator = window.PaperAnimator.getAnimator ? window.PaperAnimator.getAnimator(paperId) : null;
+          if (animator) {
+            // Stop the animation and render the initial frame
+            animator.stop();
+            animator.renderInitialFrame();
+            // Hide the paper
+            paperElement.style.visibility = 'hidden';
           }
         }
       } else if (type === 'arrow') {

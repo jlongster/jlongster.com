@@ -277,7 +277,7 @@ export default function Index() {
             fontWeight: 300,
           }}
         >
-          [WIP] This site was was an attempt at a visual refresh that I paused.
+          [WIP] This site was was an attempt at a visual refresh that I paused. No mobile support.
         </div>
         <div
           className="intro relative"

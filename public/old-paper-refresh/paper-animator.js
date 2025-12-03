@@ -313,14 +313,14 @@
   async function init() {
     // Load the manifest of available animations
     try {
-      const response = await fetch('/animation-data/manifest.json');
+      const response = await fetch('/old-paper-refresh/animation-data/manifest.json');
       const manifest = await response.json();
 
       // Load all animation files by name
       const animationEntries = Object.entries(manifest.animations);
       const animationPromises = animationEntries.map(
         async ([name, filename]) => {
-          const data = await fetch(`/animation-data/${filename}`).then(r =>
+          const data = await fetch(`/old-paper-refresh/animation-data/${filename}`).then(r =>
             r.json(),
           );
           return [name, data];
