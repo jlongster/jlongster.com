@@ -709,6 +709,7 @@
 
     // Shadow blur toggle
     const shadowBlurBtn = document.createElement('button');
+    shadowBlurBtn.id = 'editor-shadow-blur-btn';
     shadowBlurBtn.textContent = 'Blur: Off';
     shadowBlurBtn.style.cssText = `
       padding: 4px 10px;
@@ -738,7 +739,7 @@
     `;
     blurAmountLabel.innerHTML = `
       Blur:
-      <input type="range" id="editor-shadow-blur-amount" value="${shadowBlurAmount}" min="0" max="20" step="0.5"
+      <input type="range" id="editor-shadow-blur-amount" value="${shadowBlurAmount}" min="0" max="100" step="0.5"
         style="width: 60px; cursor: pointer;">
       <span id="editor-blur-amount-value" style="min-width: 30px;">${shadowBlurAmount}px</span>
     `;
@@ -2172,6 +2173,11 @@
 
     if (kf.blurEnabled !== undefined) {
       shadowBlurEnabled = kf.blurEnabled;
+      const blurBtn = document.getElementById('editor-shadow-blur-btn');
+      if (blurBtn) {
+        blurBtn.textContent = shadowBlurEnabled ? 'Blur: On' : 'Blur: Off';
+        blurBtn.style.background = shadowBlurEnabled ? '#10b981' : '#6b7280';
+      }
     }
     if (kf.blurAmount !== undefined) {
       shadowBlurAmount = kf.blurAmount;
@@ -2635,6 +2641,28 @@
       }
 
       timeDisplay.textContent = `Time: ${currentTime.toFixed(2)}s / ${totalTime.toFixed(2)}s`;
+    }
+
+    // Update shadow blur UI when navigating to a keyframe with shadow data
+    if (shadowKeyframes[currentShadowKeyframe]) {
+      const kf = shadowKeyframes[currentShadowKeyframe];
+
+      if (kf.blurEnabled !== undefined) {
+        shadowBlurEnabled = kf.blurEnabled;
+        const blurBtn = document.getElementById('editor-shadow-blur-btn');
+        if (blurBtn) {
+          blurBtn.textContent = shadowBlurEnabled ? 'Blur: On' : 'Blur: Off';
+          blurBtn.style.background = shadowBlurEnabled ? '#10b981' : '#6b7280';
+        }
+      }
+
+      if (kf.blurAmount !== undefined) {
+        shadowBlurAmount = kf.blurAmount;
+        const blurSlider = document.getElementById('editor-shadow-blur-amount');
+        const blurValue = document.getElementById('editor-blur-amount-value');
+        if (blurSlider) blurSlider.value = shadowBlurAmount;
+        if (blurValue) blurValue.textContent = `${shadowBlurAmount}px`;
+      }
     }
   }
 

@@ -256,6 +256,13 @@
       wrapper.className = 'paper-component-wrapper';
       wrapper.style.cssText = 'position: relative;';
 
+      // Clear all data attributes from the wrapper to prevent it from being treated as coordinated
+      Array.from(wrapper.attributes).forEach(attr => {
+        if (attr.name.startsWith('data-')) {
+          wrapper.removeAttribute(attr.name);
+        }
+      });
+
       // Generate the Paper HTML structure using helper function
       wrapper.innerHTML = createPaperHTML(htmlContent, paperStyle);
 

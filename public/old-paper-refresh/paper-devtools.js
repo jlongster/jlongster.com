@@ -83,18 +83,7 @@
   }
 
   function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', e => {
-      // Ctrl+Shift+R to restart all animations
-      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
-        e.preventDefault();
-        console.log(
-          '[PaperDevTools] Restarting all animations via keyboard shortcut',
-        );
-        if (window.PaperRenderer) {
-          window.PaperRenderer.restartAll();
-        }
-      }
-    });
+    // Keyboard shortcuts can be added here if needed
   }
 
   function createDevToolsUI() {
@@ -163,20 +152,6 @@
       border-bottom: 1px solid #4b5563;
     `;
     globalControls.innerHTML = `
-      <button id="restart-all-btn" style="
-        width: 100%;
-        padding: 8px;
-        background: #10b981;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: 500;
-        margin-bottom: 8px;
-      ">
-        ↻ Restart All Animations
-      </button>
       <button id="new-animation-btn" style="
         width: 100%;
         padding: 8px;
@@ -271,12 +246,6 @@
     document.body.appendChild(collapseTab);
 
     // Event listeners
-    document.getElementById('restart-all-btn').addEventListener('click', () => {
-      if (window.PaperRenderer) {
-        window.PaperRenderer.restartAll();
-      }
-    });
-
     document.getElementById('new-animation-btn').addEventListener('click', () => {
       openNewAnimationEditor();
     });
@@ -338,7 +307,8 @@
         });
 
       configToExport = groupAnimators.map(([id, _]) => {
-        const config = savedConfigs.get(id);
+        // Get current config from PaperAnimator (includes live overrides from dragging)
+        const config = window.PaperAnimator?.getConfig(id);
         const animations = window.PaperAnimator?.getAnimations() || {};
         const firstAnimName = Object.keys(animations)[0] || null;
         return config || {
@@ -353,7 +323,8 @@
       });
     } else {
       // Export just the selected animation's config (not as an array)
-      const config = savedConfigs.get(selectedAnimatorId);
+      // Get current config from PaperAnimator (includes live overrides from dragging)
+      const config = window.PaperAnimator?.getConfig(selectedAnimatorId);
       const animations = window.PaperAnimator?.getAnimations() || {};
       const firstAnimName = Object.keys(animations)[0] || null;
       configToExport = config || {
@@ -711,6 +682,7 @@
 
     card.querySelector('.restart-btn').addEventListener('click', e => {
       if (window.PaperRenderer) {
+        console.log('[PaperDevTools] Restarting animator:', id);
         window.PaperRenderer.restartAnimator(id);
       }
     });

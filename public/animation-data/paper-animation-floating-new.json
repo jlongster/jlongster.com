@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "timePerKeyframe": 0.08,
   "playbackFPS": 30,
+  "hoverAnimationName": null,
   "keyframes": [
     {
       "leftCurve": [
@@ -1430,6 +1431,718 @@
     null,
     null,
     null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "shadowKeyframes": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -123.5,
+          "y": -40
+        },
+        {
+          "x": -166.5,
+          "y": 106
+        },
+        {
+          "x": -173.5,
+          "y": 198
+        },
+        {
+          "x": -224.5,
+          "y": 474
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 293.5,
+          "y": 28
+        },
+        {
+          "x": 282.5,
+          "y": 135
+        },
+        {
+          "x": 250,
+          "y": 200
+        },
+        {
+          "x": 236.5,
+          "y": 510
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 74
+    },
+    null,
+    null,
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -116.5,
+          "y": 11
+        },
+        {
+          "x": -166.5,
+          "y": 106
+        },
+        {
+          "x": -173.5,
+          "y": 198
+        },
+        {
+          "x": -202.5,
+          "y": 525
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 231.5,
+          "y": 79
+        },
+        {
+          "x": 217.5,
+          "y": 167
+        },
+        {
+          "x": 209.5,
+          "y": 240
+        },
+        {
+          "x": 197.5,
+          "y": 568
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 44.5
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -112.5,
+          "y": 81
+        },
+        {
+          "x": -166.5,
+          "y": 106
+        },
+        {
+          "x": -173.5,
+          "y": 198
+        },
+        {
+          "x": -202.5,
+          "y": 525
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 195.5,
+          "y": 143
+        },
+        {
+          "x": 217.5,
+          "y": 167
+        },
+        {
+          "x": 209.5,
+          "y": 240
+        },
+        {
+          "x": 197.5,
+          "y": 568
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 44.5
+    },
+    null,
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -97.5,
+          "y": 210
+        },
+        {
+          "x": -111.5,
+          "y": 254
+        },
+        {
+          "x": -139.5,
+          "y": 362
+        },
+        {
+          "x": -235.5,
+          "y": 574
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 162.5,
+          "y": 232
+        },
+        {
+          "x": 133.5,
+          "y": 390
+        },
+        {
+          "x": 150.5,
+          "y": 422
+        },
+        {
+          "x": 181.5,
+          "y": 658
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 44.5
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -97.5,
+          "y": 210
+        },
+        {
+          "x": -111.5,
+          "y": 254
+        },
+        {
+          "x": -139.5,
+          "y": 362
+        },
+        {
+          "x": -140.5,
+          "y": 453
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 162.5,
+          "y": 232
+        },
+        {
+          "x": 133.5,
+          "y": 390
+        },
+        {
+          "x": 150.5,
+          "y": 422
+        },
+        {
+          "x": 195.5,
+          "y": 590
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 44.5
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -79.5,
+          "y": 329
+        },
+        {
+          "x": -111.5,
+          "y": 360
+        },
+        {
+          "x": -131.5,
+          "y": 415
+        },
+        {
+          "x": -183.5,
+          "y": 456
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 131.5,
+          "y": 307
+        },
+        {
+          "x": 133.5,
+          "y": 390
+        },
+        {
+          "x": 150.5,
+          "y": 422
+        },
+        {
+          "x": 190.5,
+          "y": 481
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 44.5
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -72.5,
+          "y": 297
+        },
+        {
+          "x": -106.5,
+          "y": 339
+        },
+        {
+          "x": -135.5,
+          "y": 380
+        },
+        {
+          "x": -184.5,
+          "y": 451
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 131.5,
+          "y": 307
+        },
+        {
+          "x": 133.5,
+          "y": 390
+        },
+        {
+          "x": 150.5,
+          "y": 422
+        },
+        {
+          "x": 155.5,
+          "y": 516
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 44.5
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -72.5,
+          "y": 297
+        },
+        {
+          "x": -106.5,
+          "y": 339
+        },
+        {
+          "x": -135.5,
+          "y": 380
+        },
+        {
+          "x": -149.5,
+          "y": 465
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 129.5,
+          "y": 285
+        },
+        {
+          "x": 122.5,
+          "y": 369
+        },
+        {
+          "x": 124.5,
+          "y": 387
+        },
+        {
+          "x": 165.5,
+          "y": 483
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 48
+    },
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -72.5,
+          "y": 297
+        },
+        {
+          "x": -106.5,
+          "y": 339
+        },
+        {
+          "x": -135.5,
+          "y": 380
+        },
+        {
+          "x": -135.5,
+          "y": 384
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 129.5,
+          "y": 301
+        },
+        {
+          "x": 122.5,
+          "y": 369
+        },
+        {
+          "x": 124.5,
+          "y": 387
+        },
+        {
+          "x": 132.5,
+          "y": 448
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 28.5
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -72.5,
+          "y": 297
+        },
+        {
+          "x": -106.5,
+          "y": 339
+        },
+        {
+          "x": -135.5,
+          "y": 380
+        },
+        {
+          "x": -177.5,
+          "y": 410
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 152.5,
+          "y": 328
+        },
+        {
+          "x": 153.5,
+          "y": 382
+        },
+        {
+          "x": 143.5,
+          "y": 411
+        },
+        {
+          "x": 110.5,
+          "y": 478
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 8
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -72.5,
+          "y": 297
+        },
+        {
+          "x": -106.5,
+          "y": 339
+        },
+        {
+          "x": -135.5,
+          "y": 380
+        },
+        {
+          "x": -177.5,
+          "y": 410
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 180.5,
+          "y": 263
+        },
+        {
+          "x": 153.5,
+          "y": 382
+        },
+        {
+          "x": 143.5,
+          "y": 411
+        },
+        {
+          "x": 88.5,
+          "y": 509
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 8
+    },
+    {
+      "leftCurve": [
+        {
+          "x": -72.5,
+          "y": 297
+        },
+        {
+          "x": -106.5,
+          "y": 339
+        },
+        {
+          "x": -135.5,
+          "y": 380
+        },
+        {
+          "x": -192.5,
+          "y": 370
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 208.5,
+          "y": 169
+        },
+        {
+          "x": 144.5,
+          "y": 346
+        },
+        {
+          "x": 130.5,
+          "y": 391
+        },
+        {
+          "x": 84.5,
+          "y": 477
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 5.5
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "leftCurve": [
+        {
+          "x": -6.5,
+          "y": 145
+        },
+        {
+          "x": -93.5,
+          "y": 164
+        },
+        {
+          "x": -165.5,
+          "y": 256
+        },
+        {
+          "x": -197.5,
+          "y": 299
+        }
+      ],
+      "rightCurve": [
+        {
+          "x": 200.5,
+          "y": 178
+        },
+        {
+          "x": 138.5,
+          "y": 299
+        },
+        {
+          "x": 108.5,
+          "y": 361
+        },
+        {
+          "x": 50.5,
+          "y": 447
+        }
+      ],
+      "colors": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "blurEnabled": true,
+      "blurAmount": 5.5
+    },
     null,
     null,
     null,

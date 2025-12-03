@@ -213,20 +213,38 @@
       return;
     }
 
-    const { threshold = 0.2, rootMargin = '0px' } = options;
+    const { threshold = 0.2, rootMargin = '0px', target } = options;
 
-    // Find an element to observe (use the first one in the group)
-    const firstElement = groupData.elements[0]?.element;
-    if (!firstElement) {
-      console.warn(`[AnimationCoordinator] No elements in group "${groupName}" to observe`);
-      return;
+    // Find element to observe
+    let elementToObserve;
+    if (target) {
+      // Use custom target selector
+      elementToObserve = document.querySelector(target);
+      if (!elementToObserve) {
+        console.warn(`[AnimationCoordinator] Target element not found for selector "${target}"`);
+        return;
+      }
+    } else {
+      // Use the first element in the group
+      elementToObserve = groupData.elements[0]?.element;
+      if (!elementToObserve) {
+        console.warn(`[AnimationCoordinator] No elements in group "${groupName}" to observe`);
+        return;
+      }
     }
+
+    console.log(`[AnimationCoordinator] Setting up scroll observer for group "${groupName}", observing:`, elementToObserve, `threshold: ${threshold}`);
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          console.log(`[AnimationCoordinator] Intersection change for group "${groupName}":`, {
+            isIntersecting: entry.isIntersecting,
+            intersectionRatio: entry.intersectionRatio,
+            triggered: groupData.triggered
+          });
           if (entry.isIntersecting && !groupData.triggered) {
-            console.log(`[AnimationCoordinator] Group "${groupName}" scrolled into view`);
+            console.log(`[AnimationCoordinator] Group "${groupName}" scrolled into view, triggering!`);
             triggerGroup(groupName);
             observer.disconnect();
           }
@@ -235,10 +253,8 @@
       { threshold, rootMargin }
     );
 
-    observer.observe(firstElement);
+    observer.observe(elementToObserve);
     groupData.observer = observer;
-
-    console.log(`[AnimationCoordinator] Observing scroll for group "${groupName}"`);
   }
 
   function init() {
@@ -252,30 +268,41 @@
     const elements = document.querySelectorAll('[data-anim-group]');
     console.log(`[AnimationCoordinator] Found ${elements.length} animated elements`);
 
-    const triggersPerGroup = new Map(); // group -> trigger type
+    const triggersPerGroup = new Map(); // group -> { trigger, scrollTarget, scrollThreshold }
 
     elements.forEach((element) => {
       const group = element.dataset.animGroup;
       const delay = parseInt(element.dataset.animDelay || '0', 10);
       const type = element.dataset.animType || detectType(element);
       const trigger = element.dataset.animTrigger || 'scroll';
+      const scrollTarget = element.dataset.animScrollTarget;
+      const scrollThreshold = element.dataset.animScrollThreshold
+        ? parseFloat(element.dataset.animScrollThreshold)
+        : undefined;
 
       register(element, { group, delay, type });
 
-      // Track trigger type for this group (use first element's trigger)
+      // Track trigger config for this group (use first element's config)
       if (!triggersPerGroup.has(group)) {
-        triggersPerGroup.set(group, trigger);
+        triggersPerGroup.set(group, { trigger, scrollTarget, scrollThreshold });
       }
     });
 
     // Set up triggers once per group
-    triggersPerGroup.forEach((trigger, group) => {
-      if (trigger === 'scroll') {
+    triggersPerGroup.forEach((config, group) => {
+      if (config.trigger === 'scroll') {
         // Defer to allow all elements in group to register first
         setTimeout(() => {
-          observeScroll(group);
+          const options = {};
+          if (config.scrollTarget) {
+            options.target = config.scrollTarget;
+          }
+          if (config.scrollThreshold !== undefined) {
+            options.threshold = config.scrollThreshold;
+          }
+          observeScroll(group, options);
         }, 0);
-      } else if (trigger === 'load') {
+      } else if (config.trigger === 'load') {
         // Trigger immediately on load
         setTimeout(() => {
           triggerGroup(group);

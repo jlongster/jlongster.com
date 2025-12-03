@@ -111,6 +111,8 @@ type PaperAnimConfig = {
   group: string;
   delay?: number;
   trigger?: 'scroll' | 'load' | 'manual';
+  scrollTarget?: string; // CSS selector for parent element to observe
+  scrollThreshold?: number; // 0-1, percentage of element that must be visible (default 0.2)
 };
 
 function Paper({
@@ -153,6 +155,8 @@ function Paper({
       data-anim-delay={animProps?.delay}
       data-anim-type="paper"
       data-anim-trigger={animProps?.trigger}
+      data-anim-scroll-target={animProps?.scrollTarget}
+      data-anim-scroll-threshold={animProps?.scrollThreshold}
     >
       {children}
     </div>
@@ -177,6 +181,8 @@ type AnimConfig = {
   textDelay?: number;
   arrowDelay?: number;
   trigger?: 'scroll' | 'load' | 'manual';
+  scrollTarget?: string; // CSS selector for parent element to observe
+  scrollThreshold?: number; // 0-1, percentage of element that must be visible (default 0.2)
 };
 
 function CanvasText({
@@ -206,6 +212,8 @@ function CanvasText({
         data-anim-delay={anim?.textDelay}
         data-anim-type="text"
         data-anim-trigger={anim?.trigger}
+        data-anim-scroll-target={anim?.scrollTarget}
+        data-anim-scroll-threshold={anim?.scrollThreshold}
         style={{
           position: 'absolute',
           fontSize: 23,
@@ -224,6 +232,8 @@ function CanvasText({
           data-anim-delay={anim?.arrowDelay}
           data-anim-type="arrow"
           data-anim-trigger={anim?.trigger}
+          data-anim-scroll-target={anim?.scrollTarget}
+          data-anim-scroll-threshold={anim?.scrollThreshold}
           style={{
             position: 'absolute',
             top: arrow.top,
@@ -248,17 +258,27 @@ export default function Index() {
 
   return (
     <>
-      <script src="/paper-devtools.js" />
-      <script src="/text-devtools.js" />
-      <script src="/shadow-renderer.js" />
-      <script src="/paper-animator.js?v=7" />
-      <script src="/paper-renderer.js?v=3" />
-      <script src="/paper-animation-editor.js" />
-      <script src="/arrow-animator.js" />
-      <script src="/animation-coordinator.js" />
-      <script src="/anim-devtools.js" />
+      <script src="/old-paper-refresh/paper-devtools.js" />
+      <script src="/old-paper-refresh/text-devtools.js" />
+      <script src="/old-paper-refresh/shadow-renderer.js" />
+      <script src="/old-paper-refresh/paper-animator.js?v=7" />
+      <script src="/old-paper-refresh/paper-renderer.js?v=3" />
+      <script src="/old-paper-refresh/paper-animation-editor.js" />
+      <script src="/old-paper-refresh/arrow-animator.js" />
+      <script src="/old-paper-refresh/animation-coordinator.js" />
+      <script src="/old-paper-refresh/anim-devtools.js" />
 
       <div id="scroll-container" className="overflow-hidden bg-[#fcfbf9]">
+        <div
+          style={{
+            paddingTop: 10,
+            textAlign: 'center',
+            color: '#c4baa1',
+            fontWeight: 300,
+          }}
+        >
+          [WIP] This site was was an attempt at a visual refresh that I paused.
+        </div>
         <div
           className="intro relative"
           style={{
@@ -304,8 +324,8 @@ export default function Index() {
 
               <CanvasText
                 position={{
-                  top: 200,
-                  left: -456,
+                  top: 201,
+                  left: -362,
                 }}
                 arrow={{
                   name: 'up-right',
@@ -322,17 +342,18 @@ export default function Index() {
                   trigger: 'load',
                 }}
               >
-                I wrote a note for you, open it!
+                Open it!
               </CanvasText>
             </section>
           </div>
         </div>
 
         <div
+          id="experiments-trigger"
           style={{
             marginTop: 200,
-            marginBottom: 300,
-            minHeight: '100vh',
+            marginBottom: 0,
+            minHeight: 'min(100vh, 900px)',
             position: 'relative',
           }}
         >
@@ -379,81 +400,208 @@ export default function Index() {
               },
             ]}
             animConfigs={[
-              { group: 'experiments', delay: 0, trigger: 'load' },
-              { group: 'experiments', delay: 600, trigger: 'load' },
-              { group: 'experiments', delay: 400, trigger: 'load' },
-              { group: 'experiments', delay: 200, trigger: 'load' },
+              {
+                group: 'experiments',
+                delay: 0,
+                trigger: 'scroll',
+                scrollTarget: '#experiments-trigger',
+                scrollThreshold: 0.6,
+              },
+              {
+                group: 'experiments',
+                delay: 600,
+                trigger: 'scroll',
+                scrollTarget: '#experiments-trigger',
+                scrollThreshold: 0.6,
+              },
+              {
+                group: 'experiments',
+                delay: 400,
+                trigger: 'scroll',
+                scrollTarget: '#experiments-trigger',
+                scrollThreshold: 0.6,
+              },
+              {
+                group: 'experiments',
+                delay: 200,
+                trigger: 'scroll',
+                scrollTarget: '#experiments-trigger',
+                scrollThreshold: 0.6,
+              },
             ]}
           />
+
           <CanvasText
             position={{
-              top: 295,
-              left: 973,
+              top: 294,
+              left: 985,
             }}
             arrow={{
               name: 'down-left',
-              top: 257,
-              left: 959,
+              top: 254,
+              left: 898,
               scale: 0.4,
             }}
             color="rgb(249, 141, 47)"
             rotation={8}
             anim={{
               group: 'experiments',
-              textDelay: 1500,
-              arrowDelay: 1800,
-              trigger: 'load',
+              textDelay: 600,
+              arrowDelay: 650,
+              trigger: 'scroll',
+              scrollTarget: '#experiments-trigger',
+              scrollThreshold: 0.6,
             }}
           >
             Some experiments I've worked on
           </CanvasText>
         </div>
 
-        {/* Semantic list of all posts - will be scraped by JS
-            NEVER apply display: none here, it should always be an inline script tag below*/}
-        <PostsList
-          posts={notes}
-          id="all-posts"
-          style={{ marginTop: 200, marginBottom: 300, minHeight: '100vh' }}
-          animationConfigs={[
-            {
-              animationName: 'floating',
-              offsetX: 573,
-              offsetY: 199,
-              rotation: -43,
-              scale: 1,
-              startKeyframe: 31,
-              endKeyframe: 59,
-            },
-            {
-              animationName: 'slide-in',
-              offsetX: 1045,
-              offsetY: 51,
-              rotation: -16,
-              scale: 1.2,
-              startKeyframe: 5,
-              endKeyframe: 59,
-            },
-            {
-              animationName: 'floating',
-              offsetX: 564,
-              offsetY: 493,
-              rotation: -9,
-              scale: 0.9,
-              startKeyframe: 28,
-              endKeyframe: 59,
-            },
-            {
-              animationName: 'slide-in',
-              offsetX: 962,
-              offsetY: 408,
-              rotation: -34,
-              scale: 1.1,
-              startKeyframe: 0,
-              endKeyframe: 59,
-            },
-          ]}
-        />
+        <div
+          className="writing-stuff"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '900px',
+            margin: '0 auto',
+            gap: 50,
+          }}
+        >
+          <div style={{ position: 'relative', height: 600 }}>
+            <h1
+              className="font-serif text-4xl font-bold"
+              style={{
+                fontFamily:
+                  'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont',
+              }}
+            >
+              Work
+            </h1>
+
+            <Paper
+              animationConfig={{
+                animationName: 'floating',
+                offsetX: 78,
+                offsetY: 6,
+                rotation: -17,
+                scale: 0.9,
+                startKeyframe: 10,
+                endKeyframe: 35,
+              }}
+              anim={{
+                group: 'intro',
+                delay: 0,
+                trigger: 'load',
+              }}
+            >
+              <div
+                style={{
+                  textAlign: 'center',
+                  flexDirection: 'column',
+                  fontSize: 20,
+                }}
+              >
+                <p>Resume</p>
+                <div style={{ height: 50 }} />
+              </div>
+            </Paper>
+            <Paper
+              animationConfig={{
+                animationName: 'floating',
+                offsetX: 457,
+                offsetY: 27,
+                rotation: -17,
+                scale: 0.9,
+                startKeyframe: 10,
+                endKeyframe: 35,
+              }}
+              anim={{
+                group: 'intro',
+                delay: 0,
+                trigger: 'load',
+              }}
+            >
+              <div
+                style={{
+                  textAlign: 'center',
+                  flexDirection: 'column',
+                  fontSize: 20,
+                }}
+              >
+                <p>Projects & experience</p>
+                <div style={{ height: 50 }} />
+              </div>
+            </Paper>
+          </div>
+
+          <div style={{ flex: 1, marginBottom: 100 }}>
+            <h1
+              className="font-serif text-4xl font-bold"
+              style={{
+                fontFamily:
+                  'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont',
+              }}
+            >
+              Notes
+            </h1>
+
+            <div className="flex">
+              <div className="flex-1 flex flex-col items-start">
+                <ul id="content-posts" className="posts-list py-4 mt-12 w-full">
+                  {notes.slice(0, 5).map((post: any, i: number) => {
+                    const img = !!post.gif;
+
+                    return (
+                      <li
+                        key={post.url}
+                        className={`post-item group relative flex flex-col`}
+                        data-url={post.url}
+                        data-title={post.title}
+                        data-image={post.gif || ''}
+                      >
+                        <a href={post.url} className="uncolored-link">
+                          {img ? (
+                            <div className="aspect-video w-full overflow-hidden bg-gray-50">
+                              <img
+                                src={post.gif}
+                                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                                alt=""
+                              />
+                            </div>
+                          ) : null}
+
+                          <div className="py-6 flex flex-col flex-grow">
+                            <h2 style={{ margin: 0, marginBottom: 8 }}>
+                              {post.title}
+                            </h2>
+
+                            {post.date && (
+                              <span className="text-xs text-gray-400 font-mono uppercase tracking-wider">
+                                {new Date(post.date).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    year: 'numeric',
+                                    month: 'short',
+                                  },
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <a
+                  href="/posts"
+                  className="uncolored-link bg-primary px-6 py-3 rounded-lg hover:opacity-90 transition-opacity mt-4"
+                >
+                  <span className="text-white">Read more</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
         <script
           dangerouslySetInnerHTML={{
             __html:
