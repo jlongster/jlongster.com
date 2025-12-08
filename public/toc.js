@@ -23,7 +23,6 @@ function run() {
   /* make it scrollable when it transitions to stick */
 
   const toc = document.querySelector('.toc');
-  console.log(toc);
 
   if (toc) {
     const observer = new IntersectionObserver(

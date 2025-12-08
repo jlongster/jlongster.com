@@ -1,128 +1,5 @@
 @import "tailwindcss";
-
-
-.playfair-display-regular {
-  font-family: "Playfair Display", serif;
-  font-optical-sizing: auto;
-  font-weight: normal;
-  font-style: normal;
-}
-
-.playfair-display-bold {
-  font-family: "Playfair Display", serif;
-  font-optical-sizing: auto;
-  font-weight: 700;
-  font-style: normal;
-}
-
-
-@font-face {
-  font-family: 'LoveLexie';
-  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'LoveLexie';
-  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
-  font-weight: bold;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'LoveLexie';
-  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
-  font-weight: normal;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'LoveLexie';
-  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
-  font-weight: bold;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-Light.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-LightItalic.ttf') format('truetype');
-  font-weight: 300;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-Italic.ttf') format('truetype');
-  font-weight: 400;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-SemiBold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-SemiBoldItalic.ttf') format('truetype');
-  font-weight: 600;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-BoldItalic.ttf') format('truetype');
-  font-weight: 700;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-Black.ttf') format('truetype');
-  font-weight: 900;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Georgia Pro';
-  src: url('/fonts/georgia-pro/GeorgiaPro-BlackItalic.ttf') format('truetype');
-  font-weight: 900;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Handero';
-  src: url('/fonts/handero/ATP-Handero.woff2') format('woff2'),
-       url('/fonts/handero/ATP-Handero.woff') format('woff'),
-       url('/fonts/handero/ATP-Handero.ttf') format('truetype'),
-       url('/fonts/handero/ATP-Handero.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
+@import "./fonts.css";
 
 /*
  * define:
@@ -136,7 +13,7 @@
 
 @theme {
   --color-primary: #313131;
-  --color-subdued: #dad9d7;
+  --color-subdued: rgb(129, 138, 146);
   --color-link: #317AE7;
   --color-accent: #F98D2F;
   --color-bg: #fcfbf9;
@@ -159,10 +36,10 @@
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 17px;
+  font-family: 'IBM Ples Sans Var', ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
+  font-size: 16px;
   line-height: 27px;
-  letter-spacing: 0.006em;
+  letter-spacing: -0.009em;
   margin: 0;
   color: var(--color-primary);
   background-color: var(--color-bg);
@@ -215,11 +92,11 @@ h4 a:active {
 }
 
 h1 {
-  font-family: Georgia Pro;
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 10px;
   line-height: 1.2em;
+  letter-spacing: -0.01em;
 }
 
 h2 {
@@ -275,7 +152,11 @@ header .context {
   list-style: decimal;
 }
 
-.post ul li, ol li {
+.post ol li {
+  margin-left: 40px;
+}
+
+.post ul li {
   margin-left: 25px;
 }
 
@@ -323,6 +204,12 @@ pre {
   line-height: 1.5em;
   width: 75%;
   margin: 0 auto;
+}
+
+/* nav */
+
+nav .matches {
+  font-weight: bold;
 }
 
 /* demos */

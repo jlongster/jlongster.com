@@ -17,17 +17,6 @@
     scanForCanvasTextElements();
     setupMutationObserver();
 
-    // Apply initial collapsed state
-    if (isCollapsed) {
-      const sidebar = document.getElementById('text-devtools');
-      const collapseBtn = document.getElementById('text-collapse-btn');
-      const collapseTab = document.getElementById('text-devtools-tab');
-
-      if (sidebar) sidebar.style.transform = 'translateX(320px)';
-      if (collapseBtn) collapseBtn.textContent = '←';
-      if (collapseTab) collapseTab.style.display = 'block';
-    }
-
     // Load persisted text if persist mode is enabled
     loadFromLocalStorage();
 
@@ -266,6 +255,7 @@
       font-size: 13px;
       box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
       transition: transform 0.3s ease;
+      transform: translateX(320px);
     `;
 
     // Header
@@ -398,7 +388,7 @@
       font-size: 14px;
       font-weight: 600;
       writing-mode: vertical-rl;
-      display: none;
+      display: block;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
     collapseTab.textContent = 'Text DevTools';

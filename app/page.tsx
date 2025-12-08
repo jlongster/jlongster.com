@@ -52,6 +52,6 @@ export function formatDate(date) {
     // almost (all?) timezone offsets. Without this, `format` may
     // show the day before because it takes timezones into account
     addHours(typeof date === 'string' ? new Date(date) : date, 12),
-    'MMMM do, yyyy',
+    'MMM do, yyyy',
   );
 }

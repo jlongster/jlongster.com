@@ -1,0 +1,122 @@
+.playfair-display-regular {
+  font-family: "Playfair Display", serif;
+  font-optical-sizing: auto;
+  font-weight: normal;
+  font-style: normal;
+}
+
+.playfair-display-bold {
+  font-family: "Playfair Display", serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+
+@font-face {
+  font-family: 'LoveLexie';
+  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LoveLexie';
+  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LoveLexie';
+  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'LoveLexie';
+  src: url('https://static.jlongster.com/20251119/LovelexieHandwritten.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-LightItalic.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Georgia Pro';
+  src: url('/fonts/georgia-pro/GeorgiaPro-BlackItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Handero';
+  src: url('/fonts/handero/ATP-Handero.woff2') format('woff2'),
+       url('/fonts/handero/ATP-Handero.woff') format('woff'),
+       url('/fonts/handero/ATP-Handero.ttf') format('truetype'),
+       url('/fonts/handero/ATP-Handero.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
