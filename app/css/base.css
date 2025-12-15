@@ -135,6 +135,12 @@ p:last-of-type {
   margin-bottom: 0;
 }
 
+input {
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
 header {
   margin-bottom: 10px;
   padding-top: 20px;
@@ -205,6 +211,16 @@ pre {
   width: 75%;
   margin: 0 auto;
 }
+
+/* post */
+
+.post button {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 7px 12px;
+  border-radius: 6px;
+}
+
 
 /* nav */
 

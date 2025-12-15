@@ -176,10 +176,11 @@
       originalPaperWrapper.style.position = 'relative';
     }
 
-    // Disable paper interactions (hover, drag) while editor is open
-    if (window.PaperAnimator) {
-      window.PaperAnimator.disableInteractions();
-    }
+    // Keep paper interactions enabled so user can drag paper while editing
+    // (commented out to allow dragging in animation editor page)
+    // if (window.PaperAnimator) {
+    //   window.PaperAnimator.disableInteractions();
+    // }
 
     initializeControlPoints();
 
@@ -239,10 +240,10 @@
     onCloseCallback = options.onClose;
     onAnimationChangeCallback = options.onAnimationChange;
 
-    // Disable paper interactions (hover, drag) while editor is open
-    if (window.PaperAnimator) {
-      window.PaperAnimator.disableInteractions();
-    }
+    // Keep paper interactions enabled so user can drag paper while editing
+    // if (window.PaperAnimator) {
+    //   window.PaperAnimator.disableInteractions();
+    // }
 
     initializeControlPoints();
 

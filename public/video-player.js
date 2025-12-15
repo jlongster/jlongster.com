@@ -63,8 +63,7 @@
     };
     document.body.appendChild(input);
 
-    // Auto-trigger file selection
-    setTimeout(() => input.click(), 100);
+    // Don't auto-trigger - let user click "Choose Video" button
 
     // Controls container
     const controls = document.createElement('div');

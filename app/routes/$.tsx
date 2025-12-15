@@ -230,6 +230,7 @@ export default function RenderPage(props) {
       <script src="/enhance-links.js" />
       <script src="/toc.js" />
       <script src="/tweet.js" />
+      <script src="/examples.js" />
     </Layout>
   );
 }
