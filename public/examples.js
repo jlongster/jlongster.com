@@ -1,3 +1,5 @@
+const closeSvg = `<svg width="18" height="18" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M89 22L22.3848 88.6152" stroke="black" stroke-width="10" stroke-linecap="round"/><path d="M22 22L88.6152 88.6152" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>`
+
 // Example modal loader
 // Handles buttons with data-example-href attribute
 
@@ -43,13 +45,13 @@ class ExampleModal {
 
     this.toggleBtn = document.createElement('button');
     this.toggleBtn.className = 'example-modal-btn';
-    this.toggleBtn.textContent = 'switch to source';
+    this.toggleBtn.textContent = 'show source';
     this.toggleBtn.addEventListener('click', () => this.toggleView());
     actions.appendChild(this.toggleBtn);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'example-modal-close';
-    closeBtn.textContent = 'X';
+    closeBtn.innerHTML = closeSvg;
     closeBtn.addEventListener('click', () => this.close());
     actions.appendChild(closeBtn);
 
@@ -134,7 +136,7 @@ class ExampleModal {
       // Show source, hide example
       this.exampleContent.style.display = 'none';
       this.sourceContent.style.display = '';
-      this.toggleBtn.textContent = 'switch to example';
+      this.toggleBtn.textContent = 'show demo';
 
       // Lazy load source on first view
       if (!this.sourceLoaded) {
@@ -149,7 +151,8 @@ class ExampleModal {
 
         const apiUrl = this.getSourceApiUrl();
         if (!apiUrl) {
-          this.sourceCode.textContent = 'Error: Could not determine example name';
+          this.sourceCode.textContent =
+            'Error: Could not determine example name';
           return;
         }
 
@@ -186,7 +189,7 @@ class ExampleModal {
       // Show example, hide source
       this.exampleContent.style.display = '';
       this.sourceContent.style.display = 'none';
-      this.toggleBtn.textContent = 'switch to source';
+      this.toggleBtn.textContent = 'show source';
     }
   }
 }
@@ -222,20 +225,21 @@ styles.textContent = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: transparent;
-    transition: .15s background-color;
+    opacity: 0;
+    background-color: rgba(30, 30, 30, .2);
+    transition: .15s opacity;
     inset: 0;
   }
 
   .example-modal-backdrop.animated {
-    background-color: rgba(30, 30, 30, .2);
+    opacity: 1;
   }
 
   .example-modal-dialog {
     display: flex;
     flex-direction: column;
     border-radius: 6px;
-    background-color: white;
+    background-color: var(--color-bg);
     width: 700px;
     height: 80dvh;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -244,7 +248,7 @@ styles.textContent = `
   .example-modal-header {
     display: flex;
     padding: 10px 15px;
-    border-bottom: 1px solid #eaedfc;
+    border-bottom: 1px solid rgb(233 232 230);
     align-items: center;
   }
 
@@ -257,30 +261,26 @@ styles.textContent = `
   .example-modal-actions {
     display: flex;
     gap: 5px;
+    align-items: center;
   }
 
   .example-modal-btn {
     border: 1px solid var(--color-primary);
     background-color: white;
-    padding: 4px 9px;
+    padding: 1px 9px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
   }
 
-  .example-modal-btn:hover {
-    background-color: #eaedfc;
-  }
-
   .example-modal-close {
-    padding: 5px 9px;
+    padding: 5px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
   }
 
   .example-modal-close:hover {
-    background-color: #eaedfc;
   }
 
   .example-modal-content {
