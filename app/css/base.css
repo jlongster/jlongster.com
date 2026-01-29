@@ -16,7 +16,7 @@
   --color-subdued: rgb(129, 138, 146);
   --color-link: #317AE7;
   --color-accent: #F98D2F;
-  --color-bg: #fcfbf9;
+  --color-bg: #000000;
 }
 
 .dark-mode {
@@ -24,7 +24,7 @@
   --color-subdued: #a0a0d0;
   --color-link: #5b9bff;
   --color-accent: #F98D2F;
-  --color-bg: #202020;
+  --color-bg: #000000;
 }
 
 * {
